@@ -1,6 +1,6 @@
 # To-Do Receipts
 
-Generate thermal printer-style receipts for your daily tasks.
+Generate thermal printer-style receipts for my daily tasks. 
 
 ## Installation
 
