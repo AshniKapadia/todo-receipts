@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #3a3a3a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      background: #f8f8f8;
+      width: 100%;
+      max-width: 600px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .container::before,
+    .container::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 15px;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 10px,
+        #f8f8f8 10px,
+        #f8f8f8 20px
+      );
+    }
+
+    .container::before {
+      top: -15px;
+    }
+
+    .container::after {
+      bottom: -15px;
+    }
+
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #333;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .stat-item {
+      display: flex;
+      gap: 5px;
+    }
+
+    .add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px dashed #999;
+    }
+
+    .add-form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .add-input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #333;
+      background: white;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+    }
+
+    .add-input:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    .add-select {
+      padding: 10px;
+      border: 2px solid #333;
+      background: white;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .add-select:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: none;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #555;
+    }
+
+    .btn:active {
+      background: #000;
+    }
+
+    .btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .tasks-list {
+      margin-bottom: 20px;
+    }
+
+    .task-item {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      background: white;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      align-items: center;
+      cursor: move;
+      transition: all 0.2s;
+    }
+
+    .task-item:hover {
+      background: #fafafa;
+    }
+
+    .task-item.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    .task-item.drag-over {
+      border-top: 3px solid #333;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: #999;
+      font-size: 20px;
+      user-select: none;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .task-checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-title {
+      flex: 1;
+      word-wrap: break-word;
+      cursor: pointer;
+    }
+
+    .task-completed .task-title {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .task-btn {
+      padding: 5px 10px;
+      background: #666;
+      color: white;
+      border: none;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .task-btn:hover {
+      background: #333;
+    }
+
+    .task-btn.delete {
+      background: #a33;
+    }
+
+    .task-btn.delete:hover {
+      background: #811;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 2px solid #333;
+    }
+
+    .print-btn {
+      padding: 15px 30px;
+      background: #2d5a27;
+      color: white;
+      border: none;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .print-btn:hover {
+      background: #1e3d1a;
+    }
+
+    .print-btn:active {
+      background: #0f1e0d;
+    }
+
+    .edit-input {
+      flex: 1;
+      padding: 8px;
+      border: 2px solid #555;
+      background: white;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+    }
+
+    .edit-input:focus {
+      outline: none;
+      border-color: #333;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+
+    .error {
+      background: #fdd;
+      border: 1px solid #c33;
+      padding: 10px;
+      margin-bottom: 20px;
+      color: #c33;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">TO-DO LIST</div>
+      <div class="stats">
+        <div class="stat-item">
+          <span>Total:</span>
+          <span id="stat-total">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Completed:</span>
+          <span id="stat-completed">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Pending:</span>
+          <span id="stat-pending">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div class="add-form">
+      <div class="add-form-row">
+        <input
+          type="text"
+          id="add-input"
+          class="add-input"
+          placeholder="Add a new task..."
+          maxlength="200"
+        />
+      </div>
+      <div class="add-form-row">
+        <select id="add-category" class="add-select">
+          <option value="General">📋 General</option>
+          <option value="Work">💼 Work</option>
+          <option value="Personal">🏠 Personal</option>
+          <option value="Shopping">🛒 Shopping</option>
+          <option value="Health">🏥 Health</option>
+          <option value="Finance">💰 Finance</option>
+          <option value="Learning">📚 Learning</option>
+        </select>
+        <select id="add-priority" class="add-select">
+          <option value="low">· Low</option>
+          <option value="medium" selected>! Medium</option>
+          <option value="high">⚠️ High</option>
+        </select>
+        <input
+          type="text"
+          id="add-time"
+          class="add-select"
+          placeholder="Time (e.g. 2h, 30m)"
+          maxlength="20"
+          style="flex: 1;"
+        />
+        <button id="add-btn" class="btn" onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+
+    <div class="tasks-list" id="tasks-list">
+      <div class="loading">Loading tasks...</div>
+    </div>
+
+    <div class="footer">
+      <button class="print-btn" onclick="printReceipt()">Print Receipt</button>
+    </div>
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>
