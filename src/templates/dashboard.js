@@ -64,8 +64,7 @@ function renderTodos() {
         `;
       }
 
-      const prioritySymbol = todo.priority === 'high' ? '⚠️' : (todo.priority === 'medium' ? '!' : '·');
-      const timeInfo = todo.time_estimate ? ` ⏱ ${todo.time_estimate}` : '';
+      const timeInfo = todo.time_estimate ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">${escapeHtml(todo.time_estimate)}</div>` : '';
 
       return `
         <div class="task-item ${todo.completed ? 'task-completed' : ''}"
@@ -80,10 +79,8 @@ function renderTodos() {
           <span class="drag-handle">⋮⋮</span>
           <input type="checkbox" class="task-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleComplete(${todo.id})" />
           <div class="task-title" onclick="startEdit(${todo.id})" style="flex: 1;">
-            <div>${prioritySymbol} ${escapeHtml(todo.title)}</div>
-            <div style="font-size: 11px; color: #999; margin-top: 4px;">
-              📁 ${escapeHtml(todo.category || 'General')}${timeInfo}
-            </div>
+            <div>${escapeHtml(todo.title)}</div>
+            ${timeInfo}
           </div>
           <div class="task-actions">
             <button class="task-btn" onclick="startEdit(${todo.id})">Edit</button>
@@ -118,8 +115,6 @@ function updateStats() {
 // Add new task
 async function addTask() {
   const input = document.getElementById('add-input');
-  const category = document.getElementById('add-category');
-  const priority = document.getElementById('add-priority');
   const time = document.getElementById('add-time');
 
   const title = input.value.trim();
@@ -133,8 +128,6 @@ async function addTask() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
-        category: category.value,
-        priority: priority.value,
         time_estimate: time.value.trim(),
       }),
     });
