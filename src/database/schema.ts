@@ -21,5 +21,12 @@ export const CREATE_TABLE_SQL = `
     order_position INTEGER DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
-  )
+  );
+  CREATE TABLE IF NOT EXISTS print_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    status TEXT DEFAULT 'pending',
+    todos_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    completed_at INTEGER
+  );
 `;

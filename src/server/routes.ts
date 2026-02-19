@@ -82,6 +82,17 @@ export class ApiRouter {
         return;
       }
 
+      if (url === "/api/print/pending" && method === "GET") {
+        await this.getPendingJobs(res);
+        return;
+      }
+
+      if (url.match(/^\/api\/print\/\d+\/complete$/) && method === "POST") {
+        const id = parseInt(url.split("/")[3], 10);
+        await this.completePrintJob(res, id);
+        return;
+      }
+
       // 404
       this.sendError(res, 404, "Not found");
     } catch (error) {
@@ -189,50 +200,18 @@ export class ApiRouter {
 
   private async printReceipt(res: ServerResponse): Promise<void> {
     const todos = this.db.getAllTodos();
-    const config = await this.configManager.loadConfig();
+    const jobId = this.db.createPrintJob(todos);
+    this.sendJson(res, { success: true, jobId, queued: true });
+  }
 
-    const receiptData = {
-      todos,
-      totalCount: todos.length,
-      completedCount: todos.filter((t) => t.completed).length,
-      timestamp: new Date(),
-      config,
-    };
+  private async getPendingJobs(res: ServerResponse): Promise<void> {
+    const jobs = this.db.getPendingJobs();
+    this.sendJson(res, { jobs });
+  }
 
-    // Generate receipt
-    const receiptGenerator = new ReceiptGenerator();
-    const receiptText = receiptGenerator.generateReceipt(receiptData);
-
-    // Generate HTML
-    const htmlRenderer = new HtmlRenderer();
-    const html = htmlRenderer.generateHtml(receiptData, receiptText);
-
-    // Save to receipts directory
-    const receiptsDir = this.configManager.getReceiptsDir();
-    await mkdir(receiptsDir, { recursive: true });
-
-    const timestamp = Date.now();
-    const fileName = `todo-receipt-${timestamp}.html`;
-    const filePath = join(receiptsDir, fileName);
-
-    await writeFile(filePath, html, "utf-8");
-
-    // If printer configured, print to thermal printer
-    if (config.printer) {
-      try {
-        const thermalPrinter = new ThermalPrinterRenderer();
-        await thermalPrinter.printReceipt(receiptData, config.printer);
-      } catch (error) {
-        console.error("Printer error:", error);
-        // Continue even if printer fails
-      }
-    }
-
-    this.sendJson(res, {
-      success: true,
-      filePath,
-      url: `/receipts/${fileName}`,
-    });
+  private async completePrintJob(res: ServerResponse, id: number): Promise<void> {
+    this.db.completePrintJob(id);
+    this.sendJson(res, { success: true });
   }
 
   private extractId(url: string): number {

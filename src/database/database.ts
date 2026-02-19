@@ -268,6 +268,42 @@ export class TodoDatabase {
   }
 
   /**
+   * Create a pending print job with the current todo list snapshot
+   */
+  createPrintJob(todos: TodoItem[]): number {
+    const stmt = this.db.prepare(
+      "INSERT INTO print_jobs (status, todos_json, created_at) VALUES ('pending', ?, ?)"
+    );
+    const result = stmt.run(JSON.stringify(todos), Date.now());
+    return result.lastInsertRowid as number;
+  }
+
+  /**
+   * Get all pending print jobs
+   */
+  getPendingJobs(): Array<{ id: number; todos: TodoItem[]; created_at: number }> {
+    const stmt = this.db.prepare(
+      "SELECT id, todos_json, created_at FROM print_jobs WHERE status = 'pending' ORDER BY created_at ASC"
+    );
+    const rows = stmt.all() as Array<{ id: number; todos_json: string; created_at: number }>;
+    return rows.map((row) => ({
+      id: row.id,
+      todos: JSON.parse(row.todos_json),
+      created_at: row.created_at,
+    }));
+  }
+
+  /**
+   * Mark a print job as completed
+   */
+  completePrintJob(id: number): void {
+    const stmt = this.db.prepare(
+      "UPDATE print_jobs SET status = 'completed', completed_at = ? WHERE id = ?"
+    );
+    stmt.run(Date.now(), id);
+  }
+
+  /**
    * Close the database connection
    */
   close(): void {
