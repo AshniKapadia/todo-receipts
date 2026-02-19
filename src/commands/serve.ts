@@ -14,7 +14,7 @@ export class ServeCommand {
   private server: TodoServer | null = null;
 
   async execute(options: ServeOptions): Promise<void> {
-    const port = parseInt(options.port || "3000", 10);
+    const port = parseInt(options.port || process.env.PORT || "3000", 10);
 
     if (isNaN(port) || port < 1 || port > 65535) {
       console.error(chalk.red("Error: Invalid port number"));

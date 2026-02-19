@@ -78,9 +78,13 @@ export class ConfigManager {
   }
 
   /**
-   * Get the database file path
+   * Get the database file path.
+   * Respects DATA_DIR env var for cloud/container deployments.
    */
   getDatabasePath(): string {
+    if (process.env.DATA_DIR) {
+      return join(process.env.DATA_DIR, "todos.db");
+    }
     const home = process.env.HOME || process.env.USERPROFILE || "";
     return join(home, ".todo-receipts", "todos.db");
   }
