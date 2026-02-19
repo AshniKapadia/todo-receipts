@@ -304,6 +304,13 @@ export class TodoDatabase {
   }
 
   /**
+   * Delete all todos
+   */
+  clearAllTodos(): void {
+    this.db.exec("DELETE FROM todos");
+  }
+
+  /**
    * Close the database connection
    */
   close(): void {
