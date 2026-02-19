@@ -362,6 +362,7 @@ export class ThermalPrinterRenderer {
    * @param spec "usb" for auto-detect, or "usb:VID:PID" for specific device
    */
   private async sendViaUsb(buffer: Buffer, spec: string): Promise<void> {
+    // @ts-ignore — usb is an optional native dep (not available in cloud builds)
     const { findByIds, getDeviceList, OutEndpoint } = await import("usb");
 
     let vid = EPSON_VENDOR_ID;
@@ -383,7 +384,7 @@ export class ThermalPrinterRenderer {
       const summary = devices
         .slice(0, 10)
         .map(
-          (d) =>
+          (d: any) =>
             `  ${d.deviceDescriptor.idVendor.toString(16)}:${d.deviceDescriptor.idProduct.toString(16)}`,
         )
         .join("\n");
@@ -408,14 +409,14 @@ export class ThermalPrinterRenderer {
 
       // Find the OUT endpoint (bulk transfer to printer)
       const outEndpoint = iface.endpoints.find(
-        (ep): ep is InstanceType<typeof OutEndpoint> =>
+        (ep: any): ep is any =>
           ep instanceof OutEndpoint,
       );
 
       if (!outEndpoint) {
         throw new Error(
           "No OUT endpoint found on USB interface 0. " +
-            `Endpoints: ${iface.endpoints.map((e) => `${e.address} (${e.direction})`).join(", ")}`,
+            `Endpoints: ${iface.endpoints.map((e: any) => `${e.address} (${e.direction})`).join(", ")}`,
         );
       }
 
