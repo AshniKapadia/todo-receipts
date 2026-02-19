@@ -1,15 +1,17 @@
 import { createConnection } from "net";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { homedir } from "os";
+import { join } from "path";
+import { existsSync } from "fs";
 import type { ReceiptData } from "./receipt-generator.js";
-import { formatDateTime } from "../utils/formatting.js";
 
 const execAsync = promisify(exec);
 
-const WIDTH = 40; // TM-T88V 80mm paper, Font A minus margin
+const WIDTH = 40; // 80mm paper, Font A minus margin
 const LEFT_MARGIN_DOTS = 12; // 1 character width at 203 dpi
-
-const REPO_URL = "https://github.com/chrishutchinson/todo-receipts";
+const LOGO_WIDTH_DOTS = 200; // target logo width in printer dots
+const LOGO_PATH = join(homedir(), ".todo-receipts", "logo.png");
 
 // Epson USB vendor ID
 const EPSON_VENDOR_ID = 0x04b8;
@@ -149,6 +151,21 @@ class EscPosBuilder {
     return this;
   }
 
+  /**
+   * GS v 0 — print raster image.
+   * data: 1-bit bitmap, MSB-first, row-major. 1 = black dot.
+   */
+  rasterImage(data: Buffer, widthDots: number, heightDots: number): this {
+    const bytesPerLine = Math.ceil(widthDots / 8);
+    this.raw(
+      GS, 0x76, 0x30, 0x00,
+      bytesPerLine & 0xff, (bytesPerLine >> 8) & 0xff,
+      heightDots & 0xff, (heightDots >> 8) & 0xff,
+    );
+    this.chunks.push(data);
+    return this;
+  }
+
   /** GS V 66 3 — partial cut with feed. */
   partialCut(): this {
     return this.raw(GS, 0x56, 0x42, 3);
@@ -175,7 +192,7 @@ export class ThermalPrinterRenderer {
     printerInterface: string,
     shareUrl?: string,
   ): Promise<void> {
-    const buffer = this.buildReceipt(data, shareUrl);
+    const buffer = await this.buildReceipt(data);
 
     if (printerInterface.startsWith("tcp://")) {
       await this.sendViaTcp(buffer, printerInterface);
@@ -190,99 +207,125 @@ export class ThermalPrinterRenderer {
   }
 
   /**
+   * Load, resize, and convert the logo PNG to a 1-bit ESC/POS raster bitmap.
+   * Returns null if the logo file doesn't exist.
+   */
+  private async loadLogo(): Promise<{ data: Buffer; width: number; height: number } | null> {
+    if (!existsSync(LOGO_PATH)) return null;
+
+    const { Jimp } = await import("jimp");
+    const img = await Jimp.read(LOGO_PATH);
+
+    // Resize to target width, keep aspect ratio
+    img.resize({ w: LOGO_WIDTH_DOTS });
+
+    const width = img.width;
+    const height = img.height;
+    const bytesPerLine = Math.ceil(width / 8);
+    const bitmap = Buffer.alloc(bytesPerLine * height, 0);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const hex = img.getPixelColor(x, y);
+        const r = (hex >>> 24) & 0xff;
+        const g = (hex >>> 16) & 0xff;
+        const b = (hex >>> 8) & 0xff;
+        const a = hex & 0xff;
+        // Treat transparent pixels as white (no dot)
+        if (a < 128) continue;
+        // Dark pixel = print dot
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (luminance < 128) {
+          const byteIdx = y * bytesPerLine + Math.floor(x / 8);
+          bitmap[byteIdx] |= 1 << (7 - (x % 8));
+        }
+      }
+    }
+
+    return { data: bitmap, width, height };
+  }
+
+  /**
    * Build the full ESC/POS receipt buffer.
    */
-  private buildReceipt(data: ReceiptData, shareUrl?: string): Buffer {
+  private async buildReceipt(data: ReceiptData): Promise<Buffer> {
     const b = new EscPosBuilder();
 
     b.init();
     b.leftMargin(LEFT_MARGIN_DOTS);
 
-    // --- Header ---
-    b.logo();
-    b.line();
+    // Terminal number (days since 2024-01-01)
+    const terminalNum = Math.floor(
+      (data.timestamp.getTime() - new Date("2024-01-01").getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    const terminalId = String(terminalNum).padStart(6, "0");
 
-    // --- Date ---
+    // Date/time formatting
+    const date = data.timestamp;
+    const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${String(date.getFullYear()).slice(-2)}`;
+    const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+    // --- Header: logo + separator + name ---
+    const logo = await this.loadLogo();
+    if (logo) {
+      b.align("center");
+      b.rasterImage(logo.data, logo.width, logo.height);
+    }
     b.align("center");
-    b.line(`Date: ${formatDateTime(data.timestamp)}`);
+    b.drawLine("=");
+    b.bold(true);
+    b.line("ASHNI OPS TERMINAL");
+    b.bold(false);
     b.line();
 
-    // --- Tasks ---
+    // --- Terminal info ---
     b.align("left");
-    b.drawLine();
-    b.bold(true);
-    b.line("TASKS");
-    b.bold(false);
+    b.line(`Terminal: Marlboro    #${terminalId}`);
+    b.line(`Date: ${dateStr}    Time: ${timeStr}`);
     b.drawLine("-");
 
+    // --- Column headers ---
+    b.leftRight("ITEM", "SCHED");
+    b.drawLine("-");
+
+    // --- Items ---
     if (data.todos.length === 0) {
       b.align("center");
-      b.line("No tasks yet!");
+      b.line("No tasks!");
       b.align("left");
     } else {
       for (const todo of data.todos) {
-        const checkbox = todo.completed ? "[X]" : "[ ]";
-        const title = todo.title;
-
-        // Wrap long titles (max 36 chars after checkbox)
-        if (title.length <= 36) {
-          b.line(`${checkbox} ${title}`);
-        } else {
-          // Split into multiple lines
-          const words = title.split(" ");
-          let currentLine = "";
-          let isFirst = true;
-
-          for (const word of words) {
-            if ((currentLine + word).length <= 36) {
-              currentLine += (currentLine ? " " : "") + word;
-            } else {
-              if (currentLine) {
-                if (isFirst) {
-                  b.line(`${checkbox} ${currentLine}`);
-                  isFirst = false;
-                } else {
-                  b.line(`    ${currentLine}`);
-                }
-              }
-              currentLine = word;
-            }
-          }
-
-          if (currentLine) {
-            if (isFirst) {
-              b.line(`${checkbox} ${currentLine}`);
-            } else {
-              b.line(`    ${currentLine}`);
-            }
-          }
-        }
+        const upper = todo.title.toUpperCase();
+        // 4 chars for "[ ] ", leaving 24 for title before truncation
+        const itemName =
+          upper.length > 24 ? upper.slice(0, 21) + "..." : upper;
+        const sched = todo.time_estimate || "TBD";
+        b.leftRight(`[ ] ${itemName}`, sched);
       }
     }
 
-    b.line();
-    b.drawLine();
+    b.drawLine("-");
+    b.leftRight("ITEM COUNT", String(data.todos.length));
+    b.drawLine("-");
 
-    // --- Summary ---
-    b.bold(true);
-    b.leftRight("TOTAL TASKS", String(data.totalCount));
-    b.bold(false);
-    b.leftRight("COMPLETED", String(data.completedCount));
-    b.leftRight("PENDING", String(data.totalCount - data.completedCount));
-    b.drawLine();
+    // --- Supplements ---
+    b.line("SUPPLEMENTS TAKEN");
+    b.line("[ ] IRON 1          [ ] IRON 2");
+    b.line("[ ] VIT C           [ ] VIT D");
+    b.drawLine("-");
+
+    // --- Manual entries ---
+    b.line("MANUAL ENTRIES");
+    b.drawLine("-");
+    b.line("NOTES: " + "_".repeat(WIDTH - 7));
+    b.line("UNEXPECTED: " + "_".repeat(WIDTH - 12));
+    b.drawLine("-");
     b.line();
 
     // --- Footer ---
     b.align("center");
-    b.line("Thank you for staying organized!");
-    b.line();
-
-    // --- Repo QR code ---
-    b.align("center");
-    b.line("Print your own to-do receipts:");
-    b.qrCode(REPO_URL, 4);
-    b.line("github.com/chrishutchinson");
-    b.line("/todo-receipts");
+    b.line("PROCESS COMPLETE");
     b.line();
 
     // --- Cut ---

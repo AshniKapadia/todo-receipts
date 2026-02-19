@@ -34,7 +34,7 @@ export class ReceiptGenerator {
     lines.push(this.centerText("New York, NY 10001", WIDTH));
     lines.push(this.centerText("Tel: (555) 123-4567", WIDTH));
     lines.push("");
-    lines.push(`Terminal: NYC-01    #${terminalId}`);
+    lines.push(`Terminal: Marlboro    #${terminalId}`);
 
     // Date and time
     const date = data.timestamp;
@@ -50,9 +50,10 @@ export class ReceiptGenerator {
 
     // Items
     for (const todo of data.todos) {
-      const itemName = this.truncate(todo.title.toUpperCase(), 19);
+      // 4 chars for "[ ] ", leaving 15 for title before truncation
+      const itemName = this.truncate(todo.title.toUpperCase(), 15);
       const sched = todo.time_estimate || "TBD";
-      lines.push(this.padLine(itemName, sched, WIDTH));
+      lines.push(this.padLine(`[ ] ${itemName}`, sched, WIDTH));
     }
 
     lines.push(SEPARATOR);
