@@ -22,8 +22,12 @@ export class ApiRouter {
     req: IncomingMessage,
     res: ServerResponse,
   ): Promise<void> {
-    const url = req.url || "/";
+    const rawUrl = req.url || "/";
     const method = req.method || "GET";
+
+    // Parse URL to separate pathname from query string
+    const parsedUrl = new URL(rawUrl, "http://localhost");
+    const pathname = parsedUrl.pathname;
 
     // Set CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -38,57 +42,66 @@ export class ApiRouter {
 
     try {
       // Dashboard HTML
-      if (url === "/" && method === "GET") {
+      if (pathname === "/" && method === "GET") {
         await this.serveDashboard(res);
         return;
       }
 
       // Dashboard JavaScript
-      if (url === "/dashboard.js" && method === "GET") {
+      if (pathname === "/dashboard.js" && method === "GET") {
         await this.serveDashboardJs(res);
         return;
       }
 
-      // API routes
-      if (url === "/api/todos" && method === "GET") {
-        await this.getTodos(res);
+      // Suggestions route (before /api/todos to avoid conflicts)
+      if (pathname === "/api/suggestions" && method === "GET") {
+        const category = parsedUrl.searchParams.get("category") || "General";
+        await this.getSuggestions(res, category);
         return;
       }
 
-      if (url === "/api/todos" && method === "POST") {
+      // API routes
+      if (pathname === "/api/todos" && method === "GET") {
+        const category = parsedUrl.searchParams.get("category") || undefined;
+        const date = parsedUrl.searchParams.get("date") || undefined;
+        await this.getTodos(res, category, date);
+        return;
+      }
+
+      if (pathname === "/api/todos" && method === "POST") {
         await this.createTodo(req, res);
         return;
       }
 
-      if (url.startsWith("/api/todos/") && method === "PUT") {
-        const id = this.extractId(url);
-        await this.updateTodo(req, res, id);
-        return;
-      }
-
-      if (url.startsWith("/api/todos/") && method === "DELETE") {
-        const id = this.extractId(url);
-        await this.deleteTodo(res, id);
-        return;
-      }
-
-      if (url === "/api/todos/reorder" && method === "POST") {
+      if (pathname === "/api/todos/reorder" && method === "POST") {
         await this.reorderTodos(req, res);
         return;
       }
 
-      if (url === "/api/print" && method === "POST") {
+      if (pathname.startsWith("/api/todos/") && method === "PUT") {
+        const id = this.extractId(pathname);
+        await this.updateTodo(req, res, id);
+        return;
+      }
+
+      if (pathname.startsWith("/api/todos/") && method === "DELETE") {
+        const id = this.extractId(pathname);
+        await this.deleteTodo(res, id);
+        return;
+      }
+
+      if (pathname === "/api/print" && method === "POST") {
         await this.printReceipt(res);
         return;
       }
 
-      if (url === "/api/print/pending" && method === "GET") {
+      if (pathname === "/api/print/pending" && method === "GET") {
         await this.getPendingJobs(res);
         return;
       }
 
-      if (url.match(/^\/api\/print\/\d+\/complete$/) && method === "POST") {
-        const id = parseInt(url.split("/")[3], 10);
+      if (pathname.match(/^\/api\/print\/\d+\/complete$/) && method === "POST") {
+        const id = parseInt(pathname.split("/")[3], 10);
         await this.completePrintJob(res, id);
         return;
       }
@@ -127,9 +140,14 @@ export class ApiRouter {
     }
   }
 
-  private async getTodos(res: ServerResponse): Promise<void> {
-    const todos = this.db.getAllTodos();
+  private async getTodos(res: ServerResponse, category?: string, date?: string): Promise<void> {
+    const todos = this.db.getAllTodos(category, date);
     this.sendJson(res, { todos });
+  }
+
+  private async getSuggestions(res: ServerResponse, category: string): Promise<void> {
+    const suggestions = this.db.getTaskSuggestions(category);
+    this.sendJson(res, { suggestions });
   }
 
   private async createTodo(
@@ -137,7 +155,7 @@ export class ApiRouter {
     res: ServerResponse,
   ): Promise<void> {
     const body = await this.parseBody(req);
-    const { title, category, priority, time_estimate } = body;
+    const { title, category, priority, time_estimate, scheduled_date } = body;
 
     if (!title || typeof title !== "string" || title.trim() === "") {
       this.sendError(res, 400, "Title is required");
@@ -148,7 +166,8 @@ export class ApiRouter {
       title.trim(),
       category || 'General',
       priority || 'medium',
-      time_estimate || ''
+      time_estimate || '',
+      scheduled_date || undefined
     );
     this.sendJson(res, { todo });
   }
@@ -166,12 +185,14 @@ export class ApiRouter {
       category?: string;
       priority?: 'high' | 'medium' | 'low';
       time_estimate?: string;
+      scheduled_date?: string;
     } = {};
     if (body.title !== undefined) updates.title = body.title;
     if (body.completed !== undefined) updates.completed = body.completed;
     if (body.category !== undefined) updates.category = body.category;
     if (body.priority !== undefined) updates.priority = body.priority;
     if (body.time_estimate !== undefined) updates.time_estimate = body.time_estimate;
+    if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date;
 
     const todo = this.db.updateTodo(id, updates);
     this.sendJson(res, { todo });
@@ -214,8 +235,8 @@ export class ApiRouter {
     this.sendJson(res, { success: true });
   }
 
-  private extractId(url: string): number {
-    const parts = url.split("/");
+  private extractId(pathname: string): number {
+    const parts = pathname.split("/");
     const id = parseInt(parts[parts.length - 1], 10);
     if (isNaN(id)) {
       throw new Error("Invalid ID");
