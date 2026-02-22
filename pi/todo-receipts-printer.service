@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=ashni
 WorkingDirectory=/home/ashni/todo-receipts
-Environment=CLOUD_URL=https://todo-receipts-production.up.railway.app
+Environment=CLOUD_URL=https://todo-receipts.fly.dev
 ExecStart=/usr/bin/node /home/ashni/todo-receipts/poll-and-print.js
 Restart=always
 RestartSec=10
