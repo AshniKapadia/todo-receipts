@@ -37,6 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addTask();
   });
+
+  const timeInput = document.getElementById('time-input');
+  timeInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
 });
 
 // ── Date Strip ────────────────────────────────────────────────────────────────
@@ -191,6 +196,7 @@ function renderTodos() {
           <span class="drag-handle">⋮⋮</span>
           <input type="checkbox" class="task-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleComplete(${todo.id})" />
           <div class="task-title" onclick="startEdit(${todo.id})">${escapeHtml(todo.title)}</div>
+          ${todo.time_estimate ? `<span class="task-time">${escapeHtml(todo.time_estimate)}</span>` : ''}
           <button class="task-delete" onclick="deleteTodo(${todo.id})" title="Delete">✕</button>
         </div>
       `;
@@ -206,6 +212,7 @@ function renderTodos() {
 // ── Add Task ──────────────────────────────────────────────────────────────────
 async function addTask() {
   const input = document.getElementById('add-input');
+  const timeInput = document.getElementById('time-input');
   const title = input.value.trim();
   if (!title) return;
 
@@ -217,15 +224,15 @@ async function addTask() {
         title,
         category: currentCategory,
         scheduled_date: selectedDate,
+        time_estimate: timeInput.value.trim(),
       }),
     });
 
     if (!response.ok) throw new Error('Failed to create task');
 
     input.value = '';
-    // Refresh: task might show up in current view if category+date match
+    timeInput.value = '';
     await fetchTodos();
-    // Refresh suggestions (new title may become a suggestion)
     await fetchSuggestions();
     hideError();
   } catch (error) {

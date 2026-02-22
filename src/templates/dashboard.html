@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>To-Do List Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #1a1a1a;
+      font-family: 'Nunito', system-ui, sans-serif;
+      background: #F5ECD7;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -18,86 +19,99 @@
     .app {
       display: flex;
       width: 100%;
-      max-width: 960px;
+      max-width: 980px;
       min-height: 100vh;
-      box-shadow: 0 0 80px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 60px rgba(80, 40, 10, 0.13);
     }
 
     /* ── Sidebar ── */
     .sidebar {
-      width: 176px;
-      background: #2a2a2a;
-      color: #fff;
+      width: 188px;
+      background: #2E1A0E;
+      color: #F5ECD7;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
     }
 
     .sidebar-brand {
-      padding: 18px 16px 14px;
-      border-bottom: 1px solid #3a3a3a;
+      padding: 22px 18px 16px;
+      border-bottom: 1px solid #4a2e18;
     }
 
     .sidebar-brand-name {
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      font-weight: bold;
-      color: #ddd;
-      letter-spacing: 1.5px;
+      font-family: 'Chewy', cursive;
+      font-size: 22px;
+      color: #F5ECD7;
+      letter-spacing: 1px;
+      line-height: 1.1;
     }
 
     .sidebar-brand-sub {
       font-size: 10px;
-      color: #666;
+      color: #9a7560;
       margin-top: 3px;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      font-weight: 700;
+      text-transform: uppercase;
     }
 
     .list-tabs {
-      padding: 10px 0;
+      padding: 12px 0;
       flex: 1;
     }
 
     .list-tab {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       width: 100%;
-      padding: 9px 16px;
+      padding: 10px 18px;
       background: none;
       border: none;
       border-left: 3px solid transparent;
-      color: #777;
-      font-family: system-ui, sans-serif;
+      color: #9a7560;
+      font-family: 'Nunito', sans-serif;
       font-size: 13.5px;
+      font-weight: 700;
       text-align: left;
       cursor: pointer;
-      transition: color 0.12s, background 0.12s, border-color 0.12s;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+      letter-spacing: 0.3px;
     }
 
     .list-tab:hover {
-      background: #333;
-      color: #bbb;
+      background: #3d2412;
+      color: #e8d5b7;
     }
 
     .list-tab.active {
-      border-left-color: #fff;
-      color: #fff;
-      font-weight: 600;
-      background: #353535;
+      border-left-color: #E8884A;
+      color: #F5ECD7;
+      background: #3d2412;
     }
 
     .tab-icon {
-      font-size: 14px;
-      width: 16px;
+      font-size: 15px;
+      width: 18px;
       text-align: center;
       flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      padding: 16px 18px;
+      border-top: 1px solid #4a2e18;
+      font-size: 10px;
+      color: #6b4a30;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
     }
 
     /* ── Main ── */
     .main {
       flex: 1;
-      background: #f5f5f0;
+      background: #FDF6EC;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
@@ -105,9 +119,9 @@
 
     /* Top bar */
     .topbar {
-      background: #fff;
-      border-bottom: 1px solid #e2e2d8;
-      padding: 11px 20px;
+      background: #FFFAF2;
+      border-bottom: 2px solid #EDE0C8;
+      padding: 13px 22px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -115,33 +129,37 @@
     }
 
     .topbar-title {
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      font-weight: bold;
-      color: #444;
-      letter-spacing: 2px;
+      font-family: 'Chewy', cursive;
+      font-size: 22px;
+      color: #2E1A0E;
+      letter-spacing: 1.5px;
     }
 
     .print-btn {
-      padding: 7px 14px;
-      background: #2d5a27;
+      padding: 8px 18px;
+      background: #E8884A;
       color: #fff;
       border: none;
-      border-radius: 5px;
-      font-size: 12.5px;
+      border-radius: 20px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
       cursor: pointer;
-      transition: background 0.15s;
+      letter-spacing: 0.5px;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(232, 136, 74, 0.35);
     }
-    .print-btn:hover { background: #1e3d1a; }
-    .print-btn:disabled { background: #999; cursor: not-allowed; }
+    .print-btn:hover { background: #d4713a; transform: translateY(-1px); }
+    .print-btn:active { transform: translateY(0); }
+    .print-btn:disabled { background: #c9b89a; box-shadow: none; cursor: not-allowed; transform: none; }
 
     /* 7-day strip */
     .date-strip {
-      background: #fff;
-      border-bottom: 1px solid #e2e2d8;
-      padding: 8px 16px;
+      background: #FFFAF2;
+      border-bottom: 2px solid #EDE0C8;
+      padding: 10px 18px;
       display: flex;
-      gap: 4px;
+      gap: 5px;
       overflow-x: auto;
       flex-shrink: 0;
     }
@@ -150,38 +168,39 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 5px 10px;
-      border-radius: 7px;
-      border: 1.5px solid transparent;
+      padding: 6px 11px;
+      border-radius: 12px;
+      border: 2px solid transparent;
       cursor: pointer;
       background: none;
-      min-width: 50px;
+      min-width: 52px;
       transition: background 0.12s, border-color 0.12s;
+      font-family: 'Nunito', sans-serif;
     }
 
-    .date-chip:hover { background: #f0f0e8; }
+    .date-chip:hover { background: #F5ECD7; }
 
     .date-chip .day-name {
       font-size: 9px;
-      color: #aaa;
+      color: #b89a78;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      font-weight: 600;
+      letter-spacing: 0.8px;
+      font-weight: 800;
     }
 
     .date-chip .day-num {
-      font-size: 19px;
-      font-weight: 600;
-      color: #444;
+      font-size: 20px;
+      font-weight: 800;
+      color: #5C3D1E;
       line-height: 1.3;
     }
 
     .date-chip.today .day-num {
-      background: #333;
+      background: #E8884A;
       color: #fff;
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -189,13 +208,13 @@
     }
 
     .date-chip.selected {
-      border-color: #555;
-      background: #eeeee6;
+      border-color: #E8884A;
+      background: #FEF0E3;
     }
 
     /* Content */
     .content {
-      padding: 16px 20px;
+      padding: 18px 22px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -204,20 +223,21 @@
 
     /* Error banner */
     .error {
-      background: #fde8e8;
-      border: 1px solid #e0a0a0;
-      padding: 9px 14px;
-      border-radius: 6px;
+      background: #FDE8E8;
+      border: 2px solid #e8a0a0;
+      padding: 10px 14px;
+      border-radius: 10px;
       color: #c33;
       font-size: 13px;
+      font-weight: 700;
     }
 
     /* Add form */
     .add-form {
-      background: #fff;
-      border: 1px solid #e2e2d8;
-      border-radius: 8px;
-      padding: 14px;
+      background: #FFFAF2;
+      border: 2px solid #EDE0C8;
+      border-radius: 14px;
+      padding: 16px;
     }
 
     .add-row {
@@ -228,33 +248,56 @@
 
     .add-input {
       flex: 1;
-      padding: 9px 13px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+      padding: 10px 14px;
+      border: 2px solid #EDE0C8;
+      border-radius: 10px;
       font-size: 14px;
-      font-family: system-ui, sans-serif;
-      background: #fafaf8;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      background: #FDF6EC;
+      color: #2E1A0E;
       transition: border-color 0.15s, background 0.15s;
     }
+    .add-input::placeholder { color: #c9b08a; }
     .add-input:focus {
       outline: none;
-      border-color: #666;
+      border-color: #E8884A;
       background: #fff;
     }
 
+    .time-input {
+      width: 76px;
+      padding: 10px 10px;
+      border: 2px solid #EDE0C8;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      background: #FDF6EC;
+      color: #2E1A0E;
+      text-align: center;
+      flex-shrink: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .time-input::placeholder { color: #c9b08a; }
+    .time-input:focus { outline: none; border-color: #E8884A; background: #fff; }
+
     .add-btn {
-      padding: 9px 18px;
-      background: #333;
-      color: #fff;
+      padding: 10px 20px;
+      background: #2E1A0E;
+      color: #F5ECD7;
       border: none;
-      border-radius: 6px;
+      border-radius: 10px;
       font-size: 13.5px;
-      font-family: system-ui, sans-serif;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
       cursor: pointer;
       white-space: nowrap;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
     }
-    .add-btn:hover { background: #555; }
+    .add-btn:hover { background: #4a2e18; transform: translateY(-1px); }
+    .add-btn:active { transform: translateY(0); }
 
     /* Suggestion chips */
     .suggestions-row {
@@ -264,59 +307,61 @@
     }
 
     .suggestion-chip {
-      padding: 3px 10px;
-      background: #f0f0e8;
-      border: 1px solid #ddd;
-      border-radius: 12px;
+      padding: 4px 11px;
+      background: #F5ECD7;
+      border: 1.5px solid #EDE0C8;
+      border-radius: 20px;
       font-size: 11.5px;
-      color: #666;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      color: #9a7560;
       cursor: pointer;
-      transition: background 0.12s, color 0.12s;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
       white-space: nowrap;
       max-width: 200px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .suggestion-chip:hover {
-      background: #e0e0d4;
-      color: #333;
+      background: #FEF0E3;
+      color: #2E1A0E;
+      border-color: #E8884A;
     }
 
     /* Tasks section */
     .tasks-section {
-      background: #fff;
-      border: 1px solid #e2e2d8;
-      border-radius: 8px;
+      background: #FFFAF2;
+      border: 2px solid #EDE0C8;
+      border-radius: 14px;
       overflow: hidden;
       flex: 1;
     }
 
     .tasks-header {
-      padding: 10px 16px;
-      border-bottom: 1px solid #ebebE2;
-      font-size: 11px;
-      color: #aaa;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      font-weight: 600;
+      padding: 10px 18px;
+      border-bottom: 2px solid #EDE0C8;
+      font-family: 'Chewy', cursive;
+      font-size: 15px;
+      color: #9a7560;
+      letter-spacing: 1.5px;
     }
 
     .task-item {
       display: flex;
       align-items: center;
       gap: 9px;
-      padding: 10px 16px;
-      border-bottom: 1px solid #f2f2ea;
+      padding: 11px 18px;
+      border-bottom: 1.5px solid #F5ECD7;
       cursor: move;
       transition: background 0.1s;
     }
     .task-item:last-child { border-bottom: none; }
-    .task-item:hover { background: #fafaf6; }
-    .task-item.dragging { opacity: 0.45; }
-    .task-item.drag-over { border-top: 2px solid #444; }
+    .task-item:hover { background: #FEF8EE; }
+    .task-item.dragging { opacity: 0.4; }
+    .task-item.drag-over { border-top: 2px solid #E8884A; }
 
     .drag-handle {
-      color: #d0d0c8;
+      color: #ddd0b8;
       cursor: grab;
       font-size: 15px;
       user-select: none;
@@ -329,30 +374,45 @@
       height: 16px;
       cursor: pointer;
       flex-shrink: 0;
-      accent-color: #444;
+      accent-color: #E8884A;
     }
 
     .task-title {
       flex: 1;
       font-size: 13.5px;
-      color: #333;
+      font-weight: 700;
+      color: #3D2B1F;
       word-break: break-word;
       cursor: pointer;
     }
 
     .task-completed .task-title {
       text-decoration: line-through;
-      color: #bbb;
+      color: #c9b08a;
+      font-weight: 600;
+    }
+
+    .task-time {
+      font-size: 11px;
+      font-weight: 800;
+      color: #E8884A;
+      background: #FEF0E3;
+      border: 1.5px solid #f5c9a0;
+      border-radius: 20px;
+      padding: 2px 9px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      font-family: 'Nunito', sans-serif;
     }
 
     .task-delete {
       padding: 3px 7px;
       background: none;
       border: none;
-      color: #d0d0c8;
+      color: #ddd0b8;
       font-size: 15px;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: 6px;
       flex-shrink: 0;
       line-height: 1;
       transition: color 0.1s, background 0.1s;
@@ -364,29 +424,37 @@
 
     .edit-input {
       flex: 1;
-      padding: 5px 9px;
-      border: 1px solid #aaa;
-      border-radius: 4px;
+      padding: 6px 10px;
+      border: 2px solid #E8884A;
+      border-radius: 8px;
       font-size: 13.5px;
-      font-family: system-ui, sans-serif;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      background: #fff;
+      color: #2E1A0E;
     }
-    .edit-input:focus { outline: none; border-color: #555; }
+    .edit-input:focus { outline: none; }
 
     .task-save-btn, .task-cancel-btn {
-      padding: 4px 10px;
-      border-radius: 4px;
+      padding: 5px 11px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 11.5px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
       flex-shrink: 0;
     }
-    .task-save-btn { background: #333; color: #fff; border: 1px solid #333; }
-    .task-cancel-btn { background: #fff; color: #777; border: 1px solid #ddd; }
+    .task-save-btn { background: #2E1A0E; color: #F5ECD7; border: 2px solid #2E1A0E; }
+    .task-cancel-btn { background: #fff; color: #9a7560; border: 2px solid #EDE0C8; }
 
     .empty-state {
-      padding: 40px;
+      padding: 50px;
       text-align: center;
-      color: #c0c0b8;
-      font-size: 13.5px;
+      color: #c9b08a;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Chewy', cursive;
+      letter-spacing: 1px;
     }
   </style>
 </head>
@@ -395,7 +463,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="sidebar-brand-name">≡ RECEIPT</div>
+        <div class="sidebar-brand-name">≡ Receipt<br>Printer</div>
         <div class="sidebar-brand-sub">todo-receipts</div>
       </div>
       <nav class="list-tabs" id="list-tabs">
@@ -415,13 +483,14 @@
           <span class="tab-icon">♡</span>Health
         </button>
       </nav>
+      <div class="sidebar-footer">Ashni Ops Terminal</div>
     </aside>
 
     <!-- Main -->
     <main class="main">
       <div class="topbar">
         <div class="topbar-title">TO-DO LIST</div>
-        <button class="print-btn" id="print-btn" onclick="printReceipt()">Print Receipt</button>
+        <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 Print Receipt</button>
       </div>
 
       <!-- 7-day strip -->
@@ -441,6 +510,14 @@
               maxlength="200"
               list="suggestions-list"
               autocomplete="off"
+            />
+            <input
+              type="text"
+              id="time-input"
+              class="time-input"
+              placeholder="Time"
+              maxlength="10"
+              title="Time estimate (e.g. 30m, 1h)"
             />
             <button class="add-btn" onclick="addTask()">Add</button>
           </div>

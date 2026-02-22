@@ -4,7 +4,7 @@
 import { ThermalPrinterRenderer } from './dist/core/thermal-printer.js';
 import { ConfigManager } from './dist/core/config-manager.js';
 
-const CLOUD_URL = process.env.CLOUD_URL || 'https://todo-receipts-production.up.railway.app';
+const CLOUD_URL = process.env.CLOUD_URL || 'https://todo-receipts.fly.dev';
 const POLL_INTERVAL = 5000;
 
 const printer = new ThermalPrinterRenderer();
