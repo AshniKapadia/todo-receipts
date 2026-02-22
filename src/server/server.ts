@@ -50,7 +50,7 @@ export class TodoServer {
 
     // Start listening
     return new Promise((resolve, reject) => {
-      this.server!.listen(port, () => {
+      this.server!.listen(port, '0.0.0.0', () => {
         console.log(`\nTodo receipts server running at http://localhost:${port}`);
         console.log('Press Ctrl+C to stop\n');
         resolve();

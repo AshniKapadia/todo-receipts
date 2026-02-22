@@ -13,4 +13,4 @@ RUN npm run build
 
 EXPOSE 8080
 
-CMD ["node", "bin/todo-receipts.js", "serve", "--no-browser"]
+CMD ["node", "bin/todo-receipts.js", "serve", "--no-browser", "--port", "8080"]
