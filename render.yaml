@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: todo-receipts
+    runtime: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: todo-receipts-data
+      mountPath: /var/data
+      sizeGB: 1
