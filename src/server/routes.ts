@@ -53,10 +53,17 @@ export class ApiRouter {
         return;
       }
 
+      // Profiles route
+      if (pathname === "/api/profiles" && method === "GET") {
+        this.sendJson(res, { profiles: [{ id: 'ashni', name: 'Ashni' }, { id: 'nirav', name: 'Nirav' }] });
+        return;
+      }
+
       // Suggestions route (before /api/todos to avoid conflicts)
       if (pathname === "/api/suggestions" && method === "GET") {
         const category = parsedUrl.searchParams.get("category") || "General";
-        await this.getSuggestions(res, category);
+        const userId = parsedUrl.searchParams.get("user") || 'ashni';
+        await this.getSuggestions(res, category, userId);
         return;
       }
 
@@ -64,7 +71,8 @@ export class ApiRouter {
       if (pathname === "/api/todos" && method === "GET") {
         const category = parsedUrl.searchParams.get("category") || undefined;
         const date = parsedUrl.searchParams.get("date") || undefined;
-        await this.getTodos(res, category, date);
+        const userId = parsedUrl.searchParams.get("user") || 'ashni';
+        await this.getTodos(res, category, date, userId);
         return;
       }
 
@@ -91,7 +99,7 @@ export class ApiRouter {
       }
 
       if (pathname === "/api/print" && method === "POST") {
-        await this.printReceipt(res);
+        await this.printReceipt(req, res);
         return;
       }
 
@@ -140,13 +148,13 @@ export class ApiRouter {
     }
   }
 
-  private async getTodos(res: ServerResponse, category?: string, date?: string): Promise<void> {
-    const todos = this.db.getAllTodos(category, date);
+  private async getTodos(res: ServerResponse, category?: string, date?: string, userId?: string): Promise<void> {
+    const todos = this.db.getAllTodos(category, date, userId);
     this.sendJson(res, { todos });
   }
 
-  private async getSuggestions(res: ServerResponse, category: string): Promise<void> {
-    const suggestions = this.db.getTaskSuggestions(category);
+  private async getSuggestions(res: ServerResponse, category: string, userId: string = 'ashni'): Promise<void> {
+    const suggestions = this.db.getTaskSuggestions(category, userId);
     this.sendJson(res, { suggestions });
   }
 
@@ -155,7 +163,7 @@ export class ApiRouter {
     res: ServerResponse,
   ): Promise<void> {
     const body = await this.parseBody(req);
-    const { title, category, priority, time_estimate, scheduled_date } = body;
+    const { title, category, priority, time_estimate, scheduled_date, user } = body;
 
     if (!title || typeof title !== "string" || title.trim() === "") {
       this.sendError(res, 400, "Title is required");
@@ -167,7 +175,8 @@ export class ApiRouter {
       category || 'General',
       priority || 'medium',
       time_estimate || '',
-      scheduled_date || undefined
+      scheduled_date || undefined,
+      user || 'ashni'
     );
     this.sendJson(res, { todo });
   }
@@ -219,8 +228,13 @@ export class ApiRouter {
     this.sendJson(res, { success: true });
   }
 
-  private async printReceipt(res: ServerResponse): Promise<void> {
-    const todos = this.db.getAllTodos();
+  private async printReceipt(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    let userId = 'ashni';
+    try {
+      const body = await this.parseBody(req);
+      if (body.user) userId = body.user;
+    } catch { /* no body is fine */ }
+    const todos = this.db.getAllTodos(undefined, undefined, userId);
     const jobId = this.db.createPrintJob(todos);
     this.sendJson(res, { success: true, jobId, queued: true });
   }

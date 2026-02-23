@@ -73,12 +73,18 @@ export class TodoDatabase {
     if (!hasScheduledDate) {
       this.db.exec("ALTER TABLE todos ADD COLUMN scheduled_date TEXT DEFAULT NULL");
     }
+
+    // Migration 6: Add user_id column
+    const hasUserId = tableInfo.some(col => col.name === 'user_id');
+    if (!hasUserId) {
+      this.db.exec("ALTER TABLE todos ADD COLUMN user_id TEXT NOT NULL DEFAULT 'ashni'");
+    }
   }
 
   /**
-   * Get all todos, optionally filtered by category and/or scheduled_date
+   * Get all todos, optionally filtered by category, scheduled_date, and/or user_id
    */
-  getAllTodos(category?: string, date?: string): TodoItem[] {
+  getAllTodos(category?: string, date?: string, userId?: string): TodoItem[] {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -90,11 +96,15 @@ export class TodoDatabase {
       conditions.push('scheduled_date = ?');
       params.push(date);
     }
+    if (userId) {
+      conditions.push('user_id = ?');
+      params.push(userId);
+    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const stmt = this.db.prepare(`
-      SELECT id, title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date
+      SELECT id, title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date, user_id
       FROM todos
       ${whereClause}
       ORDER BY order_position ASC, created_at DESC
@@ -111,6 +121,7 @@ export class TodoDatabase {
       created_at: number;
       updated_at: number;
       scheduled_date: string | null;
+      user_id: string;
     }>;
 
     return rows.map((row) => ({
@@ -124,6 +135,7 @@ export class TodoDatabase {
       created_at: row.created_at,
       updated_at: row.updated_at,
       scheduled_date: row.scheduled_date ?? undefined,
+      user_id: row.user_id || 'ashni',
     }));
   }
 
@@ -135,7 +147,8 @@ export class TodoDatabase {
     category: string = 'General',
     priority: 'high' | 'medium' | 'low' = 'medium',
     time_estimate: string = '',
-    scheduled_date?: string
+    scheduled_date?: string,
+    userId: string = 'ashni'
   ): TodoItem {
     const now = Date.now();
 
@@ -145,11 +158,11 @@ export class TodoDatabase {
     const newOrder = (maxOrderRow.max_order ?? -1) + 1;
 
     const stmt = this.db.prepare(`
-      INSERT INTO todos (title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date)
-      VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO todos (title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date, user_id)
+      VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(title, category, priority, time_estimate, newOrder, now, now, scheduled_date ?? null);
+    const result = stmt.run(title, category, priority, time_estimate, newOrder, now, now, scheduled_date ?? null, userId);
 
     return {
       id: result.lastInsertRowid as number,
@@ -162,6 +175,7 @@ export class TodoDatabase {
       created_at: now,
       updated_at: now,
       scheduled_date,
+      user_id: userId,
     };
   }
 
@@ -206,6 +220,7 @@ export class TodoDatabase {
       created_at: current.created_at,
       updated_at: now,
       scheduled_date: newScheduledDate,
+      user_id: current.user_id,
     };
   }
 
@@ -254,18 +269,18 @@ export class TodoDatabase {
   }
 
   /**
-   * Get top suggested task titles for a given category
+   * Get top suggested task titles for a given category and user
    */
-  getTaskSuggestions(category: string): string[] {
+  getTaskSuggestions(category: string, userId: string = 'ashni'): string[] {
     const stmt = this.db.prepare(`
       SELECT title, COUNT(*) as cnt
       FROM todos
-      WHERE category = ?
+      WHERE category = ? AND user_id = ?
       GROUP BY title
       ORDER BY cnt DESC
       LIMIT 10
     `);
-    const rows = stmt.all(category) as Array<{ title: string; cnt: number }>;
+    const rows = stmt.all(category, userId) as Array<{ title: string; cnt: number }>;
     return rows.map(r => r.title);
   }
 
@@ -274,7 +289,7 @@ export class TodoDatabase {
    */
   private getTodoById(id: number): TodoItem | null {
     const stmt = this.db.prepare(`
-      SELECT id, title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date
+      SELECT id, title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date, user_id
       FROM todos
       WHERE id = ?
     `);
@@ -291,6 +306,7 @@ export class TodoDatabase {
           created_at: number;
           updated_at: number;
           scheduled_date: string | null;
+          user_id: string;
         }
       | undefined;
 
@@ -309,6 +325,7 @@ export class TodoDatabase {
       created_at: row.created_at,
       updated_at: row.updated_at,
       scheduled_date: row.scheduled_date ?? undefined,
+      user_id: row.user_id || 'ashni',
     };
   }
 

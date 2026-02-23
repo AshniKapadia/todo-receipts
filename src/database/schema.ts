@@ -9,6 +9,7 @@ export interface TodoItem {
   created_at: number;
   updated_at: number;
   scheduled_date?: string;
+  user_id: string;
 }
 
 export const CREATE_TABLE_SQL = `
@@ -22,7 +23,8 @@ export const CREATE_TABLE_SQL = `
     order_position INTEGER DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    scheduled_date TEXT DEFAULT NULL
+    scheduled_date TEXT DEFAULT NULL,
+    user_id TEXT NOT NULL DEFAULT 'ashni'
   );
   CREATE TABLE IF NOT EXISTS print_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

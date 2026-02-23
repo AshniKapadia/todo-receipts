@@ -4,6 +4,7 @@ let editingId = null;
 let currentCategory = 'todo';
 let selectedDate = todayISO();
 let suggestions = [];
+let currentUser = localStorage.getItem('currentUser') || 'ashni';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function todayISO() {
@@ -27,8 +28,23 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ── Profile Switcher ──────────────────────────────────────────────────────────
+function setProfile(userId) {
+  currentUser = userId;
+  localStorage.setItem('currentUser', userId);
+  document.querySelectorAll('.profile-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.user === userId);
+  });
+  fetchSuggestions();
+  fetchTodos();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Set initial active profile pill
+  document.querySelectorAll('.profile-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.user === currentUser);
+  });
   renderDateStrip();
   fetchSuggestions();
   fetchTodos();
@@ -106,7 +122,7 @@ function switchCategory(category) {
 // ── Fetch Todos ───────────────────────────────────────────────────────────────
 async function fetchTodos() {
   try {
-    const params = new URLSearchParams({ category: currentCategory, date: selectedDate });
+    const params = new URLSearchParams({ category: currentCategory, date: selectedDate, user: currentUser });
     const response = await fetch(`/api/todos?${params}`);
     const data = await response.json();
     todos = data.todos;
@@ -120,7 +136,7 @@ async function fetchTodos() {
 // ── Fetch Suggestions ─────────────────────────────────────────────────────────
 async function fetchSuggestions() {
   try {
-    const response = await fetch(`/api/suggestions?category=${encodeURIComponent(currentCategory)}`);
+    const response = await fetch(`/api/suggestions?category=${encodeURIComponent(currentCategory)}&user=${encodeURIComponent(currentUser)}`);
     const data = await response.json();
     suggestions = data.suggestions || [];
     renderSuggestionChips();
@@ -225,6 +241,7 @@ async function addTask() {
         category: currentCategory,
         scheduled_date: selectedDate,
         time_estimate: timeInput.value.trim(),
+        user: currentUser,
       }),
     });
 
@@ -330,7 +347,11 @@ async function printReceipt() {
   btn.textContent = 'Printing...';
 
   try {
-    const response = await fetch('/api/print', { method: 'POST' });
+    const response = await fetch('/api/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: currentUser }),
+    });
     if (!response.ok) throw new Error('Failed to print receipt');
     btn.textContent = 'Queued!';
     setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
