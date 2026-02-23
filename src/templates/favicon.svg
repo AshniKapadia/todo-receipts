@@ -1,0 +1,18 @@
+<svg viewBox="-12 -2 104 97" xmlns="http://www.w3.org/2000/svg">
+  <!-- receipt paper -->
+  <rect x="28" y="0" width="24" height="42" rx="2" fill="#FAF3E3"/>
+  <!-- body -->
+  <rect x="6" y="33" width="68" height="55" rx="8" fill="#C4341E"/>
+  <!-- paper slot -->
+  <rect x="18" y="32" width="44" height="8" rx="2" fill="#00000033"/>
+  <!-- eyes -->
+  <circle cx="29" cy="57" r="7.5" fill="#1C0F08"/>
+  <circle cx="51" cy="57" r="7.5" fill="#1C0F08"/>
+  <circle cx="31"  cy="55" r="2.5" fill="white"/>
+  <circle cx="53"  cy="55" r="2.5" fill="white"/>
+  <!-- smile -->
+  <path d="M25 70 Q40 81 55 70" stroke="#1C0F08" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- arms -->
+  <path d="M6 51 L-4 63 L2 68"  stroke="#FAF3E3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M74 51 L84 63 L78 68" stroke="#FAF3E3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

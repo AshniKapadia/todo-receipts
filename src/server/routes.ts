@@ -53,6 +53,12 @@ export class ApiRouter {
         return;
       }
 
+      // Favicon
+      if (pathname === "/favicon.svg" && method === "GET") {
+        await this.serveFavicon(res);
+        return;
+      }
+
       // Profiles route
       if (pathname === "/api/profiles" && method === "GET") {
         this.sendJson(res, { profiles: [{ id: 'ashni', name: 'Ashni' }, { id: 'nirav', name: 'Nirav' }] });
@@ -145,6 +151,17 @@ export class ApiRouter {
       res.end(js);
     } catch (error) {
       this.sendError(res, 500, "Failed to load dashboard script");
+    }
+  }
+
+  private async serveFavicon(res: ServerResponse): Promise<void> {
+    try {
+      const svgPath = resolve(__dirname, "../templates/favicon.svg");
+      const svg = await readFile(svgPath, "utf-8");
+      res.writeHead(200, { "Content-Type": "image/svg+xml" });
+      res.end(svg);
+    } catch (error) {
+      this.sendError(res, 500, "Failed to load favicon");
     }
   }
 

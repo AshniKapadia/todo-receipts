@@ -23,7 +23,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsc && mkdir -p dist/templates && cp src/templates/dashboard.html src/templates/dashboard.js dist/templates/",
+    "build": "tsc && mkdir -p dist/templates && cp src/templates/dashboard.html src/templates/dashboard.js src/templates/favicon.svg dist/templates/",
     "start": "node bin/todo-receipts.js serve --no-browser",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build",
