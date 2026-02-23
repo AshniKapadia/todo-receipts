@@ -633,7 +633,7 @@
 
       <div class="topbar">
         <div class="topbar-left">
-          <span class="topbar-eyebrow">Today's List</span>
+          <span class="topbar-eyebrow" id="topbar-date"></span>
           <div class="topbar-title">TO-DO LIST</div>
         </div>
         <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 Print Receipt</button>
@@ -693,6 +693,12 @@
     </main>
 
   </div>
+  <script>
+    const _d = new Date();
+    document.getElementById('topbar-date').textContent =
+      _d.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase() + ' · ' +
+      _d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  </script>
   <script src="/dashboard.js"></script>
 </body>
 </html>
