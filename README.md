@@ -179,6 +179,31 @@ Plug the printer USB cable into the Pi, go to the Railway dashboard, and click P
 sudo journalctl -u todo-receipts-printer -n 50
 ```
 
+### Deploying Code Changes to the Pi
+
+The Pi uses git to track the repo. After pushing any changes to GitHub, SSH into the Pi and run:
+
+```bash
+ssh ashni@todo-printer.local
+cd ~/todo-receipts
+git pull
+npm run build
+sudo systemctl restart todo-receipts-printer
+```
+
+If `git pull` says "not a git repository", the Pi was set up before git was configured. Fix it once with:
+
+```bash
+cd ~/todo-receipts
+git init
+git remote add origin https://github.com/AshniKapadia/todo-receipts.git
+git fetch
+git reset --hard origin/main
+npm install
+npm run build
+sudo systemctl restart todo-receipts-printer
+```
+
 ## macOS Launch Agent (Alternative to Pi)
 
 If you want the polling agent running on your Mac instead of a Pi:
