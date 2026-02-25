@@ -581,16 +581,26 @@
     .mobile-tab-label { font-size: 9px; letter-spacing: 1px; }
 
     @media (max-width: 640px) {
+      /* Prevent any horizontal overflow */
+      body, .app { overflow-x: hidden; }
+
       /* Hide desktop sidebar */
       .sidebar { display: none; }
 
       /* Give room for fixed bottom nav */
-      .main { padding-bottom: 68px; min-height: 100dvh; }
+      .main { padding-bottom: 68px; min-height: 100dvh; overflow-x: hidden; }
 
       /* Topbar */
-      .topbar { padding: 11px 16px; }
-      .topbar-title { font-size: 26px; letter-spacing: 3px; }
-      .print-btn { padding: 9px 14px; font-size: 10px; letter-spacing: 1.5px; box-shadow: 2px 2px 0 var(--dark); }
+      .topbar { padding: 11px 16px; gap: 10px; }
+      .topbar-title { font-size: 22px; letter-spacing: 2px; }
+      .print-btn {
+        padding: 9px 12px;
+        font-size: 16px;
+        letter-spacing: 0;
+        flex-shrink: 0;
+        box-shadow: 2px 2px 0 var(--dark);
+      }
+      .print-label { display: none; }
 
       /* Profile strip below topbar */
       .mobile-profiles {
@@ -604,11 +614,6 @@
       .mobile-profiles .profile-pill {
         border-color: rgba(28,15,8,0.18);
         color: rgba(28,15,8,0.4);
-      }
-      .mobile-profiles .profile-pill:hover {
-        background: rgba(28,15,8,0.06);
-        color: rgba(28,15,8,0.7);
-        border-color: rgba(28,15,8,0.3);
       }
       .mobile-profiles .profile-pill.active {
         background: var(--red);
@@ -624,15 +629,17 @@
 
       /* Add form: task input full-width, time+add on second line */
       .add-row { flex-wrap: wrap; }
-      .add-input { flex-basis: 100%; }
-      .time-input { flex: 1; width: auto; text-align: left; }
+      .add-input { flex-basis: 100%; min-width: 0; }
+      .time-input { flex: 1; min-width: 0; width: auto; text-align: left; }
+      .add-btn { flex-shrink: 0; }
 
       /* Empty state */
       .empty-state { padding: 36px 24px; }
 
-      /* Task items: bigger tap targets */
-      .task-item { padding: 14px 14px; }
+      /* Task items: bigger tap targets, no overflow */
+      .task-item { padding: 14px 12px; }
       .drag-handle { display: none; }
+      .task-title { min-width: 0; }
 
       /* Fixed bottom nav */
       .mobile-nav {
@@ -731,7 +738,7 @@
           <span class="topbar-eyebrow" id="topbar-date"></span>
           <div class="topbar-title">TO-DO LIST</div>
         </div>
-        <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 Print Receipt</button>
+        <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 <span class="print-label">Print Receipt</span></button>
       </div>
 
       <!-- Mobile-only profile strip -->
