@@ -574,6 +574,100 @@
       color: var(--muted);
       opacity: 0.7;
     }
+
+    /* ─────────────── Mobile ─────────────── */
+    .mobile-profiles { display: none; }
+    .mobile-nav      { display: none; }
+    .mobile-tab-label { font-size: 9px; letter-spacing: 1px; }
+
+    @media (max-width: 640px) {
+      /* Hide desktop sidebar */
+      .sidebar { display: none; }
+
+      /* Give room for fixed bottom nav */
+      .main { padding-bottom: 68px; min-height: 100dvh; }
+
+      /* Topbar */
+      .topbar { padding: 11px 16px; }
+      .topbar-title { font-size: 26px; letter-spacing: 3px; }
+      .print-btn { padding: 9px 14px; font-size: 10px; letter-spacing: 1.5px; box-shadow: 2px 2px 0 var(--dark); }
+
+      /* Profile strip below topbar */
+      .mobile-profiles {
+        display: flex;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--bg);
+        border-bottom: 2.5px solid var(--dark);
+        flex-shrink: 0;
+      }
+      .mobile-profiles .profile-pill {
+        border-color: rgba(28,15,8,0.18);
+        color: rgba(28,15,8,0.4);
+      }
+      .mobile-profiles .profile-pill:hover {
+        background: rgba(28,15,8,0.06);
+        color: rgba(28,15,8,0.7);
+        border-color: rgba(28,15,8,0.3);
+      }
+      .mobile-profiles .profile-pill.active {
+        background: var(--red);
+        border-color: var(--red);
+        color: #fff;
+      }
+
+      /* Date strip */
+      .date-strip { padding: 10px 12px; }
+
+      /* Content */
+      .content { padding: 14px 16px; gap: 14px; }
+
+      /* Add form: task input full-width, time+add on second line */
+      .add-row { flex-wrap: wrap; }
+      .add-input { flex-basis: 100%; }
+      .time-input { flex: 1; width: auto; text-align: left; }
+
+      /* Empty state */
+      .empty-state { padding: 36px 24px; }
+
+      /* Task items: bigger tap targets */
+      .task-item { padding: 14px 14px; }
+      .drag-handle { display: none; }
+
+      /* Fixed bottom nav */
+      .mobile-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        background: var(--dark);
+        border-top: 3px solid rgba(255,255,255,0.08);
+        z-index: 200;
+      }
+
+      .mobile-nav .list-tab {
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 6px 2px;
+        width: auto;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        font-size: 8px;
+        letter-spacing: 1px;
+      }
+      .mobile-nav .list-tab .tab-icon { font-size: 17px; width: auto; }
+      .mobile-nav .list-tab.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--red);
+        background: rgba(196,52,30,0.18);
+        color: #fff;
+      }
+    }
   </style>
 </head>
 <body>
@@ -640,6 +734,12 @@
         <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 Print Receipt</button>
       </div>
 
+      <!-- Mobile-only profile strip -->
+      <div class="mobile-profiles">
+        <button class="profile-pill" data-user="ashni" onclick="setProfile('ashni')">Ashni</button>
+        <button class="profile-pill" data-user="nirav" onclick="setProfile('nirav')">Nirav</button>
+      </div>
+
       <div class="date-strip" id="date-strip"></div>
 
       <div class="content">
@@ -694,6 +794,16 @@
     </main>
 
   </div>
+
+  <!-- Mobile-only bottom nav -->
+  <nav class="mobile-nav">
+    <button class="list-tab active" data-category="todo"     onclick="switchCategory('todo')"><span class="tab-icon">☐</span><span class="mobile-tab-label">To Do</span></button>
+    <button class="list-tab"        data-category="grocery"  onclick="switchCategory('grocery')"><span class="tab-icon">🛒</span><span class="mobile-tab-label">Grocery</span></button>
+    <button class="list-tab"        data-category="work"     onclick="switchCategory('work')"><span class="tab-icon">💼</span><span class="mobile-tab-label">Work</span></button>
+    <button class="list-tab"        data-category="shopping" onclick="switchCategory('shopping')"><span class="tab-icon">🛍</span><span class="mobile-tab-label">Shopping</span></button>
+    <button class="list-tab"        data-category="health"   onclick="switchCategory('health')"><span class="tab-icon">♡</span><span class="mobile-tab-label">Health</span></button>
+  </nav>
+
   <script>
     const _d = new Date();
     document.getElementById('topbar-date').textContent =
