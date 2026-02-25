@@ -311,8 +311,9 @@ export class ThermalPrinterRenderer {
 
     // --- Supplements ---
     b.line("SUPPLEMENTS TAKEN");
-    b.line("[ ] IRON 1   [ ] IRON 2   [ ] WATER 1");
-    b.line("[ ] VIT C    [ ] VIT D    [ ] WATER 2");
+    b.line("[ ] IRON 1    [ ] IRON 2    [ ] VIT C");
+    b.line("[ ] VIT D     [ ] WATER 1   [ ] WATER 2");
+    b.line("[ ] SEEDS     [ ] HAIR MASS [ ] CARDIO");
     b.drawLine("-");
 
     // --- Manual entries ---
