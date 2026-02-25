@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #555;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+    }
+
+    /* ── Sticker: 1200 × 450 px = 4" × 1.5" @ 300 dpi ── */
+    .sticker {
+      width: 1200px;
+      height: 450px;
+      background: #1C0F08;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* Subtle diagonal texture */
+    .sticker::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -55deg,
+        transparent,
+        transparent 28px,
+        rgba(255,255,255,0.012) 28px,
+        rgba(255,255,255,0.012) 29px
+      );
+      pointer-events: none;
+    }
+
+    /* ── Left: mascot ── */
+    .mascot-col {
+      width: 300px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Center: THE SLIP ── */
+    .brand-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 20px 0 10px;
+      line-height: 1;
+    }
+
+    .brand-the {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 14px;
+      color: #C4341E;
+      text-transform: uppercase;
+      margin-bottom: 0px;
+    }
+
+    .brand-slip {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 310px;
+      color: #FAF3E3;
+      line-height: 0.82;
+      letter-spacing: 4px;
+    }
+
+    /* ── Divider ── */
+    .vdivider {
+      width: 3px;
+      height: 300px;
+      background: #C4341E;
+      flex-shrink: 0;
+      opacity: 0.7;
+      border-radius: 2px;
+    }
+
+    /* ── Right: tagline + receipt lines ── */
+    .tagline-col {
+      width: 280px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 44px 0 36px;
+      gap: 20px;
+    }
+
+    .tagline {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 36px;
+      color: #C8A060;
+      line-height: 1.25;
+    }
+
+    .receipt-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .r-line {
+      height: 3px;
+      background: rgba(200,160,96,0.22);
+      border-radius: 2px;
+    }
+    .r-line:nth-child(1) { width: 100%; }
+    .r-line:nth-child(2) { width: 70%;  }
+    .r-line:nth-child(3) { width: 90%;  }
+    .r-line:nth-child(4) { width: 50%;  }
+    .r-line:nth-child(5) { width: 80%;  }
+    .r-line:nth-child(6) { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="sticker">
+
+    <!-- Mascot -->
+    <div class="mascot-col">
+      <svg width="230" height="230" viewBox="-12 -2 104 97" xmlns="http://www.w3.org/2000/svg">
+        <rect x="28" y="0" width="24" height="42" rx="2" fill="#FAF3E3" stroke="#FAF3E3" stroke-width="1"/>
+        <line x1="33" y1="11" x2="47" y2="11" stroke="#C8A060" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="33" y1="18" x2="47" y2="18" stroke="#C8A060" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="33" y1="25" x2="44" y2="25" stroke="#C8A060" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="6" y="33" width="68" height="55" rx="8" fill="#C4341E" stroke="#FAF3E3" stroke-width="1.5"/>
+        <rect x="18" y="32" width="44" height="8" rx="2" fill="rgba(0,0,0,0.22)"/>
+        <circle cx="29" cy="57" r="7.5" fill="#1C0F08"/>
+        <circle cx="51" cy="57" r="7.5" fill="#1C0F08"/>
+        <circle cx="31" cy="55" r="2.5" fill="white"/>
+        <circle cx="53" cy="55" r="2.5" fill="white"/>
+        <path d="M25 70 Q40 81 55 70" stroke="#1C0F08" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M6 51 L-4 63 L2 68"  stroke="#FAF3E3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M74 51 L84 63 L78 68" stroke="#FAF3E3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- THE SLIP -->
+    <div class="brand-col">
+      <div class="brand-the">THE</div>
+      <div class="brand-slip">SLIP</div>
+    </div>
+
+    <!-- Vertical divider -->
+    <div class="vdivider"></div>
+
+    <!-- Tagline + receipt lines -->
+    <div class="tagline-col">
+      <div class="tagline">your day,<br>printed</div>
+      <div class="receipt-strip">
+        <div class="r-line"></div>
+        <div class="r-line"></div>
+        <div class="r-line"></div>
+        <div class="r-line"></div>
+        <div class="r-line"></div>
+        <div class="r-line"></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
