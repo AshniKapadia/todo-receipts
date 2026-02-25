@@ -64,6 +64,7 @@ export class ReceiptGenerator {
     lines.push("SUPPLEMENTS TAKEN");
     lines.push("[ ] IRON 1        [ ] IRON 2");
     lines.push("[ ] VIT C         [ ] VIT D");
+    lines.push("[ ] WATER 1      [ ] WATER 2");
     lines.push("[ ] SEEDS        [ ] HAIR MASS");
     lines.push("[ ] CARDIO");
     lines.push(SEPARATOR);
