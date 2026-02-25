@@ -60,13 +60,11 @@ export class ReceiptGenerator {
     lines.push(this.padLine("ITEM COUNT", String(data.totalCount), WIDTH));
     lines.push(SEPARATOR);
 
-    // Supplements section
+    // Supplements section (3x3 grid, 30-char width)
     lines.push("SUPPLEMENTS TAKEN");
-    lines.push("[ ] IRON 1        [ ] IRON 2");
-    lines.push("[ ] VIT C         [ ] VIT D");
-    lines.push("[ ] WATER 1      [ ] WATER 2");
-    lines.push("[ ] SEEDS        [ ] HAIR MASS");
-    lines.push("[ ] CARDIO");
+    lines.push("[ ] IRON1 [ ] IRON2 [ ] VIT C");
+    lines.push("[ ] VIT D [ ] WTR 1 [ ] WTR 2");
+    lines.push("[ ] SEEDS [ ] HAIR  [ ] CARDIO");
     lines.push(SEPARATOR);
 
     // Manual entries section
