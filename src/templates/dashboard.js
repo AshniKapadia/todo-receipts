@@ -350,7 +350,7 @@ async function printReceipt() {
     const response = await fetch('/api/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: currentUser }),
+      body: JSON.stringify({ user: currentUser, date: selectedDate }),
     });
     if (!response.ok) throw new Error('Failed to print receipt');
     btn.textContent = 'Queued!';
