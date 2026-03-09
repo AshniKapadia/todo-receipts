@@ -1,6 +1,7 @@
 # To-Do Receipts
 
 Generate thermal printer-style receipts for daily tasks. Manage tasks through a web dashboard, print them to a physical thermal printer from anywhere.
+inspo from: https://github.com/chrishutchinson/claude-receipts
 
 ## Architecture
 
