@@ -519,7 +519,7 @@ function handleDragEnd(event) {
 
 // ── Period Tracker ─────────────────────────────────────────────────────────────
 let periodLogs = [];
-let periodViewMonth = new Date();
+let periodViewYear = new Date().getFullYear();
 let selectedPeriodDate = null;
 let selectedFlow = null;
 let selectedSymptoms = [];
@@ -532,7 +532,7 @@ async function fetchPeriodLogs() {
     periodLogs = data.logs || [];
     cycleStats = computeCycleStats(periodLogs);
     updatePeriodEyebrow();
-    renderPeriodDateStrip();
+    renderPeriodYearGrid();
     renderPeriodHistory();
   } catch (err) {
     showError('Failed to load period data: ' + err.message);
@@ -642,56 +642,55 @@ function updatePeriodEyebrow() {
   eyebrow.textContent = `CYCLE DAY ${cycleDay} · NEXT PERIOD ${nextDateFmt} (${nextLabel})`;
 }
 
-function renderPeriodDateStrip() {
-  const year   = periodViewMonth.getFullYear();
-  const month  = periodViewMonth.getMonth();
-  const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-                  'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-
-  document.getElementById('period-month-label').textContent = `${MONTHS[month]} ${year}`;
+function renderPeriodYearGrid() {
+  const year = periodViewYear;
+  document.getElementById('period-year-label').textContent = year;
 
   const today  = todayISO();
   const logMap = new Map(periodLogs.map(l => [l.date, l]));
-  const daysInM = new Date(year, month + 1, 0).getDate();
-  const chips = [];
+  const MONTHS   = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+  const WEEKDAYS = ['S','M','T','W','T','F','S'];
 
-  for (let d = 1; d <= daysInM; d++) {
-    const iso = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const date = new Date(iso + 'T00:00:00');
-    const log  = logMap.get(iso);
-    const isPeriodDay = log && log.flow && log.flow !== 'none';
-    const isPredicted = !isPeriodDay && cycleStats?.predictedDates?.has(iso);
-    const isOvulation = !isPeriodDay && !isPredicted && cycleStats?.ovulationDates?.has(iso);
-    const isToday    = iso === today;
-    const isSelected = iso === selectedPeriodDate;
+  const monthBlocks = MONTHS.map((name, m) => {
+    const daysInM  = new Date(year, m + 1, 0).getDate();
+    const firstDow = new Date(year, m, 1).getDay();
 
-    const cls = ['date-chip'];
-    if (isPeriodDay) { cls.push('period-day'); if (log.flow) cls.push(`flow-${log.flow}`); }
-    if (isPredicted)  cls.push('predicted-period');
-    if (isToday)      cls.push('today');
-    if (isSelected)   cls.push('selected');
+    const wdRow = WEEKDAYS.map(d =>
+      `<span class="period-weekday-label">${d}</span>`
+    ).join('');
 
-    let pip = '';
-    if (isPeriodDay)  pip = `<span class="flow-pip"></span>`;
-    else if (isOvulation) pip = `<span class="ov-pip"></span>`;
+    const circles = [];
+    for (let i = 0; i < firstDow; i++) circles.push(`<div class="period-day-circle empty"></div>`);
 
-    chips.push(`
-      <button class="${cls.join(' ')}" onclick="selectPeriodDate('${iso}')">
-        <span class="day-name">${date.toLocaleDateString('en-US',{weekday:'short'})}</span>
-        <span class="day-num">${d}</span>
-        ${pip}
-      </button>
-    `);
-  }
+    for (let d = 1; d <= daysInM; d++) {
+      const iso = `${year}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const log = logMap.get(iso);
+      const isPeriodDay = log && log.flow && log.flow !== 'none';
+      const isPredicted = !isPeriodDay && cycleStats?.predictedDates?.has(iso);
+      const isOvulation = !isPeriodDay && !isPredicted && cycleStats?.ovulationDates?.has(iso);
+      const cls = ['period-day-circle'];
+      if (isPeriodDay) cls.push('period-day');
+      if (isPredicted) cls.push('predicted');
+      if (isOvulation) cls.push('ovulation');
+      if (iso === today)              cls.push('today');
+      if (iso === selectedPeriodDate) cls.push('selected');
+      circles.push(`<div class="${cls.join(' ')}" onclick="selectPeriodDate('${iso}')">${d}</div>`);
+    }
 
-  const strip = document.getElementById('period-date-strip');
-  strip.innerHTML = chips.join('');
+    const rows = [];
+    for (let i = 0; i < circles.length; i += 7) {
+      rows.push(`<div class="period-cal-row">${circles.slice(i, i + 7).join('')}</div>`);
+    }
 
-  // Scroll today (or selected) into view
-  const target = selectedPeriodDate
-    ? strip.querySelector('.selected')
-    : strip.querySelector('.today');
-  if (target) target.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+    return `<div class="period-month-block">
+      <div class="period-month-name">${name}</div>
+      <div class="period-cal-row">${wdRow}</div>
+      ${rows.join('')}
+    </div>`;
+  });
+
+  document.getElementById('period-year-grid').innerHTML = monthBlocks.join('');
 }
 
 function renderPeriodHistory() {
@@ -743,9 +742,9 @@ function renderPeriodHistory() {
   list.innerHTML = rows.join('');
 }
 
-function shiftPeriodMonth(delta) {
-  periodViewMonth = new Date(periodViewMonth.getFullYear(), periodViewMonth.getMonth() + delta, 1);
-  renderPeriodDateStrip();
+function shiftPeriodYear(delta) {
+  periodViewYear += delta;
+  renderPeriodYearGrid();
 }
 
 function selectPeriodDate(dateStr) {
@@ -764,13 +763,13 @@ function selectPeriodDate(dateStr) {
 
   syncFlowPills();
   syncSymptomChips();
-  renderPeriodDateStrip();
+  renderPeriodYearGrid();
 }
 
 function closePeriodLogPanel() {
   selectedPeriodDate = null;
   document.getElementById('period-log-panel').style.display = 'none';
-  renderPeriodDateStrip();
+  renderPeriodYearGrid();
 }
 
 function selectFlow(flow) {

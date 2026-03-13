@@ -676,8 +676,7 @@
       flex-direction: column;
     }
 
-    /* Month nav bar — same weight as date-strip */
-    .period-month-bar {
+    .period-year-bar {
       background: var(--bg);
       border-bottom: 3px solid var(--dark);
       padding: 10px 32px;
@@ -701,78 +700,96 @@
     }
     .period-nav-btn:hover { border-color: var(--dark); }
 
-    .period-month-label {
+    .period-year-label {
       font-family: 'Bebas Neue', cursive;
       font-size: 18px;
-      letter-spacing: 4px;
+      letter-spacing: 5px;
       color: var(--dark);
       flex: 1;
     }
 
-    /* Date strip for period — same as .date-strip */
-    .period-date-strip {
-      background: var(--bg);
-      border-bottom: 3px solid var(--dark);
-      padding: 12px 32px;
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      flex-shrink: 0;
-      scrollbar-width: none;
+    /* Year grid */
+    .period-year-grid {
+      padding: 24px 32px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px 28px;
     }
-    .period-date-strip::-webkit-scrollbar { display: none; }
 
-    /* Period day chip states — layered onto .date-chip */
-    .date-chip.period-day {
-      background: var(--red);
-      border-color: var(--red);
-      box-shadow: 2px 2px 0 var(--dark);
+    .period-month-name {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-family: 'Space Grotesk', sans-serif;
     }
-    .date-chip.period-day .day-name,
-    .date-chip.period-day .day-num  { color: #fff; }
-    .date-chip.period-day:hover     { background: #b02c19; border-color: #b02c19; }
-    .date-chip.period-day.selected  {
-      background: var(--yellow);
-      border-color: var(--dark);
-      box-shadow: 2px 2px 0 var(--dark);
-    }
-    .date-chip.period-day.selected .day-name,
-    .date-chip.period-day.selected .day-num { color: var(--dark); }
 
-    .date-chip.predicted-period {
-      border: 2px dashed rgba(196,52,30,0.4);
-      background: rgba(196,52,30,0.04);
+    .period-cal-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin-bottom: 2px;
     }
-    .date-chip.predicted-period .day-num { color: var(--red); }
 
-    /* Small indicator pips inside chips */
-    .flow-pip {
-      width: 4px; height: 4px;
+    .period-weekday-label {
+      font-size: 7px;
+      text-align: center;
+      color: var(--border);
+      font-weight: 700;
+      padding: 1px 0;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .period-day-circle {
+      aspect-ratio: 1;
       border-radius: 50%;
-      background: rgba(255,255,255,0.6);
-      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.1s;
+      position: relative;
     }
-    .date-chip.flow-spotting .flow-pip { opacity: 0.4; }
-    .date-chip.flow-heavy    .flow-pip { width: 6px; height: 6px; background: rgba(255,255,255,0.9); }
+    .period-day-circle:hover { background: rgba(196,52,30,0.1); color: var(--dark); }
+    .period-day-circle.empty { visibility: hidden; pointer-events: none; }
 
-    .ov-pip {
-      width: 5px; height: 5px;
+    .period-day-circle.period-day { background: var(--red); color: #fff; font-weight: 700; }
+    .period-day-circle.period-day:hover { background: #b02c19; }
+
+    .period-day-circle.predicted { background: rgba(196,52,30,0.12); color: var(--red); }
+
+    /* tiny olive dot below number for ovulation window */
+    .period-day-circle.ovulation::after {
+      content: '';
+      position: absolute;
+      bottom: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 3px;
       border-radius: 50%;
       background: var(--olive);
-      flex-shrink: 0;
     }
-    .date-chip.period-day .ov-pip { display: none; }
 
-    /* Period content (same padding as .content) */
+    .period-day-circle.today              { box-shadow: 0 0 0 1.5px var(--dark); color: var(--dark); font-weight: 700; }
+    .period-day-circle.period-day.today   { box-shadow: 0 0 0 2px rgba(255,255,255,0.55); }
+    .period-day-circle.selected           { box-shadow: 0 0 0 2px var(--dark) !important; background: var(--yellow) !important; color: var(--dark) !important; }
+
+    /* Period detail area (log + history) */
     .period-content {
-      padding: 24px 32px;
-      flex: 1;
+      padding: 0 32px 24px;
       display: flex;
       flex-direction: column;
       gap: 18px;
     }
 
-    /* Log panel — reuses .add-form structure; just needs chip styles */
+    /* Chips for log panel */
     .flow-pills   { display: flex; gap: 5px; flex-wrap: wrap; }
     .symptom-grid { display: flex; gap: 5px; flex-wrap: wrap; }
 
@@ -791,9 +808,9 @@
       letter-spacing: 1px;
       text-transform: uppercase;
     }
-    .flow-pill:hover,   .symptom-chip:hover   { background: var(--surface); color: var(--text); border-color: var(--dark); }
-    .flow-pill.active                          { background: var(--red);   border-color: var(--red);   color: #fff; }
-    .symptom-chip.active                       { background: var(--olive); border-color: var(--olive); color: #fff; }
+    .flow-pill:hover,    .symptom-chip:hover    { background: var(--surface); color: var(--text); border-color: var(--dark); }
+    .flow-pill.active                            { background: var(--red);   border-color: var(--red);   color: #fff; }
+    .symptom-chip.active                         { background: var(--olive); border-color: var(--olive); color: #fff; }
 
     .log-actions { display: flex; gap: 8px; margin-top: 10px; }
 
@@ -831,7 +848,7 @@
     }
     .log-clear-btn:hover { border-color: var(--red); color: var(--red); }
 
-    /* Period history entries — same rhythm as .task-item */
+    /* History */
     .period-run-item {
       display: flex;
       align-items: center;
@@ -839,24 +856,9 @@
       padding: 13px 20px;
       border-bottom: 1px solid var(--border);
     }
-    .period-run-item:last-child { border-bottom: none; }
-
-    .period-run-date {
-      flex: 1;
-      font-size: 14px;
-      font-family: 'Courier Prime', monospace;
-      color: var(--text);
-    }
-
-    .period-run-symptoms {
-      font-size: 9.5px;
-      color: var(--muted);
-      font-family: 'Space Grotesk', sans-serif;
-      letter-spacing: 0.5px;
-      text-align: right;
-      max-width: 220px;
-      line-height: 1.4;
-    }
+    .period-run-item:last-child  { border-bottom: none; }
+    .period-run-date             { flex: 1; font-size: 14px; font-family: 'Courier Prime', monospace; color: var(--text); }
+    .period-run-symptoms         { font-size: 9.5px; color: var(--muted); font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.5px; text-align: right; max-width: 220px; }
 
     /* ─────────────── Mobile ─────────────── */
     .mobile-profiles { display: none; }
@@ -925,9 +927,9 @@
       .task-title { min-width: 0; }
 
       /* Period view mobile */
-      .period-month-bar { padding: 8px 16px; }
-      .period-date-strip { padding: 10px 12px; }
-      .period-content { padding: 14px 16px; gap: 14px; }
+      .period-year-bar  { padding: 8px 16px; }
+      .period-year-grid { padding: 14px 16px; gap: 16px 10px; grid-template-columns: repeat(3, 1fr); }
+      .period-content   { padding: 0 16px 16px; gap: 14px; }
 
       /* Fixed bottom nav */
       .mobile-nav {
@@ -1077,20 +1079,19 @@
       <!-- ── Period Tracker View ── -->
       <div class="period-view" id="period-view">
 
-        <!-- Month nav -->
-        <div class="period-month-bar">
-          <button class="period-nav-btn" onclick="shiftPeriodMonth(-1)">←</button>
-          <span class="period-month-label" id="period-month-label">MARCH 2026</span>
-          <button class="period-nav-btn" onclick="shiftPeriodMonth(1)">→</button>
+        <!-- Year nav -->
+        <div class="period-year-bar">
+          <button class="period-nav-btn" onclick="shiftPeriodYear(-1)">←</button>
+          <span class="period-year-label" id="period-year-label">2026</span>
+          <button class="period-nav-btn" onclick="shiftPeriodYear(1)">→</button>
         </div>
 
-        <!-- Full-month date chip strip -->
-        <div class="period-date-strip" id="period-date-strip"></div>
+        <!-- 12-month circle grid -->
+        <div class="period-year-grid" id="period-year-grid"></div>
 
-        <!-- Content -->
+        <!-- Log + history -->
         <div class="period-content">
 
-          <!-- Log form (hidden until date selected) — add-form style -->
           <div class="add-form" id="period-log-panel" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
               <span class="add-form-label" id="log-panel-date" style="margin:0">SELECT A DATE ABOVE</span>
@@ -1126,13 +1127,12 @@
             </div>
           </div>
 
-          <!-- History — tasks-section style -->
           <div class="tasks-section">
             <div class="tasks-header" id="period-history-header">Period History</div>
             <div id="period-history-list">
               <div class="empty-state">
                 <div class="empty-text">No logs yet</div>
-                <div class="empty-sub">tap any day above to start logging</div>
+                <div class="empty-sub">tap any day to start logging</div>
               </div>
             </div>
           </div>
