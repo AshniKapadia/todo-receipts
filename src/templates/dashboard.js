@@ -747,12 +747,29 @@ function shiftPeriodYear(delta) {
   renderPeriodYearGrid();
 }
 
-function selectPeriodDate(dateStr) {
-  selectedPeriodDate = dateStr;
-
+async function selectPeriodDate(dateStr) {
   const log = periodLogs.find(l => l.date === dateStr);
-  selectedFlow     = log?.flow || null;
-  selectedSymptoms = log?.symptoms ? [...log.symptoms] : [];
+  const isLogged = log && log.flow && log.flow !== 'none';
+
+  if (!isLogged) {
+    // Quick tap on empty day: immediately mark as medium, no panel needed
+    try {
+      await fetch('/api/period', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr, flow: 'medium', symptoms: [], notes: '', user: currentUser }),
+      });
+      await fetchPeriodLogs();
+    } catch (err) {
+      showError('Failed to log day: ' + err.message);
+    }
+    return;
+  }
+
+  // Tap on already-logged day: open panel to edit / clear
+  selectedPeriodDate = dateStr;
+  selectedFlow     = log.flow || null;
+  selectedSymptoms = log.symptoms ? [...log.symptoms] : [];
 
   const panel = document.getElementById('period-log-panel');
   panel.style.display = 'block';
