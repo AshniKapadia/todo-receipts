@@ -575,6 +575,100 @@
       opacity: 0.7;
     }
 
+    /* ─────────────── CARS View ─────────────── */
+    .cars-view {
+      display: none;
+      padding: 24px 32px;
+      flex: 1;
+    }
+
+    .cars-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .cars-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 28px;
+      letter-spacing: 6px;
+      color: var(--dark);
+    }
+
+    .cars-refresh-btn {
+      padding: 7px 16px;
+      background: none;
+      border: 2px solid var(--dark);
+      border-radius: 3px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: var(--dark);
+      transition: background 0.12s;
+    }
+    .cars-refresh-btn:hover { background: var(--bg); }
+
+    .cars-weeks {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .cars-week {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .cars-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .cars-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 3px solid var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--dark);
+      box-shadow: 3px 3px 0 var(--dark);
+    }
+
+    .cars-circle.green  { background: #5DBB63; color: var(--dark); }
+    .cars-circle.yellow { background: var(--yellow); color: var(--dark); }
+    .cars-circle.red    { background: var(--red); color: #fff; }
+
+    .cars-date {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cars-loading {
+      padding: 48px 0;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
     /* ─────────────── Mobile ─────────────── */
     .mobile-profiles { display: none; }
     .mobile-nav      { display: none; }
@@ -716,6 +810,7 @@
 
       <nav class="list-tabs" id="list-tabs">
         <button class="list-tab active" data-category="todo" onclick="switchCategory('todo')"><span class="tab-icon">☐</span>To Do</button>
+        <button class="list-tab"        data-category="cars" onclick="switchCategory('cars')"><span class="tab-icon">🚗</span>CARS</button>
       </nav>
 
       <div class="sidebar-footer">The Slip · todo-receipts</div>
@@ -783,6 +878,16 @@
         </div>
 
       </div>
+
+      <!-- ── CARS View ── -->
+      <div class="cars-view" id="cars-view">
+        <div class="cars-header">
+          <span class="cars-title">CARS SCORES</span>
+          <button class="cars-refresh-btn" onclick="fetchCarsData()">↻ Refresh</button>
+        </div>
+        <div id="cars-grid"></div>
+      </div>
+
     </main>
 
   </div>
@@ -790,6 +895,7 @@
   <!-- Mobile-only bottom nav -->
   <nav class="mobile-nav">
     <button class="list-tab active" data-category="todo" onclick="switchCategory('todo')"><span class="tab-icon">☐</span><span class="mobile-tab-label">To Do</span></button>
+    <button class="list-tab"        data-category="cars" onclick="switchCategory('cars')"><span class="tab-icon">🚗</span><span class="mobile-tab-label">CARS</span></button>
   </nav>
 
   <script>

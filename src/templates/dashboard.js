@@ -108,15 +108,82 @@ function updateTasksHeader() {
 // ── Category Tabs ─────────────────────────────────────────────────────────────
 function switchCategory(category) {
   currentCategory = category;
+  const isCars = category === 'cars';
 
-  // Update active tab
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
   });
 
-  fetchSuggestions();
-  fetchTodos();
-  updateTasksHeader();
+  document.getElementById('cars-view').style.display    = isCars ? 'block' : 'none';
+  document.querySelector('.content').style.display      = isCars ? 'none'  : 'flex';
+  document.querySelector('.date-strip').style.display   = isCars ? 'none'  : 'flex';
+  document.getElementById('print-btn').style.display    = isCars ? 'none'  : '';
+
+  if (isCars) {
+    fetchCarsData();
+  } else {
+    fetchSuggestions();
+    fetchTodos();
+    updateTasksHeader();
+  }
+}
+
+// ── CARS View ─────────────────────────────────────────────────────────────────
+const CARS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/17P30_NWjBy2Nm9keI-w5qxdKkNzFtaJbKvIfzsS0Hks/gviz/tq?tqx=out:csv';
+
+async function fetchCarsData() {
+  const grid = document.getElementById('cars-grid');
+  grid.innerHTML = '<div class="cars-loading">Loading...</div>';
+
+  try {
+    const res = await fetch(CARS_SHEET_URL);
+    const text = await res.text();
+    const rows = text.trim().split('\n').slice(1);
+    const entries = rows
+      .map(row => {
+        const parts = row.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+        return { date: parts[0], score: parts[1] };
+      })
+      .filter(e => e.date && e.score);
+    renderCarsGrid(entries);
+  } catch (err) {
+    grid.innerHTML = `<div class="error">Failed to load CARS data: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function scoreColor(score) {
+  const [num, denom] = score.split('/').map(Number);
+  if (isNaN(num) || isNaN(denom)) return '';
+  const diff = denom - num;
+  if (diff === 0) return 'green';
+  if (diff <= 2) return 'yellow';
+  return 'red';
+}
+
+function renderCarsGrid(entries) {
+  const grid = document.getElementById('cars-grid');
+  if (entries.length === 0) {
+    grid.innerHTML = '<div class="cars-loading">No data yet.</div>';
+    return;
+  }
+
+  const weeks = [];
+  for (let i = 0; i < entries.length; i += 7) {
+    weeks.push(entries.slice(i, i + 7));
+  }
+
+  grid.innerHTML = `<div class="cars-weeks">${
+    weeks.map(week => `
+      <div class="cars-week">
+        ${week.map(({ date, score }) => `
+          <div class="cars-day">
+            <div class="cars-circle ${scoreColor(score)}">${escapeHtml(score)}</div>
+            <div class="cars-date">${escapeHtml(date)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')
+  }</div>`;
 }
 
 // ── Fetch Todos ───────────────────────────────────────────────────────────────
