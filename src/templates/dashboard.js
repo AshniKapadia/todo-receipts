@@ -108,19 +108,29 @@ function updateTasksHeader() {
 // ── Category Tabs ─────────────────────────────────────────────────────────────
 function switchCategory(category) {
   currentCategory = category;
-  const isCars = category === 'cars';
+  const isTodo   = category === 'todo';
+  const isCars   = category === 'cars';
+  const isPeriod = category === 'period';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
   });
 
-  document.getElementById('cars-view').style.display    = isCars ? 'block' : 'none';
-  document.querySelector('.content').style.display      = isCars ? 'none'  : 'flex';
-  document.querySelector('.date-strip').style.display   = isCars ? 'none'  : 'flex';
-  document.getElementById('print-btn').style.display    = isCars ? 'none'  : '';
+  document.getElementById('cars-view').style.display    = isCars   ? 'block' : 'none';
+  document.getElementById('period-view').style.display  = isPeriod ? 'flex'  : 'none';
+  document.querySelector('.content').style.display      = isTodo   ? 'flex'  : 'none';
+  document.querySelector('.date-strip').style.display   = isTodo   ? 'flex'  : 'none';
+  document.getElementById('print-btn').style.display    = isTodo   ? ''      : 'none';
+
+  const titleEl = document.querySelector('.topbar-title');
+  if (isCars)        titleEl.textContent = 'CARS SCORES';
+  else if (isPeriod) titleEl.textContent = 'CYCLE TRACKER';
+  else               titleEl.textContent = 'TO-DO LIST';
 
   if (isCars) {
     fetchCarsData();
+  } else if (isPeriod) {
+    fetchPeriodLogs();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -496,4 +506,330 @@ function handleDrop(event) {
 function handleDragEnd(event) {
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// ── Period Tracker ─────────────────────────────────────────────────────────────
+let periodLogs = [];
+let periodViewMonth = new Date();
+let selectedPeriodDate = null;
+let selectedFlow = null;
+let selectedSymptoms = [];
+let cycleStats = null;
+
+async function fetchPeriodLogs() {
+  try {
+    const res = await fetch(`/api/period?user=${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+    periodLogs = data.logs || [];
+    cycleStats = computeCycleStats(periodLogs);
+    renderPeriodStats();
+    renderPeriodCalendar();
+  } catch (err) {
+    showError('Failed to load period data: ' + err.message);
+  }
+}
+
+function computeCycleStats(logs) {
+  const flowDates = logs
+    .filter(l => l.flow && l.flow !== 'none')
+    .map(l => l.date)
+    .sort();
+
+  if (flowDates.length === 0) return null;
+
+  // Group consecutive days into period runs (gap ≤ 2 days = same period)
+  const runs = [];
+  let run = [flowDates[0]];
+  for (let i = 1; i < flowDates.length; i++) {
+    const prev = new Date(flowDates[i - 1] + 'T00:00:00');
+    const curr = new Date(flowDates[i]     + 'T00:00:00');
+    const diffDays = (curr - prev) / 86400000;
+    if (diffDays <= 2) {
+      run.push(flowDates[i]);
+    } else {
+      runs.push(run);
+      run = [flowDates[i]];
+    }
+  }
+  runs.push(run);
+
+  const periodStarts = runs.map(r => r[0]);
+  const periodEnds   = runs.map(r => r[r.length - 1]);
+  const periodDurations = runs.map(r => {
+    const s = new Date(r[0]              + 'T00:00:00');
+    const e = new Date(r[r.length - 1]  + 'T00:00:00');
+    return Math.round((e - s) / 86400000) + 1;
+  });
+
+  const avgPeriodLength = Math.round(periodDurations.reduce((a, b) => a + b, 0) / periodDurations.length);
+
+  let avgCycleLength = 28;
+  if (periodStarts.length >= 2) {
+    const gaps = [];
+    for (let i = 1; i < periodStarts.length; i++) {
+      const a = new Date(periodStarts[i - 1] + 'T00:00:00');
+      const b = new Date(periodStarts[i]     + 'T00:00:00');
+      gaps.push(Math.round((b - a) / 86400000));
+    }
+    avgCycleLength = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lastStart = new Date(periodStarts[periodStarts.length - 1] + 'T00:00:00');
+  const lastEnd   = new Date(periodEnds[periodEnds.length - 1]     + 'T00:00:00');
+  const cycleDay  = Math.round((today - lastStart) / 86400000) + 1;
+
+  const nextPeriod = new Date(lastStart);
+  nextPeriod.setDate(nextPeriod.getDate() + avgCycleLength);
+
+  const ovCenter = new Date(nextPeriod);
+  ovCenter.setDate(ovCenter.getDate() - 14);
+
+  // Predicted period dates
+  const predictedDates = new Set();
+  for (let i = 0; i < avgPeriodLength + 1; i++) {
+    const d = new Date(nextPeriod);
+    d.setDate(d.getDate() + i);
+    predictedDates.add(d.toISOString().slice(0, 10));
+  }
+
+  // Ovulation window ±3 days around center
+  const ovulationDates = new Set();
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(ovCenter);
+    d.setDate(d.getDate() + i);
+    ovulationDates.add(d.toISOString().slice(0, 10));
+  }
+
+  const daysUntilNext = Math.round((nextPeriod - today) / 86400000);
+
+  // Determine phase label
+  const isInPeriod = flowDates.includes(todayISO());
+  let phase;
+  if (isInPeriod) {
+    phase = 'menstrual';
+  } else if (ovulationDates.has(todayISO())) {
+    phase = 'fertile window';
+  } else if (daysUntilNext >= 0 && daysUntilNext <= 5) {
+    phase = 'late luteal';
+  } else if (cycleDay <= 13) {
+    phase = 'follicular';
+  } else {
+    phase = 'luteal';
+  }
+
+  return {
+    cycleDay,
+    phase,
+    lastPeriodStart: periodStarts[periodStarts.length - 1],
+    lastPeriodEnd:   periodEnds[periodEnds.length - 1],
+    avgCycleLength,
+    avgPeriodLength,
+    nextPeriodDate: nextPeriod.toISOString().slice(0, 10),
+    daysUntilNext,
+    predictedDates,
+    ovulationDates,
+    runs,
+  };
+}
+
+function renderPeriodStats() {
+  if (!cycleStats) {
+    document.getElementById('stat-cycle-day').textContent    = '—';
+    document.getElementById('stat-phase').textContent        = 'log your first period';
+    document.getElementById('stat-last-period').textContent  = '—';
+    document.getElementById('stat-last-duration').textContent = '';
+    document.getElementById('stat-next-period').textContent  = '—';
+    document.getElementById('stat-next-in').textContent      = '';
+    document.getElementById('stat-avg-cycle').textContent    = '—';
+    document.getElementById('stat-avg-period').textContent   = '';
+    return;
+  }
+
+  const { cycleDay, phase, lastPeriodStart, avgCycleLength, avgPeriodLength, nextPeriodDate, daysUntilNext } = cycleStats;
+
+  document.getElementById('stat-cycle-day').textContent   = `Day ${cycleDay}`;
+  document.getElementById('stat-phase').textContent       = phase;
+
+  const lastDate = new Date(lastPeriodStart + 'T00:00:00');
+  document.getElementById('stat-last-period').textContent  = lastDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  document.getElementById('stat-last-duration').textContent = `${avgPeriodLength} day period`;
+
+  const nextDate = new Date(nextPeriodDate + 'T00:00:00');
+  document.getElementById('stat-next-period').textContent = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  if (daysUntilNext > 0) {
+    document.getElementById('stat-next-in').textContent = `in ${daysUntilNext} day${daysUntilNext !== 1 ? 's' : ''}`;
+  } else if (daysUntilNext === 0) {
+    document.getElementById('stat-next-in').textContent = 'today';
+  } else {
+    document.getElementById('stat-next-in').textContent = `${Math.abs(daysUntilNext)}d late`;
+  }
+
+  document.getElementById('stat-avg-cycle').textContent  = `${avgCycleLength}d`;
+  document.getElementById('stat-avg-period').textContent = `${avgPeriodLength} day period`;
+}
+
+function renderPeriodCalendar() {
+  const year  = periodViewMonth.getFullYear();
+  const month = periodViewMonth.getMonth();
+  const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                  'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+  document.getElementById('cal-month-title').textContent = `${MONTHS[month]} ${year}`;
+
+  const today    = todayISO();
+  const logMap   = new Map(periodLogs.map(l => [l.date, l]));
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInM  = new Date(year, month + 1, 0).getDate();
+  const prevLastD = new Date(year, month, 0).getDate();
+
+  const cells = [];
+
+  // Previous-month filler
+  for (let i = firstDow - 1; i >= 0; i--) {
+    const d    = prevLastD - i;
+    const pm   = month === 0 ? 11 : month - 1;
+    const py   = month === 0 ? year - 1 : year;
+    const iso  = `${py}-${String(pm + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells.push(buildCalCell(iso, d, true, logMap, today));
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInM; d++) {
+    const iso = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells.push(buildCalCell(iso, d, false, logMap, today));
+  }
+
+  // Next-month filler to complete the last row
+  const total = Math.ceil(cells.length / 7) * 7;
+  let nd = 1;
+  const nm = month === 11 ? 0  : month + 1;
+  const ny = month === 11 ? year + 1 : year;
+  while (cells.length < total) {
+    const iso = `${ny}-${String(nm + 1).padStart(2,'0')}-${String(nd).padStart(2,'0')}`;
+    cells.push(buildCalCell(iso, nd, true, logMap, today));
+    nd++;
+  }
+
+  document.getElementById('cal-grid').innerHTML = cells.join('');
+}
+
+function buildCalCell(dateStr, dayNum, isOtherMonth, logMap, today) {
+  const log         = logMap.get(dateStr);
+  const isPeriodDay = log && log.flow && log.flow !== 'none';
+  const isPredicted = !isPeriodDay && cycleStats?.predictedDates?.has(dateStr);
+  const isOvulation = !isPeriodDay && !isPredicted && cycleStats?.ovulationDates?.has(dateStr);
+  const isToday     = dateStr === today;
+  const isSelected  = dateStr === selectedPeriodDate;
+
+  const cls = ['cal-cell'];
+  if (isOtherMonth) cls.push('other-month');
+  if (isPeriodDay)  { cls.push('period-day'); if (log.flow) cls.push(`flow-${log.flow}`); }
+  if (isPredicted)  cls.push('predicted-period');
+  if (isToday)      cls.push('today');
+  if (isSelected)   cls.push('selected');
+
+  let indicator = '';
+  if (isPeriodDay) {
+    indicator = `<span class="cal-flow-dot"></span>`;
+  } else if (isOvulation) {
+    indicator = `<span class="cal-ov-dot"></span>`;
+  }
+
+  return `<div class="${cls.join(' ')}" onclick="selectPeriodDate('${dateStr}')">
+    <span class="cal-cell-num">${dayNum}</span>${indicator}
+  </div>`;
+}
+
+function shiftPeriodMonth(delta) {
+  periodViewMonth = new Date(periodViewMonth.getFullYear(), periodViewMonth.getMonth() + delta, 1);
+  renderPeriodCalendar();
+}
+
+function selectPeriodDate(dateStr) {
+  selectedPeriodDate = dateStr;
+
+  const log = periodLogs.find(l => l.date === dateStr);
+  selectedFlow     = log?.flow || null;
+  selectedSymptoms = log?.symptoms ? [...log.symptoms] : [];
+
+  const panel = document.getElementById('period-log-panel');
+  panel.classList.add('visible');
+
+  const d = new Date(dateStr + 'T00:00:00');
+  document.getElementById('log-panel-date').textContent =
+    d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+
+  syncFlowPills();
+  syncSymptomChips();
+  renderPeriodCalendar();
+}
+
+function closePeriodLogPanel() {
+  selectedPeriodDate = null;
+  document.getElementById('period-log-panel').classList.remove('visible');
+  renderPeriodCalendar();
+}
+
+function selectFlow(flow) {
+  selectedFlow = flow;
+  syncFlowPills();
+}
+
+function toggleSymptom(symptom) {
+  const idx = selectedSymptoms.indexOf(symptom);
+  if (idx >= 0) selectedSymptoms.splice(idx, 1);
+  else           selectedSymptoms.push(symptom);
+  syncSymptomChips();
+}
+
+function syncFlowPills() {
+  document.querySelectorAll('.flow-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.flow === (selectedFlow || 'none'));
+  });
+}
+
+function syncSymptomChips() {
+  document.querySelectorAll('.symptom-chip').forEach(btn => {
+    btn.classList.toggle('active', selectedSymptoms.includes(btn.dataset.symptom));
+  });
+}
+
+async function savePeriodEntry() {
+  if (!selectedPeriodDate) return;
+  try {
+    const res = await fetch('/api/period', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: selectedPeriodDate,
+        flow: selectedFlow,
+        symptoms: selectedSymptoms,
+        notes: '',
+        user: currentUser,
+      }),
+    });
+    if (!res.ok) throw new Error('Save failed');
+    await fetchPeriodLogs();
+    selectPeriodDate(selectedPeriodDate); // re-open panel on same date
+  } catch (err) {
+    showError('Failed to save: ' + err.message);
+  }
+}
+
+async function clearPeriodEntry() {
+  if (!selectedPeriodDate) return;
+  try {
+    const res = await fetch(`/api/period/${selectedPeriodDate}?user=${encodeURIComponent(currentUser)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Clear failed');
+    closePeriodLogPanel();
+    await fetchPeriodLogs();
+  } catch (err) {
+    showError('Failed to clear: ' + err.message);
+  }
 }

@@ -104,6 +104,27 @@ export class ApiRouter {
         return;
       }
 
+      // Period tracker routes
+      if (pathname === "/api/period" && method === "GET") {
+        const userId = parsedUrl.searchParams.get("user") || "ashni";
+        const logs = this.db.getPeriodLogs(userId);
+        this.sendJson(res, { logs });
+        return;
+      }
+
+      if (pathname === "/api/period" && method === "POST") {
+        await this.createPeriodLog(req, res);
+        return;
+      }
+
+      if (pathname.startsWith("/api/period/") && method === "DELETE") {
+        const date = pathname.slice("/api/period/".length);
+        const userId = parsedUrl.searchParams.get("user") || "ashni";
+        this.db.deletePeriodLog(userId, date);
+        this.sendJson(res, { success: true });
+        return;
+      }
+
       if (pathname === "/api/print" && method === "POST") {
         await this.printReceipt(req, res);
         return;
@@ -243,6 +264,23 @@ export class ApiRouter {
 
     this.db.reorderTodos(orderedIds);
     this.sendJson(res, { success: true });
+  }
+
+  private async createPeriodLog(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const body = await this.parseBody(req);
+    const { date, flow, symptoms, notes, user } = body;
+    if (!date || typeof date !== "string") {
+      this.sendError(res, 400, "date is required");
+      return;
+    }
+    const log = this.db.upsertPeriodLog(
+      user || "ashni",
+      date,
+      flow || null,
+      Array.isArray(symptoms) ? symptoms : [],
+      notes || ""
+    );
+    this.sendJson(res, { log });
   }
 
   private async printReceipt(req: IncomingMessage, res: ServerResponse): Promise<void> {

@@ -1,3 +1,13 @@
+export interface PeriodLog {
+  id: number;
+  user_id: string;
+  date: string;
+  flow: string | null;
+  symptoms: string[];
+  notes: string;
+  created_at: number;
+}
+
 export interface TodoItem {
   id: number;
   title: string;
@@ -25,6 +35,16 @@ export const CREATE_TABLE_SQL = `
     updated_at INTEGER NOT NULL,
     scheduled_date TEXT DEFAULT NULL,
     user_id TEXT NOT NULL DEFAULT 'ashni'
+  );
+  CREATE TABLE IF NOT EXISTS period_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL DEFAULT 'ashni',
+    date TEXT NOT NULL,
+    flow TEXT DEFAULT NULL,
+    symptoms TEXT DEFAULT '[]',
+    notes TEXT DEFAULT '',
+    created_at INTEGER NOT NULL,
+    UNIQUE(user_id, date)
   );
   CREATE TABLE IF NOT EXISTS print_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

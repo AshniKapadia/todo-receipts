@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem } from "./schema.js";
+import type { TodoItem, PeriodLog } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 
 export class TodoDatabase {
@@ -327,6 +327,61 @@ export class TodoDatabase {
       scheduled_date: row.scheduled_date ?? undefined,
       user_id: row.user_id || 'ashni',
     };
+  }
+
+  // ── Period Tracker ──────────────────────────────────────────────────────────
+
+  getPeriodLogs(userId: string = 'ashni'): PeriodLog[] {
+    const stmt = this.db.prepare(`
+      SELECT id, user_id, date, flow, symptoms, notes, created_at
+      FROM period_logs
+      WHERE user_id = ?
+      ORDER BY date ASC
+    `);
+    const rows = stmt.all(userId) as Array<{
+      id: number; user_id: string; date: string;
+      flow: string | null; symptoms: string; notes: string; created_at: number;
+    }>;
+    return rows.map(r => ({
+      id: r.id,
+      user_id: r.user_id,
+      date: r.date,
+      flow: r.flow,
+      symptoms: JSON.parse(r.symptoms || '[]'),
+      notes: r.notes || '',
+      created_at: r.created_at,
+    }));
+  }
+
+  upsertPeriodLog(userId: string, date: string, flow: string | null, symptoms: string[], notes: string): PeriodLog {
+    const now = Date.now();
+    this.db.prepare(`
+      INSERT INTO period_logs (user_id, date, flow, symptoms, notes, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, date) DO UPDATE SET
+        flow = excluded.flow,
+        symptoms = excluded.symptoms,
+        notes = excluded.notes
+    `).run(userId, date, flow, JSON.stringify(symptoms), notes, now);
+
+    const row = this.db.prepare(`
+      SELECT id, user_id, date, flow, symptoms, notes, created_at
+      FROM period_logs WHERE user_id = ? AND date = ?
+    `).get(userId, date) as any;
+
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      date: row.date,
+      flow: row.flow,
+      symptoms: JSON.parse(row.symptoms || '[]'),
+      notes: row.notes || '',
+      created_at: row.created_at,
+    };
+  }
+
+  deletePeriodLog(userId: string, date: string): void {
+    this.db.prepare(`DELETE FROM period_logs WHERE user_id = ? AND date = ?`).run(userId, date);
   }
 
   /**
