@@ -870,8 +870,6 @@
     }
 
     .tv-inner {
-      max-width: 860px;
-      margin: 0 auto;
       width: 100%;
       padding: 0 0 80px;
     }
@@ -952,7 +950,7 @@
       border-bottom: 1px solid #111;
       cursor: grab;
       transition: background 0.15s;
-      min-height: 96px;
+      min-height: 130px;
       position: relative;
     }
     .tv-item:hover { background: rgba(255,255,255,0.02); }
@@ -975,12 +973,12 @@
 
     .tv-rank {
       font-family: 'Bebas Neue', cursive;
-      font-size: 56px;
+      font-size: 80px;
       line-height: 1;
-      width: 88px;
-      min-width: 88px;
+      width: 110px;
+      min-width: 110px;
       text-align: right;
-      padding-right: 18px;
+      padding-right: 22px;
       color: #1a1a1a;
       transition: color 0.3s;
       user-select: none;
@@ -988,9 +986,9 @@
     .tv-item:hover .tv-rank { color: #2e2318; }
 
     .tv-poster {
-      width: 60px;
-      min-width: 60px;
-      height: 90px;
+      width: 80px;
+      min-width: 80px;
+      height: 120px;
       background: #111;
       overflow: hidden;
       position: relative;
@@ -1038,7 +1036,7 @@
 
     .tv-glow {
       position: absolute;
-      left: 88px;
+      left: 110px;
       top: 50%;
       transform: translateY(-50%);
       width: 120px;
@@ -1058,7 +1056,7 @@
     }
     .tv-show-name {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(15px, 2vw, 20px);
+      font-size: clamp(18px, 2.2vw, 28px);
       font-weight: 700;
       font-style: italic;
       color: #c8c0b2;
@@ -1095,7 +1093,7 @@
 
     /* Unranked pool */
     .tv-unranked-section {
-      padding: 28px 32px;
+      padding: 32px 40px;
       border-top: 1px solid #141414;
     }
     .tv-section-label {
@@ -1118,23 +1116,23 @@
     .tv-pool {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
     }
 
     .tv-pool-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       cursor: grab;
       transition: transform 0.15s;
     }
-    .tv-pool-card:hover { transform: translateY(-3px); }
+    .tv-pool-card:hover { transform: translateY(-4px); }
     .tv-pool-card.tv-dragging { opacity: 0.25; }
 
     .tv-pool-poster {
-      width: 64px;
-      height: 96px;
+      width: 100px;
+      height: 150px;
       background: #0e0e0e;
       overflow: hidden;
       position: relative;
@@ -1168,7 +1166,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 6px;
+      font-size: 8px;
       color: #2a2a2a;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -1178,11 +1176,11 @@
     }
 
     .tv-pool-title {
-      font-size: 7px;
+      font-size: 8px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #444;
-      max-width: 64px;
+      color: #555;
+      max-width: 100px;
       text-align: center;
       line-height: 1.4;
     }
