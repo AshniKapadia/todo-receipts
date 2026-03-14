@@ -1579,9 +1579,7 @@
     };
 
     // Direct TVmaze show IDs — bypasses search entirely for accuracy
-    const TVMAZE_IDS = {
-      "Avatar":  139,   // Avatar: The Last Airbender (Nickelodeon cartoon)
-    };
+    const TVMAZE_IDS = {};
 
     // For shows where search might grab a wrong result, filter by network
     const TVMAZE_NETWORK = {
@@ -1589,10 +1587,11 @@
       "Gossip Girl":   "The CW",
       "You":           "Netflix",
       "Lucifer":       "Netflix",
+      "Avatar":        "Nickelodeon",  // original cartoon, not the 2024 Netflix live-action
     };
 
     const TV_STATE_KEY  = 'tv-list-v4';
-    const TV_POSTER_KEY = 'tv-posters-v3';
+    const TV_POSTER_KEY = 'tv-posters-v4';
 
     let tvRanked   = [];
     let tvUnranked = [...TV_SHOWS];
