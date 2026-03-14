@@ -59,6 +59,12 @@ export class ApiRouter {
         return;
       }
 
+      // Custom font
+      if (pathname === "/Ashni-Regular.ttf" && method === "GET") {
+        await this.serveFont(res);
+        return;
+      }
+
       // Profiles route
       if (pathname === "/api/profiles" && method === "GET") {
         this.sendJson(res, { profiles: [{ id: 'ashni', name: 'Ashni' }, { id: 'nirav', name: 'Nirav' }] });
@@ -183,6 +189,17 @@ export class ApiRouter {
       res.end(svg);
     } catch (error) {
       this.sendError(res, 500, "Failed to load favicon");
+    }
+  }
+
+  private async serveFont(res: ServerResponse): Promise<void> {
+    try {
+      const fontPath = resolve(__dirname, "../templates/Ashni-Regular.ttf");
+      const font = await readFile(fontPath);
+      res.writeHead(200, { "Content-Type": "font/ttf", "Cache-Control": "public, max-age=31536000" });
+      res.end(font);
+    } catch (error) {
+      this.sendError(res, 500, "Failed to load font");
     }
   }
 
