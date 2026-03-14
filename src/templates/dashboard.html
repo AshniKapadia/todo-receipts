@@ -1561,20 +1561,36 @@
       "The Mindy Project","Never Have I Ever","Sex Lives of College Girls",
       "Kim's Convenience","The Middle","Friends","House of Cards","30 Rock",
       "Veep","Silicon Valley","The Pitt","Arrested Development",
-      "Animal Control","Avatar"
+      "Animal Control","Avatar",
+      "Grey's Anatomy","The West Wing","Bridgerton","Black-ish","Suits",
+      "Nobody Wants This","Man on the Inside","The Ranch","The Diplomat",
+      "Running Point","Lucifer","Gossip Girl","Owning Manhattan","You",
+      "One Day","How to Make It in America"
     ];
 
-    // TVmaze overrides for tricky titles
+    // TVmaze search name overrides
     const TVMAZE_NAMES = {
-      "Parks and Rec": "Parks and Recreation",
-      "Avatar": "Avatar: The Last Airbender",
-      "How I Met Your Father": "How I Met Your Father",
-      "Adults": "Adults",
-      "The Pitt": "The Pitt"
+      "Parks and Rec":   "Parks and Recreation",
+      "Grey's Anatomy":  "Grey's Anatomy",
+      "Black-ish":       "Black-ish",
+      "One Day":         "One Day",
+    };
+
+    // Direct TVmaze show IDs — bypasses search entirely for accuracy
+    const TVMAZE_IDS = {
+      "Avatar":  139,   // Avatar: The Last Airbender (Nickelodeon cartoon)
+    };
+
+    // For shows where search might grab a wrong result, filter by network
+    const TVMAZE_NETWORK = {
+      "Scandal":       "ABC",
+      "Gossip Girl":   "The CW",
+      "You":           "Netflix",
+      "Lucifer":       "Netflix",
     };
 
     const TV_STATE_KEY  = 'tv-list-v4';
-    const TV_POSTER_KEY = 'tv-posters-v2';
+    const TV_POSTER_KEY = 'tv-posters-v3';
 
     let tvRanked   = [];
     let tvUnranked = [...TV_SHOWS];
@@ -1615,17 +1631,39 @@
       const missing = TV_SHOWS.filter(s => !(s in tvPosters));
       for (let i = 0; i < missing.length; i++) {
         const show = missing[i];
-        const name = TVMAZE_NAMES[show] || show;
-        try {
-          const res  = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(name)}`);
-          const data = await res.json();
-          tvPosters[show] = data?.image?.medium || null;
-        } catch(e) {
-          tvPosters[show] = null;
-        }
+        tvPosters[show] = await tvFetchOnePoster(show);
         localStorage.setItem(TV_POSTER_KEY, JSON.stringify(tvPosters));
         tvUpdatePosterInDOM(show);
         if (i % 6 === 5) await new Promise(r => setTimeout(r, 250));
+      }
+    }
+
+    async function tvFetchOnePoster(show) {
+      try {
+        // 1. Direct ID lookup (most accurate)
+        if (TVMAZE_IDS[show]) {
+          const res  = await fetch(`https://api.tvmaze.com/shows/${TVMAZE_IDS[show]}`);
+          const data = await res.json();
+          return data?.image?.medium || null;
+        }
+        // 2. Network-filtered search (avoid wrong show with same title)
+        if (TVMAZE_NETWORK[show]) {
+          const network = TVMAZE_NETWORK[show];
+          const name    = TVMAZE_NAMES[show] || show;
+          const res     = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(name)}`);
+          const results = await res.json();
+          const match   = results.find(r =>
+            r.show?.network?.name === network || r.show?.webChannel?.name === network
+          );
+          return (match?.show ?? results[0]?.show)?.image?.medium || null;
+        }
+        // 3. Regular singlesearch
+        const name = TVMAZE_NAMES[show] || show;
+        const res  = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(name)}`);
+        const data = await res.json();
+        return data?.image?.medium || null;
+      } catch(e) {
+        return null;
       }
     }
 
