@@ -269,6 +269,51 @@ export class TodoDatabase {
   }
 
   /**
+   * Recurring task definitions
+   * days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+   */
+  private static RECURRING: Array<{ title: string; time_estimate: string; days: number[] }> = [
+    { title: 'Stand Up',      time_estimate: '30m', days: [1]             }, // Mon
+    { title: 'Stand Up',      time_estimate: '15m', days: [3]             }, // Wed
+    { title: 'Work Together', time_estimate: '1h',  days: [2, 4]          }, // Tue, Thu
+    { title: 'Tickets',       time_estimate: '6h',  days: [0,1,2,3,4,5,6] }, // Every day
+  ];
+
+  /**
+   * Ensure recurring tasks exist for a given date and user.
+   * Uses category 'Recurring' as a marker — if none exist for this date, inserts them.
+   */
+  ensureRecurringTasks(date: string, userId: string = 'ashni'): void {
+    // Only inject for ashni
+    if (userId !== 'ashni') return;
+
+    // Check if already injected for this date
+    const existing = this.db.prepare(
+      `SELECT COUNT(*) as cnt FROM todos WHERE scheduled_date = ? AND user_id = ? AND category = 'Recurring'`
+    ).get(date, userId) as { cnt: number };
+    if (existing.cnt > 0) return;
+
+    // Get day of week from date string (YYYY-MM-DD)
+    const [year, month, day] = date.split('-').map(Number);
+    const dow = new Date(year, month - 1, day).getDay();
+
+    const now = Date.now();
+    const maxOrderRow = this.db.prepare('SELECT MAX(order_position) as m FROM todos').get() as { m: number | null };
+    let order = (maxOrderRow.m ?? -1) + 1;
+
+    const stmt = this.db.prepare(`
+      INSERT INTO todos (title, completed, category, priority, time_estimate, order_position, created_at, updated_at, scheduled_date, user_id)
+      VALUES (?, 0, 'Recurring', 'medium', ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const task of TodoDatabase.RECURRING) {
+      if (task.days.includes(dow)) {
+        stmt.run(task.title, task.time_estimate, order++, now, now, date, userId);
+      }
+    }
+  }
+
+  /**
    * Get top suggested task titles for a given category and user
    */
   getTaskSuggestions(category: string, userId: string = 'ashni'): string[] {

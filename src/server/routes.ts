@@ -204,6 +204,7 @@ export class ApiRouter {
   }
 
   private async getTodos(res: ServerResponse, category?: string, date?: string, userId?: string): Promise<void> {
+    if (date) this.db.ensureRecurringTasks(date, userId);
     const todos = this.db.getAllTodos(category, date, userId);
     this.sendJson(res, { todos });
   }

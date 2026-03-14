@@ -288,8 +288,9 @@ function renderTodos() {
         `;
       }
 
+      const isRecurring = todo.category === 'Recurring';
       return `
-        <div class="task-item ${todo.completed ? 'task-completed' : ''}"
+        <div class="task-item ${todo.completed ? 'task-completed' : ''} ${isRecurring ? 'task-recurring' : ''}"
              data-id="${todo.id}"
              draggable="true"
              ondragstart="handleDragStart(event)"
@@ -301,6 +302,7 @@ function renderTodos() {
           <span class="drag-handle">⋮⋮</span>
           <input type="checkbox" class="task-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleComplete(${todo.id})" />
           <div class="task-title" onclick="startEdit(${todo.id})">${escapeHtml(todo.title)}</div>
+          ${isRecurring ? `<span class="task-recurring-badge">↻</span>` : ''}
           ${todo.time_estimate ? `<span class="task-time">${escapeHtml(todo.time_estimate)}</span>` : ''}
           <button class="task-delete" onclick="deleteTodo(${todo.id})" title="Delete">✕</button>
         </div>
