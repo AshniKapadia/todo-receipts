@@ -111,6 +111,7 @@ function switchCategory(category) {
   const isTodo   = category === 'todo';
   const isCars   = category === 'cars';
   const isPeriod = category === 'period';
+  const isTv     = category === 'tv';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
@@ -118,15 +119,17 @@ function switchCategory(category) {
 
   document.getElementById('cars-view').style.display    = isCars   ? 'block' : 'none';
   document.getElementById('period-view').style.display  = isPeriod ? 'flex'  : 'none';
+  document.getElementById('tv-view').style.display      = isTv     ? 'flex'  : 'none';
   document.querySelector('.content').style.display      = isTodo   ? 'flex'  : 'none';
   document.querySelector('.date-strip').style.display   = isTodo   ? 'flex'  : 'none';
   document.getElementById('print-btn').style.display    = isTodo   ? ''      : 'none';
 
   const titleEl  = document.querySelector('.topbar-title');
   const eyebrowEl = document.getElementById('topbar-date');
-  if (isCars)        titleEl.textContent = 'CARS SCORES';
+  if (isCars)      titleEl.textContent = 'CARS SCORES';
   else if (isPeriod) titleEl.textContent = 'CYCLE TRACKER';
-  else               titleEl.textContent = 'TO-DO LIST';
+  else if (isTv)   titleEl.textContent = 'THE LIST';
+  else             titleEl.textContent = 'TO-DO LIST';
 
   // Restore date eyebrow when leaving period tab
   if (!isPeriod) {

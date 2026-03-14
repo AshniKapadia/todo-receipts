@@ -860,6 +860,352 @@
     .period-run-date             { flex: 1; font-size: 14px; font-family: 'Courier Prime', monospace; color: var(--text); }
     .period-run-symptoms         { font-size: 9.5px; color: var(--muted); font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.5px; text-align: right; max-width: 220px; }
 
+    /* ─────────────── TV Rankings ─────────────── */
+    .tv-view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      background: #080808;
+      overflow-y: auto;
+    }
+
+    .tv-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 0 80px;
+    }
+
+    .tv-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid #1e1e1e;
+      position: sticky;
+      top: 0;
+      background: #080808;
+      z-index: 10;
+    }
+
+    .tv-counts { display: flex; align-items: baseline; gap: 6px; }
+    .tv-big-num {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 36px;
+      line-height: 1;
+      color: #C9A84C;
+    }
+    .tv-big-num.tv-dim { color: #2a2a2a; }
+    .tv-big-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #444;
+      font-weight: 600;
+    }
+    .tv-big-label.tv-dim { color: #222; }
+    .tv-big-sep { color: #222; font-size: 20px; margin: 0 2px; }
+
+    .tv-btns { display: flex; gap: 8px; }
+    .tv-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 7px 16px;
+      border: 1px solid #222;
+      background: transparent;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .tv-btn:hover { border-color: #C9A84C; color: #C9A84C; background: rgba(201,168,76,0.06); }
+    .tv-btn-accent { border-color: #C9A84C; color: #C9A84C; }
+    .tv-btn-accent:hover { background: rgba(201,168,76,0.15); }
+
+    .tv-top-drop {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: transparent;
+      border-bottom: 1px solid #111;
+      transition: all 0.15s;
+      cursor: default;
+    }
+    .tv-top-drop.tv-drop-active {
+      background: rgba(201,168,76,0.07);
+      border-bottom-color: #C9A84C;
+      color: #C9A84C;
+    }
+
+    /* Ranked list items */
+    .tv-ranked-list { list-style: none; }
+
+    .tv-item {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #111;
+      cursor: grab;
+      transition: background 0.15s;
+      min-height: 96px;
+      position: relative;
+    }
+    .tv-item:hover { background: rgba(255,255,255,0.02); }
+    .tv-item.tv-dragging { opacity: 0.25; }
+
+    .tv-item.tv-drop-top::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: #C9A84C;
+    }
+    .tv-item.tv-drop-bottom::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: #C9A84C;
+    }
+
+    .tv-rank {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 56px;
+      line-height: 1;
+      width: 88px;
+      min-width: 88px;
+      text-align: right;
+      padding-right: 18px;
+      color: #1a1a1a;
+      transition: color 0.3s;
+      user-select: none;
+    }
+    .tv-item:hover .tv-rank { color: #2e2318; }
+
+    .tv-poster {
+      width: 60px;
+      min-width: 60px;
+      height: 90px;
+      background: #111;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .tv-poster img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.8) saturate(0.8);
+      transition: filter 0.3s, transform 0.3s;
+      display: block;
+    }
+    .tv-item:hover .tv-poster img {
+      filter: brightness(1.05) saturate(1.05);
+      transform: scale(1.06);
+    }
+    /* Spotlight on hover */
+    .tv-poster::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--mx,50%) var(--my,40%),
+        rgba(255,248,210,0.18) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.35s;
+      pointer-events: none;
+    }
+    .tv-item:hover .tv-poster::after { opacity: 1; }
+
+    .tv-poster-ph {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #2a2a2a;
+      text-align: center;
+      padding: 6px;
+      line-height: 1.5;
+    }
+
+    .tv-glow {
+      position: absolute;
+      left: 88px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 120px;
+      height: 180px;
+      background: radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s;
+    }
+    .tv-item:hover .tv-glow { opacity: 1; }
+
+    .tv-info {
+      flex: 1;
+      padding: 16px 20px 16px 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .tv-show-name {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(15px, 2vw, 20px);
+      font-weight: 700;
+      font-style: italic;
+      color: #c8c0b2;
+      line-height: 1.2;
+      transition: color 0.2s;
+    }
+    .tv-item:hover .tv-show-name { color: #ede9e0; }
+    .tv-item-rank-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #333;
+      margin-top: 4px;
+    }
+
+    .tv-remove {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: #2a2a2a;
+      font-size: 15px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+    .tv-item:hover .tv-remove { opacity: 1; }
+    .tv-remove:hover { color: #C4341E; }
+
+    /* Unranked pool */
+    .tv-unranked-section {
+      padding: 28px 32px;
+      border-top: 1px solid #141414;
+    }
+    .tv-section-label {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #333;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tv-unranked-badge {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 18px;
+      color: #C9A84C;
+      line-height: 1;
+    }
+
+    .tv-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tv-pool-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: grab;
+      transition: transform 0.15s;
+    }
+    .tv-pool-card:hover { transform: translateY(-3px); }
+    .tv-pool-card.tv-dragging { opacity: 0.25; }
+
+    .tv-pool-poster {
+      width: 64px;
+      height: 96px;
+      background: #0e0e0e;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .tv-pool-poster img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.6) saturate(0.5);
+      transition: filter 0.25s;
+      display: block;
+    }
+    .tv-pool-card:hover .tv-pool-poster img {
+      filter: brightness(0.9) saturate(0.9);
+    }
+    .tv-pool-poster::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%,
+        rgba(255,248,210,0.12) 0%, transparent 65%);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .tv-pool-card:hover .tv-pool-poster::after { opacity: 1; }
+
+    .tv-pool-poster-ph {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6px;
+      color: #2a2a2a;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 4px;
+      line-height: 1.5;
+    }
+
+    .tv-pool-title {
+      font-size: 7px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #444;
+      max-width: 64px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Ranked list empty state */
+    .tv-empty {
+      padding: 60px 32px;
+      text-align: center;
+      color: #222;
+    }
+    .tv-empty p {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 22px;
+      letter-spacing: 4px;
+    }
+    .tv-empty span {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      display: block;
+      margin-top: 6px;
+      color: #1a1a1a;
+    }
+
     /* ─────────────── Mobile ─────────────── */
     .mobile-profiles { display: none; }
     .mobile-nav      { display: none; }
@@ -1008,6 +1354,7 @@
         <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')"><span class="tab-icon">☐</span>To Do</button>
         <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')">CARS</button>
         <button class="list-tab"        data-category="period" onclick="switchCategory('period')"><span class="tab-icon">◌</span>Cycle</button>
+        <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')"><span class="tab-icon">▶</span>The List</button>
       </nav>
 
       <div class="sidebar-footer">The Slip · todo-receipts</div>
@@ -1140,6 +1487,42 @@
         </div>
       </div>
 
+      <!-- ── TV Rankings View ── -->
+      <div class="tv-view" id="tv-view" style="display:none">
+        <div class="tv-inner">
+
+          <div class="tv-controls-bar">
+            <div class="tv-counts">
+              <span class="tv-big-num" id="tv-ranked-count">0</span>
+              <span class="tv-big-label">ranked</span>
+              <span class="tv-big-sep">/</span>
+              <span class="tv-big-num tv-dim" id="tv-total-count">32</span>
+              <span class="tv-big-label tv-dim">total</span>
+            </div>
+            <div class="tv-btns">
+              <button class="tv-btn" onclick="tvReset()">↺ Reset</button>
+              <button class="tv-btn tv-btn-accent" onclick="tvCopy()">↗ Copy</button>
+            </div>
+          </div>
+
+          <!-- Drop zone for rank #1 -->
+          <div class="tv-top-drop" id="tv-top-drop" data-pos="0">↑ drop here for #1</div>
+
+          <!-- Ranked list -->
+          <ul class="tv-ranked-list" id="tv-ranked-list"></ul>
+
+          <!-- Unranked pool -->
+          <div class="tv-unranked-section">
+            <div class="tv-section-label">
+              UNRANKED
+              <span class="tv-unranked-badge" id="tv-unranked-count">32</span>
+            </div>
+            <div class="tv-pool" id="tv-pool"></div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- ── CARS View ── -->
       <div class="cars-view" id="cars-view">
         <div class="cars-header">
@@ -1158,6 +1541,7 @@
     <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')"><span class="tab-icon">☐</span><span class="mobile-tab-label">To Do</span></button>
     <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')"><span class="mobile-tab-label">CARS</span></button>
     <button class="list-tab"        data-category="period" onclick="switchCategory('period')"><span class="tab-icon">◌</span><span class="mobile-tab-label">Cycle</span></button>
+    <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')"><span class="tab-icon">▶</span><span class="mobile-tab-label">The List</span></button>
   </nav>
 
   <script>
@@ -1167,5 +1551,301 @@
       _d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   </script>
   <script src="/dashboard.js"></script>
+
+  <!-- ── TV Rankings ── -->
+  <script>
+  (() => {
+    const TV_SHOWS = [
+      "The Office","New Girl","Modern Family","Superstore","Parks and Rec",
+      "The Good Place","Brooklyn Nine-Nine","Scrubs","How I Met Your Mother",
+      "How I Met Your Father","Adults","Life in Pieces","Young & Hungry",
+      "Schitt's Creek","Ted Lasso","American Auto","Scandal","Gilmore Girls",
+      "The Mindy Project","Never Have I Ever","Sex Lives of College Girls",
+      "Kim's Convenience","The Middle","Friends","House of Cards","30 Rock",
+      "Veep","Silicon Valley","The Pitt","Arrested Development",
+      "Animal Control","Avatar"
+    ];
+
+    // TVmaze overrides for tricky titles
+    const TVMAZE_NAMES = {
+      "Parks and Rec": "Parks and Recreation",
+      "Avatar": "Avatar: The Last Airbender",
+      "How I Met Your Father": "How I Met Your Father",
+      "Adults": "Adults",
+      "The Pitt": "The Pitt"
+    };
+
+    const TV_STATE_KEY  = 'tv-list-v4';
+    const TV_POSTER_KEY = 'tv-posters-v2';
+
+    let tvRanked   = [];
+    let tvUnranked = [...TV_SHOWS];
+    let tvPosters  = {};
+    let tvDragSrc  = null;
+    let tvDragType = null;
+    let tvInitialized = false;
+
+    // ── Init ──────────────────────────────────────────
+    function tvInit() {
+      if (tvInitialized) return;
+      tvInitialized = true;
+      try { tvPosters = JSON.parse(localStorage.getItem(TV_POSTER_KEY) || '{}'); } catch(e) {}
+      const saved = localStorage.getItem(TV_STATE_KEY);
+      if (saved) {
+        try {
+          const d = JSON.parse(saved);
+          tvRanked   = (d.ranked || []).filter(s => TV_SHOWS.includes(s));
+          const rs   = new Set(tvRanked);
+          tvUnranked = TV_SHOWS.filter(s => !rs.has(s));
+        } catch(e) { tvResetState(); }
+      }
+      tvRender();
+      tvFetchMissing();
+    }
+
+    function tvResetState() {
+      tvRanked   = [];
+      tvUnranked = [...TV_SHOWS];
+    }
+
+    function tvSave() {
+      localStorage.setItem(TV_STATE_KEY, JSON.stringify({ ranked: tvRanked }));
+    }
+
+    // ── Poster fetching (TVmaze) ──────────────────────
+    async function tvFetchMissing() {
+      const missing = TV_SHOWS.filter(s => !(s in tvPosters));
+      for (let i = 0; i < missing.length; i++) {
+        const show = missing[i];
+        const name = TVMAZE_NAMES[show] || show;
+        try {
+          const res  = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(name)}`);
+          const data = await res.json();
+          tvPosters[show] = data?.image?.medium || null;
+        } catch(e) {
+          tvPosters[show] = null;
+        }
+        localStorage.setItem(TV_POSTER_KEY, JSON.stringify(tvPosters));
+        tvUpdatePosterInDOM(show);
+        if (i % 6 === 5) await new Promise(r => setTimeout(r, 250));
+      }
+    }
+
+    function tvUpdatePosterInDOM(show) {
+      const url = tvPosters[show];
+      if (!url) return;
+      // Ranked item
+      const ph = document.querySelector(`[data-tv-show="${CSS.escape(show)}"] .tv-poster-ph`);
+      if (ph) {
+        const img = document.createElement('img'); img.src = url; img.alt = show;
+        ph.replaceWith(img);
+      } else {
+        const img = document.querySelector(`[data-tv-show="${CSS.escape(show)}"] .tv-poster img`);
+        if (img) img.src = url;
+      }
+      // Pool card
+      const pph = document.querySelector(`[data-tv-pool="${CSS.escape(show)}"] .tv-pool-poster-ph`);
+      if (pph) {
+        const img = document.createElement('img'); img.src = url; img.alt = show;
+        pph.replaceWith(img);
+      } else {
+        const img = document.querySelector(`[data-tv-pool="${CSS.escape(show)}"] .tv-pool-poster img`);
+        if (img) img.src = url;
+      }
+    }
+
+    // ── Render ────────────────────────────────────────
+    function tvRender() {
+      tvRenderList();
+      tvRenderPool();
+      tvUpdateCounts();
+    }
+
+    function tvRenderList() {
+      const list = document.getElementById('tv-ranked-list');
+      list.innerHTML = '';
+      if (tvRanked.length === 0) {
+        list.innerHTML = `<li class="tv-empty"><p>Nothing ranked yet</p><span>Click a poster below or drag it up here</span></li>`;
+        return;
+      }
+      tvRanked.forEach((show, idx) => {
+        const li  = document.createElement('li');
+        li.className    = 'tv-item';
+        li.draggable    = true;
+        li.dataset.tvShow = show;
+        li.dataset.idx  = idx;
+        const url = tvPosters[show];
+        const posterHtml = url
+          ? `<img src="${url}" alt="${show}">`
+          : `<div class="tv-poster-ph">${show}</div>`;
+        li.innerHTML = `
+          <div class="tv-glow"></div>
+          <div class="tv-rank">${idx + 1}</div>
+          <div class="tv-poster">${posterHtml}</div>
+          <div class="tv-info">
+            <div class="tv-show-name">${show}</div>
+            <div class="tv-item-rank-label">rank #${idx + 1}</div>
+          </div>
+          <button class="tv-remove" title="Unrank" onclick="tvRemove('${show.replace(/'/g,"\\'")}')">×</button>
+        `;
+        // Spotlight
+        li.addEventListener('mousemove', e => {
+          const w = li.querySelector('.tv-poster');
+          const r = w.getBoundingClientRect();
+          w.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+          w.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+        });
+        // Drag
+        li.addEventListener('dragstart', e => {
+          tvDragSrc = show; tvDragType = 'ranked';
+          li.classList.add('tv-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', show);
+        });
+        li.addEventListener('dragend', () => { li.classList.remove('tv-dragging'); tvClearDropHints(); });
+        li.addEventListener('dragover', e => {
+          e.preventDefault();
+          const mid = li.getBoundingClientRect().top + li.getBoundingClientRect().height / 2;
+          tvClearDropHints();
+          li.classList.add(e.clientY < mid ? 'tv-drop-top' : 'tv-drop-bottom');
+        });
+        li.addEventListener('dragleave', () => tvClearDropHints());
+        li.addEventListener('drop', e => {
+          e.preventDefault();
+          const s = e.dataTransfer.getData('text/plain');
+          const mid = li.getBoundingClientRect().top + li.getBoundingClientRect().height / 2;
+          tvDropOnItem(s, idx, e.clientY < mid);
+          tvClearDropHints();
+        });
+        list.appendChild(li);
+      });
+    }
+
+    function tvRenderPool() {
+      const pool = document.getElementById('tv-pool');
+      pool.innerHTML = '';
+      if (tvUnranked.length === 0) {
+        pool.innerHTML = '<span style="font-size:10px;color:#333;letter-spacing:0.1em;font-style:italic">All shows ranked ✓</span>';
+        return;
+      }
+      tvUnranked.forEach(show => {
+        const card = document.createElement('div');
+        card.className = 'tv-pool-card';
+        card.draggable = true;
+        card.dataset.tvPool = show;
+        const url = tvPosters[show];
+        const ph = url
+          ? `<img src="${url}" alt="${show}">`
+          : `<div class="tv-pool-poster-ph">${show}</div>`;
+        card.innerHTML = `
+          <div class="tv-pool-poster">${ph}</div>
+          <div class="tv-pool-title">${show}</div>
+        `;
+        card.addEventListener('click', () => tvAddToBottom(show));
+        card.addEventListener('dragstart', e => {
+          tvDragSrc = show; tvDragType = 'unranked';
+          card.classList.add('tv-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', show);
+        });
+        card.addEventListener('dragend', () => { card.classList.remove('tv-dragging'); tvClearDropHints(); });
+        pool.appendChild(card);
+      });
+    }
+
+    // ── Drop logic ────────────────────────────────────
+    function tvDropOnItem(show, targetIdx, before) {
+      const fi = tvRanked.indexOf(show);
+      tvRanked   = tvRanked.filter(s => s !== show);
+      tvUnranked = tvUnranked.filter(s => s !== show);
+      let at = targetIdx;
+      if (fi !== -1 && fi < targetIdx) at = Math.max(0, targetIdx - 1);
+      if (!before) at += 1;
+      at = Math.max(0, Math.min(at, tvRanked.length));
+      tvRanked.splice(at, 0, show);
+      tvSave(); tvRender();
+    }
+
+    function tvAddToBottom(show) {
+      tvUnranked = tvUnranked.filter(s => s !== show);
+      tvRanked.push(show);
+      tvSave(); tvRender();
+      setTimeout(() => {
+        const el = document.querySelector(`[data-tv-show="${CSS.escape(show)}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+
+    function tvClearDropHints() {
+      document.querySelectorAll('.tv-drop-top,.tv-drop-bottom').forEach(el => {
+        el.classList.remove('tv-drop-top','tv-drop-bottom');
+      });
+    }
+
+    // Top drop zone (#1)
+    const topDrop = document.getElementById('tv-top-drop');
+    topDrop.addEventListener('dragover', e => { e.preventDefault(); topDrop.classList.add('tv-drop-active'); });
+    topDrop.addEventListener('dragleave', () => topDrop.classList.remove('tv-drop-active'));
+    topDrop.addEventListener('drop', e => {
+      e.preventDefault();
+      const show = e.dataTransfer.getData('text/plain');
+      topDrop.classList.remove('tv-drop-active');
+      if (!show) return;
+      tvRanked   = tvRanked.filter(s => s !== show);
+      tvUnranked = tvUnranked.filter(s => s !== show);
+      tvRanked.unshift(show);
+      tvSave(); tvRender();
+    });
+
+    // Allow drop anywhere on list (fallback)
+    document.getElementById('tv-ranked-list').addEventListener('dragover', e => e.preventDefault());
+    document.getElementById('tv-ranked-list').addEventListener('drop', e => {
+      e.preventDefault();
+      if (e.target.id === 'tv-ranked-list') {
+        const show = e.dataTransfer.getData('text/plain');
+        if (!show) return;
+        tvRanked   = tvRanked.filter(s => s !== show);
+        tvUnranked = tvUnranked.filter(s => s !== show);
+        tvRanked.push(show);
+        tvSave(); tvRender();
+      }
+    });
+
+    // ── Actions ───────────────────────────────────────
+    function tvRemove(show) {
+      tvRanked   = tvRanked.filter(s => s !== show);
+      if (!tvUnranked.includes(show)) tvUnranked.push(show);
+      tvSave(); tvRender();
+    }
+
+    function tvUpdateCounts() {
+      document.getElementById('tv-ranked-count').textContent  = tvRanked.length;
+      document.getElementById('tv-total-count').textContent   = TV_SHOWS.length;
+      document.getElementById('tv-unranked-count').textContent = tvUnranked.length;
+    }
+
+    window.tvReset = function() {
+      if (!confirm('Clear all TV rankings?')) return;
+      tvResetState(); tvSave(); tvRender();
+    };
+
+    window.tvCopy = function() {
+      if (!tvRanked.length) return;
+      const lines = ['★ ASHNI\'S TV RANKINGS\n'];
+      tvRanked.forEach((s, i) => lines.push(`${i + 1}. ${s}`));
+      if (tvUnranked.length) lines.push(`\nUnranked: ${tvUnranked.join(', ')}`);
+      navigator.clipboard.writeText(lines.join('\n'))
+        .then(() => { /* silent success */ })
+        .catch(() => {});
+    };
+
+    // Hook into switchCategory to lazy-init
+    const _origSwitch = window.switchCategory;
+    window.switchCategory = function(cat) {
+      _origSwitch(cat);
+      if (cat === 'tv') tvInit();
+    };
+  })();
+  </script>
 </body>
 </html>
