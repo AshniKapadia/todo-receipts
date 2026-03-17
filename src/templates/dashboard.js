@@ -141,6 +141,7 @@ function switchCategory(category) {
 
   if (isCars) {
     fetchCarsData();
+    renderSubjectCircles();
   } else if (isPeriod) {
     fetchPeriodLogs();
   } else {
@@ -206,6 +207,105 @@ function renderCarsGrid(entries) {
       </div>
     `).join('')
   }</div>`;
+}
+
+// ── Subject Progress ──────────────────────────────────────────────────────────
+const SUBJECT_TOTALS = {
+  biochem: { label: 'Biochem',  total: 922  },
+  bio:     { label: 'Bio',      total: 1230 },
+  chem:    { label: 'Gen Chem', total: 524  },
+  ps:      { label: 'P/S',      total: 2431 },
+  orgo:    { label: 'Orgo',     total: 558  },
+  physics: { label: 'Physics',  total: 667  },
+};
+
+let editingSubject = null;
+
+function loadSubjectProgress() {
+  try { return JSON.parse(localStorage.getItem('subjectProgress') || '{}'); }
+  catch { return {}; }
+}
+
+function persistSubjectProgress(progress) {
+  localStorage.setItem('subjectProgress', JSON.stringify(progress));
+}
+
+function renderSubjectCircles() {
+  const grid = document.getElementById('subjects-grid');
+  if (!grid) return;
+
+  const progress = loadSubjectProgress();
+  const R = 48;
+  const CIRCUM = +(2 * Math.PI * R).toFixed(2);
+
+  grid.innerHTML = Object.entries(SUBJECT_TOTALS).map(([key, { label, total }]) => {
+    const done = progress[key] || 0;
+    const pct  = Math.min(done / total, 1);
+    const offset = +(CIRCUM * (1 - pct)).toFixed(2);
+    const isEditing = editingSubject === key;
+
+    return `
+      <div class="subject-circle-wrap" id="subject-wrap-${key}">
+        <div class="subject-svg-container" onclick="startSubjectEdit('${key}')">
+          <svg width="110" height="110" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--border)" stroke-width="7"/>
+            <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--red)" stroke-width="7"
+              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
+              stroke-linecap="round" transform="rotate(-90 60 60)"
+              style="transition: stroke-dashoffset 0.4s ease"/>
+            <text x="60" y="56" text-anchor="middle"
+              font-family="Courier Prime, monospace" font-size="15" font-weight="700"
+              fill="var(--dark)">${done}</text>
+            <text x="60" y="72" text-anchor="middle"
+              font-family="Space Grotesk, sans-serif" font-size="9"
+              fill="var(--muted)">/ ${total}</text>
+          </svg>
+        </div>
+        ${isEditing ? `
+          <div class="subject-edit-row">
+            <input type="number" class="subject-edit-input" id="subject-input-${key}"
+              value="${done}" min="0" max="${total}"
+              onkeydown="handleSubjectKeydown(event, '${key}')"/>
+            <button class="subject-save-btn"   onclick="saveSubjectEdit('${key}')">✓</button>
+            <button class="subject-cancel-btn" onclick="cancelSubjectEdit()">✕</button>
+          </div>
+        ` : `<div class="subject-pct">${Math.round(pct * 100)}%</div>`}
+        <div class="subject-label">${label}</div>
+      </div>
+    `;
+  }).join('');
+
+  if (editingSubject) {
+    const inp = document.getElementById(`subject-input-${editingSubject}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+}
+
+function startSubjectEdit(key) {
+  editingSubject = key;
+  renderSubjectCircles();
+}
+
+function cancelSubjectEdit() {
+  editingSubject = null;
+  renderSubjectCircles();
+}
+
+function saveSubjectEdit(key) {
+  const inp = document.getElementById(`subject-input-${key}`);
+  if (!inp) return;
+  const val = parseInt(inp.value, 10);
+  if (isNaN(val) || val < 0) return;
+  const progress = loadSubjectProgress();
+  progress[key] = val;
+  persistSubjectProgress(progress);
+  editingSubject = null;
+  renderSubjectCircles();
+}
+
+function handleSubjectKeydown(event, key) {
+  if (event.key === 'Enter') saveSubjectEdit(key);
+  else if (event.key === 'Escape') cancelSubjectEdit();
 }
 
 // ── Fetch Todos ───────────────────────────────────────────────────────────────

@@ -689,6 +689,93 @@
       color: var(--muted);
     }
 
+    /* ─────────────── Subject Progress ─────────────── */
+    .subjects-section {
+      margin-top: 40px;
+      border-top: 2px solid var(--border);
+      padding-top: 28px;
+    }
+
+    .subjects-section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .subjects-grid {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .subject-circle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subject-svg-container {
+      cursor: pointer;
+      transition: transform 0.12s;
+    }
+    .subject-svg-container:hover { transform: scale(1.04); }
+
+    .subject-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--dark);
+    }
+
+    .subject-pct {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .subject-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .subject-edit-input {
+      width: 72px;
+      font-family: 'Courier Prime', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      border: 2px solid var(--dark);
+      background: var(--surface);
+      padding: 4px 6px;
+      outline: none;
+      color: var(--dark);
+      border-radius: 2px;
+    }
+    .subject-edit-input:focus { border-color: var(--red); }
+
+    .subject-save-btn, .subject-cancel-btn {
+      padding: 4px 8px;
+      border: 2px solid var(--dark);
+      background: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 2px;
+      transition: background 0.1s;
+      color: var(--dark);
+    }
+    .subject-save-btn:hover  { background: var(--olive); color: #fff; border-color: var(--olive); }
+    .subject-cancel-btn:hover { background: var(--bg); }
+
     /* ─────────────── Period Tracker ─────────────── */
     .period-view {
       display: none;
@@ -1371,7 +1458,7 @@
 
       <nav class="list-tabs" id="list-tabs">
         <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')">To Do</button>
-        <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')">CARS</button>
+        <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')">Scores</button>
         <button class="list-tab"        data-category="period" onclick="switchCategory('period')">Cycle</button>
         <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')">The List</button>
       </nav>
@@ -1549,6 +1636,12 @@
           <button class="cars-refresh-btn" onclick="fetchCarsData()">↻ Refresh</button>
         </div>
         <div id="cars-grid"></div>
+
+        <!-- Subject Progress Circles -->
+        <div class="subjects-section">
+          <div class="subjects-section-title">Question Bank Progress</div>
+          <div class="subjects-grid" id="subjects-grid"></div>
+        </div>
       </div>
 
     </main>
@@ -1558,7 +1651,7 @@
   <!-- Mobile-only bottom nav -->
   <nav class="mobile-nav">
     <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')"><span class="mobile-tab-label">To Do</span></button>
-    <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')"><span class="mobile-tab-label">CARS</span></button>
+    <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')"><span class="mobile-tab-label">Scores</span></button>
     <button class="list-tab"        data-category="period" onclick="switchCategory('period')"><span class="mobile-tab-label">Cycle</span></button>
     <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')"><span class="mobile-tab-label">The List</span></button>
   </nav>
