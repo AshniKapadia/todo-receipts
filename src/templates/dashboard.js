@@ -253,11 +253,11 @@ function renderSubjectCircles() {
               stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
               stroke-linecap="round" transform="rotate(-90 60 60)"
               style="transition: stroke-dashoffset 0.4s ease"/>
-            <text x="60" y="56" text-anchor="middle"
-              font-family="Courier Prime, monospace" font-size="15" font-weight="700"
+            <text x="60" y="58" text-anchor="middle"
+              font-family="Ashni, Bebas Neue, cursive" font-size="22"
               fill="var(--dark)">${done}</text>
             <text x="60" y="72" text-anchor="middle"
-              font-family="Space Grotesk, sans-serif" font-size="9"
+              font-family="Ashni, Bebas Neue, cursive" font-size="11"
               fill="var(--muted)">/ ${total}</text>
           </svg>
         </div>
