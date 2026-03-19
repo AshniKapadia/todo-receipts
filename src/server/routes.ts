@@ -190,12 +190,12 @@ export class ApiRouter {
         return;
       }
 
-      // Cork texture SVG
-      if (pathname === '/cork.svg' && method === 'GET') {
-        const svgPath = resolve(__dirname, '../templates/cork.svg');
-        const svg = await readFile(svgPath, 'utf-8');
-        res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=31536000' });
-        res.end(svg);
+      // Cork board background image
+      if (pathname === '/corkboard.jpg' && method === 'GET') {
+        const imgPath = resolve(__dirname, '../templates/corkboard.jpg');
+        const img = await readFile(imgPath);
+        res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=31536000' });
+        res.end(img);
         return;
       }
 

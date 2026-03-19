@@ -1358,13 +1358,10 @@ function createPolaroidEl(item, board) {
   const el = document.createElement('div');
   el.className = 'polaroid';
   el.dataset.id = item.id;
-  const posX     = 3  + itemRand(item.id, 0) * 74; // 3–77% across
-  const posY     = 3  + itemRand(item.id, 1) * 65; // 3–68% down
-  const rotation = -14 + itemRand(item.id, 2) * 28; // –14° to +14°
-  el.style.transform = `rotate(${rotation}deg)`;
+  el.style.transform = `rotate(${item.rotation}deg)`;
   el.style.zIndex = item.z_index || 1;
-  el.style.left = posX + '%';
-  el.style.top  = posY + '%';
+  el.style.left = item.pos_x + '%';
+  el.style.top  = item.pos_y + '%';
 
   // Pushpin
   const pin = document.createElement('div');
