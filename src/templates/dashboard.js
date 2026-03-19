@@ -58,6 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
   timeInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addTask();
   });
+
+  const groceryInput = document.getElementById('grocery-input');
+  groceryInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addGroceryItem();
+  });
 });
 
 // ── Date Strip ────────────────────────────────────────────────────────────────
@@ -108,28 +113,38 @@ function updateTasksHeader() {
 // ── Category Tabs ─────────────────────────────────────────────────────────────
 function switchCategory(category) {
   currentCategory = category;
-  const isTodo   = category === 'todo';
-  const isCars   = category === 'cars';
-  const isPeriod = category === 'period';
-  const isTv     = category === 'tv';
+  const isTodo    = category === 'todo';
+  const isCars    = category === 'cars';
+  const isPeriod  = category === 'period';
+  const isTv      = category === 'tv';
+  const isGrocery = category === 'grocery';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
   });
 
-  document.getElementById('cars-view').style.display    = isCars   ? 'block' : 'none';
-  document.getElementById('period-view').style.display  = isPeriod ? 'flex'  : 'none';
-  document.getElementById('tv-view').style.display      = isTv     ? 'flex'  : 'none';
-  document.querySelector('.content').style.display      = isTodo   ? 'flex'  : 'none';
-  document.querySelector('.date-strip').style.display   = isTodo   ? 'flex'  : 'none';
-  document.getElementById('print-btn').style.display    = isTodo   ? ''      : 'none';
+  document.getElementById('cars-view').style.display     = isCars    ? 'block' : 'none';
+  document.getElementById('period-view').style.display   = isPeriod  ? 'flex'  : 'none';
+  document.getElementById('tv-view').style.display       = isTv      ? 'flex'  : 'none';
+  document.getElementById('grocery-view').style.display  = isGrocery ? 'flex'  : 'none';
+  document.querySelector('.content').style.display       = isTodo    ? 'flex'  : 'none';
+  document.querySelector('.date-strip').style.display    = isTodo    ? 'flex'  : 'none';
 
-  const titleEl  = document.querySelector('.topbar-title');
+  const printBtnWrap = document.getElementById('print-btn').parentElement;
+  printBtnWrap.style.display = (isTodo || isGrocery) ? 'flex' : 'none';
+
+  // Auto-switch theme to match the active tab
+  const themeSelect = document.getElementById('theme-select');
+  if (isGrocery) themeSelect.value = 'grocery';
+  else if (isTodo) themeSelect.value = 'ops';
+
+  const titleEl   = document.querySelector('.topbar-title');
   const eyebrowEl = document.getElementById('topbar-date');
-  if (isCars)      titleEl.textContent = 'CARS SCORES';
-  else if (isPeriod) titleEl.textContent = 'CYCLE TRACKER';
-  else if (isTv)   titleEl.textContent = 'THE LIST';
-  else             titleEl.textContent = 'TO-DO LIST';
+  if (isCars)       titleEl.textContent = 'CARS SCORES';
+  else if (isPeriod)  titleEl.textContent = 'CYCLE TRACKER';
+  else if (isTv)    titleEl.textContent = 'THE LIST';
+  else if (isGrocery) titleEl.textContent = "MARKET RUN";
+  else              titleEl.textContent = 'TO-DO LIST';
 
   // Restore date eyebrow when leaving period tab
   if (!isPeriod) {
@@ -144,10 +159,111 @@ function switchCategory(category) {
     renderSubjectCircles();
   } else if (isPeriod) {
     fetchPeriodLogs();
+  } else if (isGrocery) {
+    fetchGroceryItems();
   } else {
     fetchSuggestions();
     fetchTodos();
     updateTasksHeader();
+  }
+}
+
+// ── Grocery List ──────────────────────────────────────────────────────────────
+let groceryItems = [];
+
+async function fetchGroceryItems() {
+  try {
+    const res = await fetch(`/api/todos?category=Grocery&user=${currentUser}`);
+    const data = await res.json();
+    groceryItems = data.todos || [];
+    renderGroceryList();
+  } catch (e) {
+    console.error('Failed to fetch grocery items', e);
+  }
+}
+
+function renderGroceryList() {
+  const list = document.getElementById('grocery-list');
+  const countEl = document.getElementById('grocery-count');
+  const clearBtn = document.getElementById('grocery-clear-btn');
+
+  if (groceryItems.length === 0) {
+    list.innerHTML = '<div class="grocery-empty">Your list is empty. Add something above.</div>';
+    countEl.textContent = '';
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  const checkedCount = groceryItems.filter(i => i.completed).length;
+  countEl.textContent = `${groceryItems.length - checkedCount} remaining · ${checkedCount} checked`;
+  clearBtn.style.display = checkedCount > 0 ? '' : 'none';
+
+  list.innerHTML = groceryItems.map(item => `
+    <div class="grocery-item${item.completed ? ' done' : ''}" data-id="${item.id}">
+      <button class="grocery-check" onclick="toggleGroceryItem(${item.id})" title="${item.completed ? 'Uncheck' : 'Check'}">
+        ${item.completed ? '✓' : ''}
+      </button>
+      <span class="grocery-item-title">${escapeHtml(item.title)}</span>
+      <button class="grocery-delete" onclick="deleteGroceryItem(${item.id})" title="Delete">×</button>
+    </div>
+  `).join('');
+}
+
+async function addGroceryItem() {
+  const input = document.getElementById('grocery-input');
+  const title = input.value.trim();
+  if (!title) return;
+
+  try {
+    const res = await fetch('/api/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, category: 'Grocery', user: currentUser }),
+    });
+    const data = await res.json();
+    groceryItems.push(data.todo);
+    input.value = '';
+    renderGroceryList();
+    input.focus();
+  } catch (e) {
+    console.error('Failed to add grocery item', e);
+  }
+}
+
+async function toggleGroceryItem(id) {
+  const item = groceryItems.find(i => i.id === id);
+  if (!item) return;
+  try {
+    await fetch(`/api/todos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: !item.completed }),
+    });
+    item.completed = !item.completed;
+    renderGroceryList();
+  } catch (e) {
+    console.error('Failed to toggle grocery item', e);
+  }
+}
+
+async function deleteGroceryItem(id) {
+  try {
+    await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+    groceryItems = groceryItems.filter(i => i.id !== id);
+    renderGroceryList();
+  } catch (e) {
+    console.error('Failed to delete grocery item', e);
+  }
+}
+
+async function clearCheckedGrocery() {
+  const checked = groceryItems.filter(i => i.completed);
+  try {
+    await Promise.all(checked.map(i => fetch(`/api/todos/${i.id}`, { method: 'DELETE' })));
+    groceryItems = groceryItems.filter(i => !i.completed);
+    renderGroceryList();
+  } catch (e) {
+    console.error('Failed to clear checked grocery items', e);
   }
 }
 
@@ -539,10 +655,16 @@ async function printReceipt() {
 
   try {
     const theme = document.getElementById('theme-select')?.value ?? 'ops';
+    const isGrocery = currentCategory === 'grocery';
+    const payload = {
+      user: currentUser,
+      theme,
+      ...(isGrocery ? { category: 'Grocery' } : { date: selectedDate }),
+    };
     const response = await fetch('/api/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: currentUser, date: selectedDate, theme }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error('Failed to print receipt');
     btn.textContent = 'Queued!';

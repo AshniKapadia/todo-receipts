@@ -963,6 +963,149 @@
     .period-run-date             { flex: 1; font-size: 14px; font-family: 'Courier Prime', monospace; color: var(--text); }
     .period-run-symptoms         { font-size: 9.5px; color: var(--muted); font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.5px; text-align: right; max-width: 220px; }
 
+    /* ─────────────── Grocery List ─────────────── */
+    .grocery-view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+      gap: 20px;
+    }
+
+    .grocery-add-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .grocery-add-input {
+      flex: 1;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      padding: 11px 14px;
+      border: 2.5px solid var(--dark);
+      background: var(--bg);
+      color: var(--dark);
+      outline: none;
+      box-shadow: 3px 3px 0 var(--dark);
+    }
+    .grocery-add-input:focus { box-shadow: 4px 4px 0 var(--dark); }
+    .grocery-add-input::placeholder { color: var(--muted); }
+
+    .grocery-add-btn {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      padding: 0 22px;
+      background: var(--red);
+      color: #fff;
+      border: 2.5px solid var(--dark);
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--dark);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .grocery-add-btn:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--dark); }
+    .grocery-add-btn:active { transform: translate(2px,2px);   box-shadow: 1px 1px 0 var(--dark); }
+
+    .grocery-list {
+      display: flex;
+      flex-direction: column;
+      border: 2.5px solid var(--dark);
+      box-shadow: 4px 4px 0 var(--dark);
+    }
+
+    .grocery-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 2px solid var(--dark);
+      background: #fff;
+      transition: background 0.15s;
+    }
+    .grocery-item:last-child { border-bottom: none; }
+    .grocery-item.done { background: var(--bg); }
+
+    .grocery-check {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid var(--dark);
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--dark);
+      transition: background 0.1s;
+    }
+    .grocery-item.done .grocery-check { background: var(--dark); color: #fff; }
+
+    .grocery-item-title {
+      flex: 1;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      color: var(--dark);
+      letter-spacing: 0.3px;
+    }
+    .grocery-item.done .grocery-item-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .grocery-delete {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      padding: 2px 6px;
+      line-height: 1;
+      transition: color 0.1s;
+      flex-shrink: 0;
+    }
+    .grocery-delete:hover { color: var(--red); }
+
+    .grocery-empty {
+      padding: 32px 16px;
+      text-align: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      background: #fff;
+    }
+
+    .grocery-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .grocery-count {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    .grocery-clear-btn {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 1.5px;
+      padding: 6px 14px;
+      background: var(--bg);
+      color: var(--dark);
+      border: 2px solid var(--dark);
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--dark);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .grocery-clear-btn:hover  { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--dark); }
+    .grocery-clear-btn:active { transform: translate(1px,1px);   box-shadow: 1px 1px 0 var(--dark); }
+
     /* ─────────────── TV Rankings ─────────────── */
     .tv-view {
       display: none;
@@ -1453,10 +1596,11 @@
       </div>
 
       <nav class="list-tabs" id="list-tabs">
-        <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')">To Do</button>
-        <button class="list-tab"        data-category="cars"   onclick="switchCategory('cars')">Scores</button>
-        <button class="list-tab"        data-category="period" onclick="switchCategory('period')">Cycle</button>
-        <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')">The List</button>
+        <button class="list-tab active" data-category="todo"    onclick="switchCategory('todo')">To Do</button>
+        <button class="list-tab"        data-category="grocery" onclick="switchCategory('grocery')">Grocery</button>
+        <button class="list-tab"        data-category="cars"    onclick="switchCategory('cars')">Scores</button>
+        <button class="list-tab"        data-category="period"  onclick="switchCategory('period')">Cycle</button>
+        <button class="list-tab"        data-category="tv"      onclick="switchCategory('tv')">The List</button>
       </nav>
 
       <div class="sidebar-footer">The Slip · todo-receipts</div>
@@ -1592,6 +1736,27 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── Grocery List View ── -->
+      <div class="grocery-view" id="grocery-view">
+        <div class="grocery-add-row">
+          <input
+            type="text" id="grocery-input" class="grocery-add-input"
+            placeholder="add an item..."
+            maxlength="200" autocomplete="off"
+          />
+          <button class="grocery-add-btn" onclick="addGroceryItem()">Add</button>
+        </div>
+        <div>
+          <div class="grocery-list" id="grocery-list">
+            <div class="grocery-empty">Your list is empty. Add something above.</div>
+          </div>
+        </div>
+        <div class="grocery-footer">
+          <span class="grocery-count" id="grocery-count"></span>
+          <button class="grocery-clear-btn" id="grocery-clear-btn" onclick="clearCheckedGrocery()" style="display:none">Clear Checked</button>
         </div>
       </div>
 
