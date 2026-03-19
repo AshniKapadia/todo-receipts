@@ -1112,85 +1112,85 @@
       flex-direction: column;
       flex: 1;
       overflow-y: auto;
-      background: #080f1c;
+      background: #F7F0E3;
     }
 
     /* Section blocks */
     .t-section {
       padding: 36px 40px;
-      border-bottom: 1px solid #1a2a40;
+      border-bottom: 1.5px solid rgba(21,12,6,0.12);
     }
 
     .t-section-eyebrow {
       font-family: 'Courier Prime', monospace;
-      font-size: 10px;
+      font-size: 12px;
       letter-spacing: 5px;
-      color: #2a4060;
+      color: rgba(21,12,6,0.38);
       text-transform: uppercase;
       margin-bottom: 6px;
     }
 
     .t-section-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 38px;
+      font-size: 42px;
       letter-spacing: 3px;
-      color: #F5DEB3;
+      color: #150C06;
       line-height: 1;
       margin-bottom: 28px;
     }
 
     /* ── Departures Board ── */
     .t-board {
-      border: 1px solid #1a2a40;
+      border: 1.5px solid rgba(21,12,6,0.15);
     }
 
     .t-board-row {
       display: flex;
       align-items: center;
       gap: 0;
-      border-bottom: 1px solid #1a2a40;
+      border-bottom: 1px solid rgba(21,12,6,0.1);
       cursor: pointer;
       transition: background 0.15s;
       position: relative;
     }
     .t-board-row:last-child { border-bottom: none; }
-    .t-board-row:hover { background: rgba(255,225,53,0.03); }
-    .t-board-row.open { background: rgba(255,225,53,0.05); }
+    .t-board-row:hover { background: rgba(196,52,30,0.04); }
+    .t-board-row.open { background: rgba(196,52,30,0.06); }
     .t-board-row.open::before {
       content: '';
       position: absolute;
       left: 0; top: 0; bottom: 0;
       width: 3px;
-      background: #FFE135;
+      background: #C4341E;
     }
 
     .t-row-num {
       font-family: 'Courier Prime', monospace;
-      font-size: 11px;
+      font-size: 13px;
       letter-spacing: 2px;
-      color: #2a4060;
+      color: rgba(21,12,6,0.32);
       padding: 20px 20px 20px 24px;
       min-width: 64px;
       flex-shrink: 0;
     }
-    .t-board-row.open .t-row-num { color: #FFE135; }
+    .t-board-row.open .t-row-num { color: #C4341E; }
 
     .t-row-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
+      font-size: 32px;
       letter-spacing: 2px;
-      color: #F5DEB3;
+      color: #150C06;
       flex: 1;
       padding: 16px 0;
       line-height: 1;
     }
-    .t-board-row.open .t-row-name { color: #FFE135; }
+    .t-board-row.open .t-row-name { color: #C4341E; }
 
     .t-row-status {
       font-family: 'Courier Prime', monospace;
-      font-size: 9px;
+      font-size: 12px;
       letter-spacing: 3px;
-      color: #2a4060;
+      color: rgba(21,12,6,0.38);
       text-transform: uppercase;
       padding: 0 20px;
       flex-shrink: 0;
@@ -1198,30 +1198,30 @@
 
     .t-row-stops {
       font-family: 'Courier Prime', monospace;
-      font-size: 10px;
+      font-size: 12px;
       letter-spacing: 2px;
-      color: #2a4060;
+      color: rgba(21,12,6,0.38);
       padding: 0 16px;
       flex-shrink: 0;
     }
 
     .t-row-arrow {
-      font-size: 16px;
-      color: #2a4060;
+      font-size: 18px;
+      color: rgba(21,12,6,0.32);
       padding: 0 20px;
       transition: transform 0.25s, color 0.15s;
       flex-shrink: 0;
     }
-    .t-board-row.open .t-row-arrow { transform: rotate(90deg); color: #FFE135; }
+    .t-board-row.open .t-row-arrow { transform: rotate(90deg); color: #C4341E; }
 
     /* Detail panel */
     .t-detail {
       overflow: hidden;
       max-height: 0;
       transition: max-height 0.4s ease;
-      border-bottom: 1px solid #1a2a40;
-      border-left: 3px solid #FFE135;
-      background: #060c18;
+      border-bottom: 1px solid rgba(21,12,6,0.1);
+      border-left: 3px solid #C4341E;
+      background: #EDE5D5;
     }
 
     .t-detail-inner {
@@ -1231,37 +1231,37 @@
       gap: 32px;
     }
 
-    .t-dest-list { display: flex; flex-direction: column; gap: 14px; }
+    .t-dest-list { display: flex; flex-direction: column; gap: 16px; }
 
     .t-dest-item {}
 
     .t-dest-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 15px;
+      font-size: 20px;
       letter-spacing: 2px;
-      color: #F5DEB3;
-      margin-bottom: 2px;
+      color: #150C06;
+      margin-bottom: 3px;
     }
 
     .t-dest-places {
       font-family: 'Courier Prime', monospace;
-      font-size: 11px;
-      color: #3a5878;
-      line-height: 1.6;
+      font-size: 13px;
+      color: rgba(21,12,6,0.55);
+      line-height: 1.7;
       letter-spacing: 0.5px;
     }
 
     .t-dest-aside {
       font-family: 'Playfair Display', serif;
       font-style: italic;
-      font-size: 12px;
-      color: #4a7060;
+      font-size: 14px;
+      color: rgba(21,12,6,0.48);
       line-height: 1.5;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     .t-note-col {
-      border-left: 1px solid #1a2a40;
+      border-left: 1px solid rgba(21,12,6,0.15);
       padding-left: 32px;
       display: flex;
       align-items: flex-start;
@@ -1269,7 +1269,7 @@
 
     .t-note-text {
       font-family: 'Ashni', cursive;
-      font-size: 22px;
+      font-size: 24px;
       color: #C4341E;
       line-height: 1.8;
     }
@@ -1278,7 +1278,7 @@
     .t-stamps-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
+      gap: 24px;
     }
 
     .t-stamp-wrap {
@@ -1289,9 +1289,9 @@
     }
 
     .t-stamp {
-      width: 130px;
-      height: 130px;
-      border: 2.5px solid #FFE135;
+      width: 140px;
+      height: 140px;
+      border: 2.5px solid #C4341E;
       border-radius: 50%;
       display: flex;
       flex-direction: column;
@@ -1299,42 +1299,42 @@
       justify-content: center;
       cursor: pointer;
       position: relative;
-      background: rgba(255,225,53,0.04);
+      background: rgba(196,52,30,0.04);
       transition: transform 0.25s, background 0.2s;
-      padding: 12px;
+      padding: 14px;
       flex-shrink: 0;
     }
     .t-stamp::before {
       content: '';
       position: absolute;
       inset: 7px;
-      border: 1px dashed #FFE135;
+      border: 1px dashed #C4341E;
       border-radius: 50%;
-      opacity: 0.25;
+      opacity: 0.3;
     }
     .t-stamp:nth-child(1) { transform: rotate(-4deg); }
     .t-stamp:nth-child(2) { transform: rotate(3deg); }
     .t-stamp:nth-child(3) { transform: rotate(-2deg); }
     .t-stamp:nth-child(4) { transform: rotate(5deg); }
     .t-stamp:hover,
-    .t-stamp.open { transform: rotate(0deg) scale(1.06); background: rgba(255,225,53,0.1); }
+    .t-stamp.open { transform: rotate(0deg) scale(1.06); background: rgba(196,52,30,0.08); }
 
     .t-stamp-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 14px;
+      font-size: 17px;
       letter-spacing: 2px;
-      color: #FFE135;
+      color: #C4341E;
       text-align: center;
       line-height: 1.3;
     }
 
     .t-stamp-year {
       font-family: 'Courier Prime', monospace;
-      font-size: 11px;
-      color: #FFE135;
+      font-size: 12px;
+      color: #C4341E;
       margin-top: 5px;
       letter-spacing: 3px;
-      opacity: 0.6;
+      opacity: 0.55;
     }
 
     /* Stamp itinerary expand */
@@ -1346,64 +1346,63 @@
     }
 
     .t-stamp-detail-inner {
-      padding: 16px 0 0;
+      padding: 14px 0 0;
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       justify-content: center;
-      max-width: 130px;
+      max-width: 140px;
     }
 
     .t-stamp-place {
       font-family: 'Courier Prime', monospace;
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 1px;
-      color: #FFE135;
+      color: rgba(21,12,6,0.55);
       text-align: center;
-      opacity: 0.6;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     /* ── Things to Hunt Down ── */
     .t-collect-list {
-      border: 1px solid #1a2a40;
+      border: 1.5px solid rgba(21,12,6,0.15);
     }
 
     .t-collect-item {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 14px 20px;
-      border-bottom: 1px solid #1a2a40;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(21,12,6,0.1);
       cursor: pointer;
       transition: background 0.15s;
     }
     .t-collect-item:last-child { border-bottom: none; }
-    .t-collect-item:hover { background: rgba(255,225,53,0.03); }
+    .t-collect-item:hover { background: rgba(196,52,30,0.04); }
     .t-collect-item.got { opacity: 0.4; }
 
     .t-collect-check {
-      width: 16px;
-      height: 16px;
-      border: 1.5px solid #2a4060;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid rgba(21,12,6,0.3);
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      color: #FFE135;
+      font-size: 11px;
+      color: #C4341E;
       transition: border-color 0.15s;
     }
-    .t-collect-item.got .t-collect-check { border-color: #FFE135; background: rgba(255,225,53,0.15); }
+    .t-collect-item.got .t-collect-check { border-color: #C4341E; background: rgba(196,52,30,0.12); }
 
     .t-collect-text {
       font-family: 'Courier Prime', monospace;
-      font-size: 13px;
-      color: #F5DEB3;
+      font-size: 15px;
+      color: #150C06;
       letter-spacing: 0.5px;
       line-height: 1.5;
     }
-    .t-collect-item.got .t-collect-text { text-decoration: line-through; color: #2a4060; }
+    .t-collect-item.got .t-collect-text { text-decoration: line-through; color: rgba(21,12,6,0.35); }
 
     /* ─────────────── TV Rankings ─────────────── */
     .tv-view {
