@@ -354,10 +354,10 @@ const TRAVEL_DATA = {
     },
   ],
   completed: [
-    { id: 'eastern-europe', name: 'Eastern Europe', year: '2023' },
-    { id: 'italy', name: 'Italy', year: '2024' },
-    { id: 'gujarat', name: 'Gujarat', year: '2025' },
-    { id: 'iceland-denmark', name: 'Iceland + Denmark', year: '2026' },
+    { id: 'eastern-europe', name: 'Eastern Europe', year: '2023', places: ['Amsterdam', 'Brussels', 'Berlin', 'Prague', 'Budapest', 'Vienna', 'Zagreb', 'Venice', 'Naples', 'Nice', 'Marseille', 'Paris', 'London'] },
+    { id: 'italy', name: 'Italy', year: '2024', places: ['Sorrento', 'Rome', 'Florence', 'Venice'] },
+    { id: 'gujarat', name: 'Gujarat', year: '2025', places: ['Kutch', 'Manekchowk', 'Old City', 'Rani ki Vav', 'Modhera', 'Mahudi', 'Law Garden', 'Waterfront', 'Gandhinagar', 'Nadiad', 'Mankwa', 'Kheda'] },
+    { id: 'iceland-denmark', name: 'Iceland + Denmark', year: '2026', places: ['Copenhagen', 'Reykjavik', 'Blue Lagoon', 'Hvolsvöllur', 'Skógafoss', 'Sólheimajökull', 'Vik', 'Reynisfjara', 'Seljalandsfoss', 'Kerid Crater', 'Fridheimar', 'Geysir', 'Gullfoss', 'Þingvellir', 'Sky Lagoon'] },
   ],
   collect: [
     'Tea kettle — next time in London',
@@ -376,68 +376,98 @@ function renderTravelView() {
 
 function renderDreamTrips() {
   const container = document.getElementById('dream-trips-list');
-  container.innerHTML = TRAVEL_DATA.upcoming.map(trip => `
-    <div class="trip-card" id="trip-${trip.id}">
-      <div class="trip-card-header" onclick="toggleTrip('${trip.id}')">
-        <span class="trip-card-num">${trip.num}</span>
-        <span class="trip-card-name">${escapeHtml(trip.name)}</span>
-        <span class="trip-card-count">${trip.destinations.length} stops</span>
-        <span class="trip-card-arrow">▾</span>
+  container.innerHTML = TRAVEL_DATA.upcoming.map(trip => {
+    const num = String(trip.num).padStart(2, '0');
+    const noteCol = trip.note
+      ? `<div class="t-note-col"><div class="t-note-text">${escapeHtml(trip.note)}</div></div>`
+      : '';
+    const destList = trip.destinations.map(d => `
+      <div class="t-dest-item">
+        <div class="t-dest-name">${escapeHtml(d.name)}</div>
+        ${d.places ? `<div class="t-dest-places">${escapeHtml(d.places)}</div>` : ''}
+        ${d.aside ? `<div class="t-dest-aside">${escapeHtml(d.aside)}</div>` : ''}
       </div>
-      <div class="trip-body" id="trip-body-${trip.id}">
-        <div class="trip-destinations">
-          ${trip.destinations.map(d => `
-            <div class="dest-item">
-              <div class="dest-name">${escapeHtml(d.name)}</div>
-              ${d.places ? `<div class="dest-places">${escapeHtml(d.places)}</div>` : ''}
-              ${d.aside ? `<div class="dest-aside">${escapeHtml(d.aside)}</div>` : ''}
-            </div>
-          `).join('')}
+    `).join('');
+    return `
+      <div class="t-board-row" id="trow-${trip.id}" onclick="toggleDreamTrip('${trip.id}')">
+        <span class="t-row-num">${num}</span>
+        <span class="t-row-name">${escapeHtml(trip.name)}</span>
+        <span class="t-row-status">Dreaming</span>
+        <span class="t-row-stops">${trip.destinations.length} stops</span>
+        <span class="t-row-arrow">›</span>
+      </div>
+      <div class="t-detail" id="tdetail-${trip.id}">
+        <div class="t-detail-inner">
+          <div class="t-dest-list">${destList}</div>
+          ${noteCol}
         </div>
-        ${trip.note ? `
-          <div class="trip-note-block">
-            <div class="trip-note-text">${escapeHtml(trip.note)}</div>
-          </div>
-        ` : ''}
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-function toggleTrip(id) {
-  const card = document.getElementById(`trip-${id}`);
-  const body = document.getElementById(`trip-body-${id}`);
-  const isOpen = card.classList.contains('open');
+function toggleDreamTrip(id) {
+  const row = document.getElementById(`trow-${id}`);
+  const detail = document.getElementById(`tdetail-${id}`);
+  const isOpen = row.classList.contains('open');
+  // Close all others first
+  TRAVEL_DATA.upcoming.forEach(t => {
+    if (t.id !== id) {
+      document.getElementById(`trow-${t.id}`)?.classList.remove('open');
+      const d = document.getElementById(`tdetail-${t.id}`);
+      if (d) d.style.maxHeight = '0';
+    }
+  });
   if (isOpen) {
-    body.style.maxHeight = '0';
-    card.classList.remove('open');
+    row.classList.remove('open');
+    detail.style.maxHeight = '0';
   } else {
-    body.style.maxHeight = body.scrollHeight + 'px';
-    card.classList.add('open');
-    // Re-set after transition in case content changes
-    body.addEventListener('transitionend', () => {
-      if (card.classList.contains('open')) body.style.maxHeight = 'none';
+    row.classList.add('open');
+    detail.style.maxHeight = detail.scrollHeight + 'px';
+    detail.addEventListener('transitionend', () => {
+      if (row.classList.contains('open')) detail.style.maxHeight = 'none';
     }, { once: true });
   }
 }
 
 function renderStamps() {
   const container = document.getElementById('stamps-row');
-  container.innerHTML = TRAVEL_DATA.completed.map(trip => `
-    <div class="passport-stamp">
-      <span class="stamp-name">${escapeHtml(trip.name)}</span>
-      <span class="stamp-year">${trip.year}</span>
+  const rotations = [-4, 3, -2, 5];
+  container.innerHTML = TRAVEL_DATA.completed.map((trip, i) => `
+    <div class="t-stamp-wrap">
+      <div class="t-stamp" id="tstamp-${trip.id}" onclick="toggleStamp('${trip.id}')" style="transform:rotate(${rotations[i] || 0}deg)">
+        <span class="t-stamp-name">${escapeHtml(trip.name)}</span>
+        <span class="t-stamp-year">${trip.year}</span>
+      </div>
+      <div class="t-stamp-detail" id="tsdetal-${trip.id}">
+        <div class="t-stamp-detail-inner">
+          ${trip.places.map(p => `<span class="t-stamp-place">${escapeHtml(p)}</span>`).join('<span class="t-stamp-place">·</span>')}
+        </div>
+      </div>
     </div>
   `).join('');
+}
+
+function toggleStamp(id) {
+  const stamp = document.getElementById(`tstamp-${id}`);
+  const detail = document.getElementById(`tsdetal-${id}`);
+  const isOpen = stamp.classList.contains('open');
+  if (isOpen) {
+    stamp.classList.remove('open');
+    detail.style.maxHeight = '0';
+  } else {
+    stamp.classList.add('open');
+    detail.style.maxHeight = detail.scrollHeight + 'px';
+  }
 }
 
 function renderCollectList() {
   const got = JSON.parse(localStorage.getItem('travel-collect') || '[]');
   const container = document.getElementById('collect-list');
   container.innerHTML = TRAVEL_DATA.collect.map((item, i) => `
-    <div class="collect-item${got.includes(i) ? ' got' : ''}" onclick="toggleCollect(${i})">
-      <div class="collect-check">${got.includes(i) ? '✓' : ''}</div>
-      <span class="collect-item-text">${escapeHtml(item)}</span>
+    <div class="t-collect-item${got.includes(i) ? ' got' : ''}" onclick="toggleCollect(${i})">
+      <div class="t-collect-check">${got.includes(i) ? '✓' : ''}</div>
+      <span class="t-collect-text">${escapeHtml(item)}</span>
     </div>
   `).join('');
 }

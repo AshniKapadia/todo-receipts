@@ -1112,225 +1112,298 @@
       flex-direction: column;
       flex: 1;
       overflow-y: auto;
+      background: #080f1c;
     }
 
-    .travel-section {
-      padding: 28px 32px;
-      border-bottom: 2.5px solid var(--dark);
+    /* Section blocks */
+    .t-section {
+      padding: 36px 40px;
+      border-bottom: 1px solid #1a2a40;
     }
 
-    .travel-section-label {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 12px;
+    .t-section-eyebrow {
+      font-family: 'Courier Prime', monospace;
+      font-size: 10px;
       letter-spacing: 5px;
-      color: var(--muted);
-      margin-bottom: 20px;
+      color: #2a4060;
       text-transform: uppercase;
+      margin-bottom: 6px;
     }
 
-    /* Trip accordion cards */
-    .trip-card {
-      border: 2.5px solid var(--dark);
-      box-shadow: 4px 4px 0 var(--dark);
-      margin-bottom: 14px;
-      background: var(--surface);
+    .t-section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 3px;
+      color: #F5DEB3;
+      line-height: 1;
+      margin-bottom: 28px;
     }
 
-    .trip-card-header {
+    /* ── Departures Board ── */
+    .t-board {
+      border: 1px solid #1a2a40;
+    }
+
+    .t-board-row {
       display: flex;
       align-items: center;
       gap: 0;
-      padding: 12px 18px;
+      border-bottom: 1px solid #1a2a40;
       cursor: pointer;
-      user-select: none;
       transition: background 0.15s;
+      position: relative;
     }
-    .trip-card-header:hover { background: rgba(28,15,8,0.04); }
-    .trip-card.open .trip-card-header { border-bottom: 2px solid var(--dark); }
-
-    .trip-card-num {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 46px;
-      color: var(--border);
-      line-height: 1;
-      min-width: 48px;
-    }
-
-    .trip-card-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 30px;
-      letter-spacing: 2px;
-      flex: 1;
-      line-height: 1;
-      color: var(--dark);
+    .t-board-row:last-child { border-bottom: none; }
+    .t-board-row:hover { background: rgba(255,225,53,0.03); }
+    .t-board-row.open { background: rgba(255,225,53,0.05); }
+    .t-board-row.open::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: #FFE135;
     }
 
-    .trip-card-count {
-      font-family: 'Space Grotesk', sans-serif;
+    .t-row-num {
+      font-family: 'Courier Prime', monospace;
       font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 1px;
+      letter-spacing: 2px;
+      color: #2a4060;
+      padding: 20px 20px 20px 24px;
+      min-width: 64px;
+      flex-shrink: 0;
+    }
+    .t-board-row.open .t-row-num { color: #FFE135; }
+
+    .t-row-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #F5DEB3;
+      flex: 1;
+      padding: 16px 0;
+      line-height: 1;
+    }
+    .t-board-row.open .t-row-name { color: #FFE135; }
+
+    .t-row-status {
+      font-family: 'Courier Prime', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: #2a4060;
       text-transform: uppercase;
-      margin-right: 14px;
+      padding: 0 20px;
+      flex-shrink: 0;
     }
 
-    .trip-card-arrow {
-      font-size: 14px;
-      color: var(--muted);
-      transition: transform 0.25s;
+    .t-row-stops {
+      font-family: 'Courier Prime', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #2a4060;
+      padding: 0 16px;
+      flex-shrink: 0;
     }
-    .trip-card.open .trip-card-arrow { transform: rotate(180deg); }
 
-    /* Accordion body */
-    .trip-body {
+    .t-row-arrow {
+      font-size: 16px;
+      color: #2a4060;
+      padding: 0 20px;
+      transition: transform 0.25s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .t-board-row.open .t-row-arrow { transform: rotate(90deg); color: #FFE135; }
+
+    /* Detail panel */
+    .t-detail {
       overflow: hidden;
       max-height: 0;
-      transition: max-height 0.35s ease;
+      transition: max-height 0.4s ease;
+      border-bottom: 1px solid #1a2a40;
+      border-left: 3px solid #FFE135;
+      background: #060c18;
     }
 
-    .trip-destinations {
-      padding: 18px 20px 4px;
+    .t-detail-inner {
+      padding: 28px 40px 32px 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
     }
 
-    .dest-item {
-      margin-bottom: 14px;
-    }
+    .t-dest-list { display: flex; flex-direction: column; gap: 14px; }
 
-    .dest-name {
+    .t-dest-item {}
+
+    .t-dest-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 16px;
-      letter-spacing: 1.5px;
-      color: var(--dark);
+      font-size: 15px;
+      letter-spacing: 2px;
+      color: #F5DEB3;
+      margin-bottom: 2px;
     }
 
-    .dest-places {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12.5px;
-      color: var(--muted);
-      margin-left: 2px;
-      line-height: 1.7;
-      letter-spacing: 0.2px;
+    .t-dest-places {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      color: #3a5878;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
     }
 
-    .dest-aside {
+    .t-dest-aside {
       font-family: 'Playfair Display', serif;
       font-style: italic;
-      font-size: 13px;
-      color: var(--tan);
-      margin-left: 2px;
+      font-size: 12px;
+      color: #4a7060;
       line-height: 1.5;
+      margin-top: 2px;
     }
 
-    .trip-note-block {
-      padding: 14px 20px 16px;
-      border-top: 1.5px dashed var(--border);
-      margin-top: 6px;
+    .t-note-col {
+      border-left: 1px solid #1a2a40;
+      padding-left: 32px;
+      display: flex;
+      align-items: flex-start;
     }
 
-    .trip-note-text {
+    .t-note-text {
       font-family: 'Ashni', cursive;
-      font-size: 20px;
-      color: var(--red);
-      line-height: 1.75;
+      font-size: 22px;
+      color: #C4341E;
+      line-height: 1.8;
     }
 
-    /* Passport stamps */
-    .stamps-row {
+    /* ── Passport stamps ── */
+    .t-stamps-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
     }
 
-    .passport-stamp {
-      width: 120px;
-      height: 120px;
-      border: 3px solid var(--olive);
+    .t-stamp-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .t-stamp {
+      width: 130px;
+      height: 130px;
+      border: 2.5px solid #FFE135;
       border-radius: 50%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      cursor: default;
+      cursor: pointer;
       position: relative;
-      background: transparent;
+      background: rgba(255,225,53,0.04);
       transition: transform 0.25s, background 0.2s;
-      padding: 10px;
+      padding: 12px;
+      flex-shrink: 0;
     }
-    .passport-stamp::before {
+    .t-stamp::before {
       content: '';
       position: absolute;
-      inset: 6px;
-      border: 1.5px dashed var(--olive);
+      inset: 7px;
+      border: 1px dashed #FFE135;
       border-radius: 50%;
-      opacity: 0.45;
+      opacity: 0.25;
     }
-    .passport-stamp:nth-child(1) { transform: rotate(-4deg); }
-    .passport-stamp:nth-child(2) { transform: rotate(3deg); }
-    .passport-stamp:nth-child(3) { transform: rotate(-2deg); }
-    .passport-stamp:nth-child(4) { transform: rotate(5deg); }
-    .passport-stamp:hover { transform: rotate(0deg) scale(1.07); background: rgba(86,98,40,0.07); }
+    .t-stamp:nth-child(1) { transform: rotate(-4deg); }
+    .t-stamp:nth-child(2) { transform: rotate(3deg); }
+    .t-stamp:nth-child(3) { transform: rotate(-2deg); }
+    .t-stamp:nth-child(4) { transform: rotate(5deg); }
+    .t-stamp:hover,
+    .t-stamp.open { transform: rotate(0deg) scale(1.06); background: rgba(255,225,53,0.1); }
 
-    .stamp-name {
+    .t-stamp-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 13.5px;
+      font-size: 14px;
       letter-spacing: 2px;
-      color: var(--olive);
+      color: #FFE135;
       text-align: center;
       line-height: 1.3;
     }
 
-    .stamp-year {
+    .t-stamp-year {
       font-family: 'Courier Prime', monospace;
       font-size: 11px;
-      color: var(--olive);
+      color: #FFE135;
       margin-top: 5px;
-      letter-spacing: 2px;
-      opacity: 0.75;
+      letter-spacing: 3px;
+      opacity: 0.6;
     }
 
-    /* Things to Hunt Down */
-    .collect-list {
-      border: 2.5px solid var(--dark);
-      box-shadow: 4px 4px 0 var(--dark);
+    /* Stamp itinerary expand */
+    .t-stamp-detail {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.35s ease;
+      width: 100%;
     }
 
-    .collect-item {
+    .t-stamp-detail-inner {
+      padding: 16px 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      max-width: 130px;
+    }
+
+    .t-stamp-place {
+      font-family: 'Courier Prime', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: #FFE135;
+      text-align: center;
+      opacity: 0.6;
+      line-height: 1.5;
+    }
+
+    /* ── Things to Hunt Down ── */
+    .t-collect-list {
+      border: 1px solid #1a2a40;
+    }
+
+    .t-collect-item {
       display: flex;
       align-items: center;
-      gap: 13px;
-      padding: 13px 16px;
-      border-bottom: 1.5px solid var(--dark);
-      background: var(--surface);
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #1a2a40;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .collect-item:last-child { border-bottom: none; }
-    .collect-item:hover { background: rgba(28,15,8,0.03); }
-    .collect-item.got { background: var(--bg); }
+    .t-collect-item:last-child { border-bottom: none; }
+    .t-collect-item:hover { background: rgba(255,225,53,0.03); }
+    .t-collect-item.got { opacity: 0.4; }
 
-    .collect-check {
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid var(--dark);
+    .t-collect-check {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid #2a4060;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      color: #fff;
+      font-size: 10px;
+      color: #FFE135;
+      transition: border-color 0.15s;
     }
-    .collect-item.got .collect-check { background: var(--dark); }
+    .t-collect-item.got .t-collect-check { border-color: #FFE135; background: rgba(255,225,53,0.15); }
 
-    .collect-item-text {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
-      color: var(--dark);
-      line-height: 1.4;
+    .t-collect-text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      color: #F5DEB3;
+      letter-spacing: 0.5px;
+      line-height: 1.5;
     }
-    .collect-item.got .collect-item-text {
-      text-decoration: line-through;
-      color: var(--muted);
-    }
+    .t-collect-item.got .t-collect-text { text-decoration: line-through; color: #2a4060; }
 
     /* ─────────────── TV Rankings ─────────────── */
     .tv-view {
@@ -1969,19 +2042,22 @@
       <!-- ── Travel View ── -->
       <div class="travel-view" id="travel-view">
 
-        <div class="travel-section">
-          <div class="travel-section-label">Dream Trips · 5 Regions</div>
-          <div id="dream-trips-list"></div>
+        <div class="t-section">
+          <div class="t-section-eyebrow">Departures · 5 Regions</div>
+          <div class="t-section-title">Dream Trips</div>
+          <div class="t-board" id="dream-trips-list"></div>
         </div>
 
-        <div class="travel-section">
-          <div class="travel-section-label">Stamped · 4 Trips</div>
-          <div class="stamps-row" id="stamps-row"></div>
+        <div class="t-section">
+          <div class="t-section-eyebrow">Completed · 4 Trips</div>
+          <div class="t-section-title">Stamped</div>
+          <div class="t-stamps-grid" id="stamps-row"></div>
         </div>
 
-        <div class="travel-section">
-          <div class="travel-section-label">Things to Hunt Down</div>
-          <div class="collect-list" id="collect-list"></div>
+        <div class="t-section">
+          <div class="t-section-eyebrow">Wishlist</div>
+          <div class="t-section-title">Things to Hunt Down</div>
+          <div class="t-collect-list" id="collect-list"></div>
         </div>
 
       </div>
