@@ -1,3 +1,17 @@
+export interface WishlistItem {
+  id: number;
+  user_id: string;
+  list_type: 'make' | 'buy';
+  title: string;
+  source_url: string;
+  image_filename: string;
+  rotation: number;
+  pos_x: number;
+  pos_y: number;
+  z_index: number;
+  created_at: number;
+}
+
 export interface PeriodLog {
   id: number;
   user_id: string;
@@ -53,5 +67,18 @@ export const CREATE_TABLE_SQL = `
     theme_id TEXT DEFAULT 'ops',
     created_at INTEGER NOT NULL,
     completed_at INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS wishlist_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL DEFAULT 'ashni',
+    list_type TEXT NOT NULL DEFAULT 'make',
+    title TEXT DEFAULT '',
+    source_url TEXT DEFAULT '',
+    image_filename TEXT DEFAULT '',
+    rotation REAL DEFAULT 0,
+    pos_x REAL DEFAULT 20,
+    pos_y REAL DEFAULT 20,
+    z_index INTEGER DEFAULT 1,
+    created_at INTEGER NOT NULL
   );
 `;

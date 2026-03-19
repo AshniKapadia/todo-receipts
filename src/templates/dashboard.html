@@ -1458,6 +1458,254 @@
     }
     .t-collect-item.got .t-collect-text { text-decoration: line-through; color: rgba(21,12,6,0.35); }
 
+    /* ─────────────── Cork Board / Wishlist ─────────────── */
+    .wishlist-view {
+      display: none;
+      flex: 1;
+      overflow: auto;
+      background-color: #C28A4E;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 12% 18%, rgba(100,55,15,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 88% 20%, rgba(185,130,55,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 50% at 48% 78%, rgba(90,45,10,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 75% 58%, rgba(165,110,40,0.14) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 40% at 28% 52%, rgba(195,148,80,0.1) 0%, transparent 45%);
+      box-shadow: inset 0 0 80px rgba(60,30,5,0.35);
+    }
+
+    .cork-board {
+      position: relative;
+      width: 100%;
+      min-height: 1200px;
+    }
+
+    /* Polaroid */
+    .polaroid {
+      position: absolute;
+      width: 170px;
+      background: #FEFEFE;
+      padding: 10px 10px 50px;
+      box-shadow: 2px 3px 12px rgba(0,0,0,0.28), 0 1px 3px rgba(0,0,0,0.15);
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.2s;
+    }
+    .polaroid:active { cursor: grabbing; }
+    .polaroid.dragging {
+      box-shadow: 10px 14px 28px rgba(0,0,0,0.45);
+    }
+    .polaroid-img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      display: block;
+    }
+    .polaroid-img-placeholder {
+      width: 150px;
+      height: 150px;
+      background: #F0E8D8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(21,12,6,0.25);
+      font-size: 32px;
+    }
+    .polaroid-caption {
+      font-family: 'Ashni', cursive;
+      font-size: 20px;
+      color: #150C06;
+      text-align: center;
+      padding: 10px 4px 0;
+      line-height: 1.2;
+      word-break: break-word;
+      min-height: 32px;
+    }
+    .polaroid-caption.is-url {
+      font-family: 'Courier Prime', monospace;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+      color: rgba(21,12,6,0.45);
+      word-break: break-all;
+      padding-top: 8px;
+    }
+    .pushpin {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 -2px 3px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.3);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .make-view .pushpin { background: radial-gradient(circle at 35% 35%, #E04030, #8B1A10); }
+    .buy-view .pushpin { background: radial-gradient(circle at 35% 35%, #4A70CF, #1A2A6C); }
+
+    .polaroid-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      background: rgba(0,0,0,0.12);
+      border: none;
+      font-size: 11px;
+      color: rgba(0,0,0,0.4);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
+    .polaroid:hover .polaroid-delete { display: flex; }
+    .polaroid-delete:hover { background: #C4341E; color: #fff; }
+
+    /* Drop zone polaroid */
+    .polaroid-dropzone {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 150px;
+      background: rgba(255,255,255,0.45);
+      padding: 10px 10px 46px;
+      border: 2px dashed rgba(0,0,0,0.2);
+      z-index: 200;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      display: none;
+    }
+    .polaroid-dropzone.active { display: block; }
+    .polaroid-dropzone.drag-over {
+      background: rgba(255,255,255,0.75);
+      border-color: rgba(0,0,0,0.45);
+    }
+    .dropzone-img-area {
+      width: 130px;
+      height: 130px;
+      background: rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      color: rgba(0,0,0,0.2);
+      border: 1px dashed rgba(0,0,0,0.15);
+    }
+    .dropzone-caption {
+      font-family: 'Ashni', cursive;
+      font-size: 19px;
+      color: rgba(0,0,0,0.3);
+      text-align: center;
+      padding: 8px 4px 0;
+    }
+
+    /* Wishlist Modal */
+    .wishlist-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .wishlist-modal-box {
+      background: #F7F0E3;
+      border: 2.5px solid #150C06;
+      box-shadow: 5px 5px 0 #150C06;
+      width: 460px;
+      max-width: 92vw;
+      padding: 28px;
+      position: relative;
+    }
+    .modal-section-label {
+      font-family: 'Courier Prime', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: rgba(21,12,6,0.45);
+      margin-bottom: 6px;
+    }
+    .modal-img-preview-box {
+      width: 100%;
+      height: 200px;
+      background: #EDE5D5;
+      border: 1.5px solid rgba(21,12,6,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+    .modal-img-preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .modal-img-preview-box .no-img-hint {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      color: rgba(21,12,6,0.35);
+      letter-spacing: 2px;
+      text-align: center;
+      padding: 20px;
+    }
+    .modal-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .modal-input {
+      flex: 1;
+      font-family: 'Courier Prime', monospace;
+      font-size: 14px;
+      padding: 10px 12px;
+      border: 2px solid rgba(21,12,6,0.2);
+      background: #fff;
+      color: #150C06;
+      outline: none;
+    }
+    .modal-input:focus { border-color: #150C06; }
+    .modal-btn {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border: 2px solid #150C06;
+      background: #150C06;
+      color: #F7F0E3;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .modal-btn:hover { background: #C4341E; border-color: #C4341E; }
+    .modal-btn.secondary {
+      background: transparent;
+      color: #150C06;
+    }
+    .modal-btn.secondary:hover { background: rgba(21,12,6,0.06); border-color: #150C06; color: #150C06; }
+    .modal-btn.danger { background: #C4341E; border-color: #C4341E; }
+    .modal-btn.danger:hover { background: #8B1A10; border-color: #8B1A10; }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+    .modal-fetch-status {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      color: rgba(21,12,6,0.45);
+      letter-spacing: 1px;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      min-height: 16px;
+    }
+
     /* ─────────────── TV Rankings ─────────────── */
     .tv-view {
       display: none;
@@ -1953,6 +2201,8 @@
         <button class="list-tab brain-dump-tab" data-category="travel"  onclick="switchCategory('travel')">Travel</button>
         <button class="list-tab"        data-category="cars"    onclick="switchCategory('cars')">Scores</button>
         <button class="list-tab"        data-category="period"  onclick="switchCategory('period')">Cycle</button>
+        <button class="list-tab brain-dump-tab" data-category="make" onclick="switchCategory('make')">Wanna Make</button>
+        <button class="list-tab brain-dump-tab" data-category="buy"  onclick="switchCategory('buy')">Wanna Buy</button>
         <button class="list-tab brain-dump-tab" data-category="tv" onclick="switchCategory('tv')">The List</button>
       </nav>
 
@@ -2098,6 +2348,16 @@
           </div>
 
         </div>
+      </div>
+
+      <!-- ── Wanna Make View ── -->
+      <div class="wishlist-view make-view" id="make-view" data-type="make">
+        <div class="cork-board" id="make-board"></div>
+      </div>
+
+      <!-- ── Wanna Buy View ── -->
+      <div class="wishlist-view buy-view" id="buy-view" data-type="buy">
+        <div class="cork-board" id="buy-board"></div>
       </div>
 
       <!-- ── Travel View ── -->
@@ -2549,5 +2809,41 @@
     };
   })();
   </script>
+
+    <!-- ── Polaroid Drop Zone ── -->
+    <div class="polaroid-dropzone" id="wishlist-dropzone">
+      <div class="dropzone-img-area">+</div>
+      <div class="dropzone-caption">drop here</div>
+    </div>
+
+    <!-- ── Wishlist Modal ── -->
+    <div class="wishlist-modal-overlay" id="wishlist-modal" style="display:none">
+      <div class="wishlist-modal-box">
+        <input type="file" id="modal-file-input" accept="image/*" style="display:none" onchange="onModalFileSelected(this)">
+
+        <div class="modal-section-label">Image</div>
+        <div class="modal-img-preview-box" id="modal-img-preview" onclick="document.getElementById('modal-file-input').click()">
+          <div class="no-img-hint">click to attach image<br>or fetch from url below</div>
+        </div>
+
+        <div class="modal-section-label">Link</div>
+        <div class="modal-row">
+          <input type="text" class="modal-input" id="modal-url" placeholder="paste a URL...">
+          <button class="modal-btn" onclick="fetchOgFromModal()">Fetch</button>
+        </div>
+        <div class="modal-fetch-status" id="modal-fetch-status"></div>
+
+        <div class="modal-section-label">Heading</div>
+        <div class="modal-row">
+          <input type="text" class="modal-input" id="modal-heading" placeholder="optional label...">
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn danger" id="modal-delete-btn" onclick="deleteWishlistItem()" style="display:none; margin-right:auto">Delete</button>
+          <button class="modal-btn secondary" onclick="closeWishlistModal()">Cancel</button>
+          <button class="modal-btn" onclick="saveWishlistItem()">Pin It</button>
+        </div>
+      </div>
+    </div>
 </body>
 </html>
