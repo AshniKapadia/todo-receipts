@@ -1390,14 +1390,25 @@ function createPolaroidEl(item, board) {
   const hasTitle = item.title && item.title.trim();
   const hasUrl = item.source_url && item.source_url.trim();
   cap.className = 'polaroid-caption' + (!hasTitle && hasUrl ? ' is-url' : '');
+
+  let captionText = '';
   if (hasTitle) {
-    cap.textContent = item.title;
+    captionText = item.title;
   } else if (hasUrl) {
-    try {
-      cap.textContent = new URL(item.source_url).hostname;
-    } catch {
-      cap.textContent = item.source_url.slice(0, 30);
-    }
+    try { captionText = new URL(item.source_url).hostname; }
+    catch { captionText = item.source_url.slice(0, 30); }
+  }
+
+  if (captionText && hasUrl) {
+    const a = document.createElement('a');
+    a.href = item.source_url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = captionText;
+    a.addEventListener('pointerdown', e => e.stopPropagation());
+    cap.appendChild(a);
+  } else {
+    cap.textContent = captionText;
   }
   el.appendChild(cap);
 
