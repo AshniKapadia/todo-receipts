@@ -45,7 +45,7 @@ function toggleBrainDump(on) {
   localStorage.setItem('brainDump', on ? '1' : '0');
   document.querySelector('.sidebar').classList.toggle('brain-dump-on', on);
   // If a brain-dump tab is currently active and we're hiding them, go back to todo
-  if (!on && (currentCategory === 'grocery' || currentCategory === 'travel')) {
+  if (!on && (currentCategory === 'grocery' || currentCategory === 'travel' || currentCategory === 'tv')) {
     switchCategory('todo');
   }
 }
