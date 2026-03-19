@@ -190,6 +190,15 @@ export class ApiRouter {
         return;
       }
 
+      // Cork texture SVG
+      if (pathname === '/cork.svg' && method === 'GET') {
+        const svgPath = resolve(__dirname, '../templates/cork.svg');
+        const svg = await readFile(svgPath, 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=31536000' });
+        res.end(svg);
+        return;
+      }
+
       // 404
       this.sendError(res, 404, "Not found");
     } catch (error) {
