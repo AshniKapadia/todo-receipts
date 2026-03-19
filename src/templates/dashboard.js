@@ -538,10 +538,11 @@ async function printReceipt() {
   btn.textContent = 'Printing...';
 
   try {
+    const theme = document.getElementById('theme-select')?.value ?? 'ops';
     const response = await fetch('/api/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: currentUser, date: selectedDate }),
+      body: JSON.stringify({ user: currentUser, date: selectedDate, theme }),
     });
     if (!response.ok) throw new Error('Failed to print receipt');
     btn.textContent = 'Queued!';

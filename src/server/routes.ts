@@ -304,13 +304,15 @@ export class ApiRouter {
   private async printReceipt(req: IncomingMessage, res: ServerResponse): Promise<void> {
     let userId = 'ashni';
     let date: string | undefined;
+    let themeId = 'ops';
     try {
       const body = await this.parseBody(req);
       if (body.user) userId = body.user;
       if (body.date) date = body.date;
+      if (body.theme) themeId = body.theme;
     } catch { /* no body is fine */ }
     const todos = this.db.getAllTodos(undefined, date, userId);
-    const jobId = this.db.createPrintJob(todos);
+    const jobId = this.db.createPrintJob(todos, themeId);
     this.sendJson(res, { success: true, jobId, queued: true });
   }
 

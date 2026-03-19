@@ -5,6 +5,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { existsSync } from "fs";
 import type { ReceiptData } from "./receipt-generator.js";
+import { DEFAULT_THEME } from "../types/theme.js";
 
 const execAsync = promisify(exec);
 
@@ -249,6 +250,7 @@ export class ThermalPrinterRenderer {
    * Build the full ESC/POS receipt buffer.
    */
   private async buildReceipt(data: ReceiptData): Promise<Buffer> {
+    const theme = data.theme ?? DEFAULT_THEME;
     const b = new EscPosBuilder();
 
     b.init();
@@ -275,7 +277,7 @@ export class ThermalPrinterRenderer {
     b.align("center");
     b.drawLine("=");
     b.bold(true);
-    b.line("ASHNI OPS TERMINAL");
+    b.line(theme.headerName);
     b.bold(false);
     b.line();
 
@@ -309,20 +311,31 @@ export class ThermalPrinterRenderer {
     b.leftRight("ITEM COUNT", String(data.todos.length));
     b.drawLine("-");
 
-    // --- Supplements ---
-    b.line("SUPPLEMENTS TAKEN");
-    b.line("[ ] IRON 1    [ ] IRON 2    [ ] VIT C");
-    b.line("[ ] VIT D     [ ] WATER 1   [ ] WATER 2");
-    b.line("[ ] SEEDS     [ ] HAIR MASS [ ] CARDIO");
-    b.drawLine("-");
-
-    // --- Manual entries ---
-    b.line("MANUAL ENTRIES");
-    b.drawLine("-");
-    b.line("NOTES: " + "_".repeat(WIDTH - 7));
-    b.line("UNEXPECTED: " + "_".repeat(WIDTH - 12));
-    b.drawLine("-");
-    b.line();
+    // --- Footer — varies by theme ---
+    if (theme.footerType === 'grocery') {
+      b.line("WHILE I'M OUT");
+      b.drawLine("-");
+      b.line("_".repeat(WIDTH));
+      b.line("_".repeat(WIDTH));
+      b.line("_".repeat(WIDTH));
+      b.drawLine("-");
+      b.line("EST. TOTAL:  $____________");
+      b.drawLine("-");
+      b.line();
+    } else {
+      // ops (default)
+      b.line("SUPPLEMENTS TAKEN");
+      b.line("[ ] IRON 1    [ ] IRON 2    [ ] VIT C");
+      b.line("[ ] VIT D     [ ] WATER 1   [ ] WATER 2");
+      b.line("[ ] SEEDS     [ ] HAIR MASS [ ] CARDIO");
+      b.drawLine("-");
+      b.line("MANUAL ENTRIES");
+      b.drawLine("-");
+      b.line("NOTES: " + "_".repeat(WIDTH - 7));
+      b.line("UNEXPECTED: " + "_".repeat(WIDTH - 12));
+      b.drawLine("-");
+      b.line();
+    }
 
     // --- Footer ---
     b.align("center");

@@ -3,6 +3,7 @@
 
 import { ThermalPrinterRenderer } from './dist/core/thermal-printer.js';
 import { ConfigManager } from './dist/core/config-manager.js';
+import { RECEIPT_THEMES, DEFAULT_THEME } from './dist/types/theme.js';
 
 const CLOUD_URL = process.env.CLOUD_URL || 'https://todo-receipts.fly.dev';
 const POLL_INTERVAL = 5000;
@@ -26,12 +27,14 @@ async function poll() {
 
     for (const job of jobs) {
       try {
+        const theme = RECEIPT_THEMES[job.theme_id] ?? DEFAULT_THEME;
         const receiptData = {
           todos: job.todos,
           totalCount: job.todos.length,
           completedCount: job.todos.filter((t) => t.completed).length,
           timestamp: new Date(job.created_at),
           config,
+          theme,
         };
 
         await printer.printReceipt(receiptData, config.printer);

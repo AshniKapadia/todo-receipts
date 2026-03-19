@@ -50,6 +50,7 @@ export const CREATE_TABLE_SQL = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     status TEXT DEFAULT 'pending',
     todos_json TEXT NOT NULL,
+    theme_id TEXT DEFAULT 'ops',
     created_at INTEGER NOT NULL,
     completed_at INTEGER
   );

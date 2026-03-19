@@ -79,6 +79,13 @@ export class TodoDatabase {
     if (!hasUserId) {
       this.db.exec("ALTER TABLE todos ADD COLUMN user_id TEXT NOT NULL DEFAULT 'ashni'");
     }
+
+    // Migration 7: Add theme_id to print_jobs
+    const jobsInfo = this.db.pragma("table_info(print_jobs)") as Array<{ name: string }>;
+    const hasThemeId = jobsInfo.some(col => col.name === 'theme_id');
+    if (!hasThemeId) {
+      this.db.exec("ALTER TABLE print_jobs ADD COLUMN theme_id TEXT DEFAULT 'ops'");
+    }
   }
 
   /**
@@ -432,25 +439,26 @@ export class TodoDatabase {
   /**
    * Create a pending print job with the current todo list snapshot
    */
-  createPrintJob(todos: TodoItem[]): number {
+  createPrintJob(todos: TodoItem[], themeId: string = 'ops'): number {
     const stmt = this.db.prepare(
-      "INSERT INTO print_jobs (status, todos_json, created_at) VALUES ('pending', ?, ?)"
+      "INSERT INTO print_jobs (status, todos_json, theme_id, created_at) VALUES ('pending', ?, ?, ?)"
     );
-    const result = stmt.run(JSON.stringify(todos), Date.now());
+    const result = stmt.run(JSON.stringify(todos), themeId, Date.now());
     return result.lastInsertRowid as number;
   }
 
   /**
    * Get all pending print jobs
    */
-  getPendingJobs(): Array<{ id: number; todos: TodoItem[]; created_at: number }> {
+  getPendingJobs(): Array<{ id: number; todos: TodoItem[]; theme_id: string; created_at: number }> {
     const stmt = this.db.prepare(
-      "SELECT id, todos_json, created_at FROM print_jobs WHERE status = 'pending' ORDER BY created_at ASC"
+      "SELECT id, todos_json, theme_id, created_at FROM print_jobs WHERE status = 'pending' ORDER BY created_at ASC"
     );
-    const rows = stmt.all() as Array<{ id: number; todos_json: string; created_at: number }>;
+    const rows = stmt.all() as Array<{ id: number; todos_json: string; theme_id: string; created_at: number }>;
     return rows.map((row) => ({
       id: row.id,
       todos: JSON.parse(row.todos_json),
+      theme_id: row.theme_id ?? 'ops',
       created_at: row.created_at,
     }));
   }

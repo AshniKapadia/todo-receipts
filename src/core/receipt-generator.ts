@@ -1,5 +1,6 @@
 import type { TodoItem } from "../types/todo.js";
 import type { ReceiptConfig } from "../types/config.js";
+import { type ReceiptTheme, DEFAULT_THEME } from "../types/theme.js";
 
 export interface ReceiptData {
   todos: TodoItem[];
@@ -7,6 +8,7 @@ export interface ReceiptData {
   completedCount: number;
   timestamp: Date;
   config: ReceiptConfig;
+  theme?: ReceiptTheme;
 }
 
 const SEPARATOR = "------------------------------";
@@ -27,9 +29,11 @@ export class ReceiptGenerator {
     // Format as 6-digit number
     const terminalId = String(terminalNum).padStart(6, '0');
 
+    const theme = data.theme ?? DEFAULT_THEME;
+
     // Header - Store receipt style
     lines.push("");
-    lines.push(this.centerText("ASHNI OPS TERMINAL", WIDTH));
+    lines.push(this.centerText(theme.headerName, WIDTH));
     lines.push(this.centerText("123 Main Street", WIDTH));
     lines.push(this.centerText("New York, NY 10001", WIDTH));
     lines.push(this.centerText("Tel: (555) 123-4567", WIDTH));
@@ -60,19 +64,29 @@ export class ReceiptGenerator {
     lines.push(this.padLine("ITEM COUNT", String(data.totalCount), WIDTH));
     lines.push(SEPARATOR);
 
-    // Supplements section (3x3 grid, 30-char width)
-    lines.push("SUPPLEMENTS TAKEN");
-    lines.push("[ ] IRON1 [ ] IRON2 [ ] VIT C");
-    lines.push("[ ] VIT D [ ] WTR 1 [ ] WTR 2");
-    lines.push("[ ] SEEDS [ ] HAIR  [ ] CARDIO");
-    lines.push(SEPARATOR);
-
-    // Manual entries section
-    lines.push("MANUAL ENTRIES");
-    lines.push(SEPARATOR);
-    lines.push("NOTES: _______________________");
-    lines.push("UNEXPECTED: __________________");
-    lines.push(SEPARATOR);
+    // Footer section — varies by theme
+    if (theme.footerType === 'grocery') {
+      lines.push("WHILE I'M OUT");
+      lines.push(SEPARATOR);
+      lines.push("_".repeat(WIDTH));
+      lines.push("_".repeat(WIDTH));
+      lines.push("_".repeat(WIDTH));
+      lines.push(SEPARATOR);
+      lines.push("EST. TOTAL:  $____________");
+      lines.push(SEPARATOR);
+    } else {
+      // ops (default)
+      lines.push("SUPPLEMENTS TAKEN");
+      lines.push("[ ] IRON1 [ ] IRON2 [ ] VIT C");
+      lines.push("[ ] VIT D [ ] WTR 1 [ ] WTR 2");
+      lines.push("[ ] SEEDS [ ] HAIR  [ ] CARDIO");
+      lines.push(SEPARATOR);
+      lines.push("MANUAL ENTRIES");
+      lines.push(SEPARATOR);
+      lines.push("NOTES: _______________________");
+      lines.push("UNEXPECTED: __________________");
+      lines.push(SEPARATOR);
+    }
     lines.push("");
     lines.push(this.centerText("PROCESS COMPLETE", WIDTH));
     lines.push("");

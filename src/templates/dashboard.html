@@ -1470,7 +1470,13 @@
           <span class="topbar-eyebrow" id="topbar-date"></span>
           <div class="topbar-title">TO-DO LIST</div>
         </div>
-        <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 <span class="print-label">Print Receipt</span></button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <select id="theme-select" style="font-family:inherit;font-size:13px;padding:8px 10px;border:2.5px solid var(--dark);background:var(--bg);color:var(--dark);border-radius:0;cursor:pointer;box-shadow:2px 2px 0 var(--dark);letter-spacing:1px;text-transform:uppercase;">
+            <option value="ops">Ops Terminal</option>
+            <option value="grocery">Market Run</option>
+          </select>
+          <button class="print-btn" id="print-btn" onclick="printReceipt()">🖨 <span class="print-label">Print</span></button>
+        </div>
       </div>
 
       <div class="date-strip" id="date-strip"></div>
