@@ -1329,6 +1329,12 @@ async function clearPeriodEntry() {
 
 // ── Wishlist / Cork Board ─────────────────────────────────────────────────────
 
+// Deterministic per-item random (sin hash) — same item always lands in same spot
+function itemRand(id, offset) {
+  const x = Math.sin(id * 127.1 + offset * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 async function fetchWishlist(type) {
   wishlistType = type;
   const res = await fetch(`/api/wishlist?type=${type}&user=${currentUser}`);
@@ -1352,10 +1358,13 @@ function createPolaroidEl(item, board) {
   const el = document.createElement('div');
   el.className = 'polaroid';
   el.dataset.id = item.id;
-  el.style.transform = `rotate(${item.rotation}deg)`;
+  const posX     = 3  + itemRand(item.id, 0) * 74; // 3–77% across
+  const posY     = 3  + itemRand(item.id, 1) * 65; // 3–68% down
+  const rotation = -14 + itemRand(item.id, 2) * 28; // –14° to +14°
+  el.style.transform = `rotate(${rotation}deg)`;
   el.style.zIndex = item.z_index || 1;
-  el.style.left = item.pos_x + '%';
-  el.style.top = item.pos_y + '%';
+  el.style.left = posX + '%';
+  el.style.top  = posY + '%';
 
   // Pushpin
   const pin = document.createElement('div');
