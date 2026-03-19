@@ -1106,6 +1106,232 @@
     .grocery-clear-btn:hover  { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--dark); }
     .grocery-clear-btn:active { transform: translate(1px,1px);   box-shadow: 1px 1px 0 var(--dark); }
 
+    /* ─────────────── Travel View ─────────────── */
+    .travel-view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .travel-section {
+      padding: 28px 32px;
+      border-bottom: 2.5px solid var(--dark);
+    }
+
+    .travel-section-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 12px;
+      letter-spacing: 5px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    /* Trip accordion cards */
+    .trip-card {
+      border: 2.5px solid var(--dark);
+      box-shadow: 4px 4px 0 var(--dark);
+      margin-bottom: 14px;
+      background: var(--surface);
+    }
+
+    .trip-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 12px 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .trip-card-header:hover { background: rgba(28,15,8,0.04); }
+    .trip-card.open .trip-card-header { border-bottom: 2px solid var(--dark); }
+
+    .trip-card-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 46px;
+      color: var(--border);
+      line-height: 1;
+      min-width: 48px;
+    }
+
+    .trip-card-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      letter-spacing: 2px;
+      flex: 1;
+      line-height: 1;
+      color: var(--dark);
+    }
+
+    .trip-card-count {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 14px;
+    }
+
+    .trip-card-arrow {
+      font-size: 14px;
+      color: var(--muted);
+      transition: transform 0.25s;
+    }
+    .trip-card.open .trip-card-arrow { transform: rotate(180deg); }
+
+    /* Accordion body */
+    .trip-body {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.35s ease;
+    }
+
+    .trip-destinations {
+      padding: 18px 20px 4px;
+    }
+
+    .dest-item {
+      margin-bottom: 14px;
+    }
+
+    .dest-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      letter-spacing: 1.5px;
+      color: var(--dark);
+    }
+
+    .dest-places {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-left: 2px;
+      line-height: 1.7;
+      letter-spacing: 0.2px;
+    }
+
+    .dest-aside {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--tan);
+      margin-left: 2px;
+      line-height: 1.5;
+    }
+
+    .trip-note-block {
+      padding: 14px 20px 16px;
+      border-top: 1.5px dashed var(--border);
+      margin-top: 6px;
+    }
+
+    .trip-note-text {
+      font-family: 'Ashni', cursive;
+      font-size: 20px;
+      color: var(--red);
+      line-height: 1.75;
+    }
+
+    /* Passport stamps */
+    .stamps-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .passport-stamp {
+      width: 120px;
+      height: 120px;
+      border: 3px solid var(--olive);
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+      position: relative;
+      background: transparent;
+      transition: transform 0.25s, background 0.2s;
+      padding: 10px;
+    }
+    .passport-stamp::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 1.5px dashed var(--olive);
+      border-radius: 50%;
+      opacity: 0.45;
+    }
+    .passport-stamp:nth-child(1) { transform: rotate(-4deg); }
+    .passport-stamp:nth-child(2) { transform: rotate(3deg); }
+    .passport-stamp:nth-child(3) { transform: rotate(-2deg); }
+    .passport-stamp:nth-child(4) { transform: rotate(5deg); }
+    .passport-stamp:hover { transform: rotate(0deg) scale(1.07); background: rgba(86,98,40,0.07); }
+
+    .stamp-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13.5px;
+      letter-spacing: 2px;
+      color: var(--olive);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .stamp-year {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      color: var(--olive);
+      margin-top: 5px;
+      letter-spacing: 2px;
+      opacity: 0.75;
+    }
+
+    /* Things to Hunt Down */
+    .collect-list {
+      border: 2.5px solid var(--dark);
+      box-shadow: 4px 4px 0 var(--dark);
+    }
+
+    .collect-item {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 13px 16px;
+      border-bottom: 1.5px solid var(--dark);
+      background: var(--surface);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .collect-item:last-child { border-bottom: none; }
+    .collect-item:hover { background: rgba(28,15,8,0.03); }
+    .collect-item.got { background: var(--bg); }
+
+    .collect-check {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid var(--dark);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #fff;
+    }
+    .collect-item.got .collect-check { background: var(--dark); }
+
+    .collect-item-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      color: var(--dark);
+      line-height: 1.4;
+    }
+    .collect-item.got .collect-item-text {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
     /* ─────────────── TV Rankings ─────────────── */
     .tv-view {
       display: none;
@@ -1598,6 +1824,7 @@
       <nav class="list-tabs" id="list-tabs">
         <button class="list-tab active" data-category="todo"    onclick="switchCategory('todo')">To Do</button>
         <button class="list-tab"        data-category="grocery" onclick="switchCategory('grocery')">Grocery</button>
+        <button class="list-tab"        data-category="travel"  onclick="switchCategory('travel')">Travel</button>
         <button class="list-tab"        data-category="cars"    onclick="switchCategory('cars')">Scores</button>
         <button class="list-tab"        data-category="period"  onclick="switchCategory('period')">Cycle</button>
         <button class="list-tab"        data-category="tv"      onclick="switchCategory('tv')">The List</button>
@@ -1737,6 +1964,26 @@
           </div>
 
         </div>
+      </div>
+
+      <!-- ── Travel View ── -->
+      <div class="travel-view" id="travel-view">
+
+        <div class="travel-section">
+          <div class="travel-section-label">Dream Trips · 5 Regions</div>
+          <div id="dream-trips-list"></div>
+        </div>
+
+        <div class="travel-section">
+          <div class="travel-section-label">Stamped · 4 Trips</div>
+          <div class="stamps-row" id="stamps-row"></div>
+        </div>
+
+        <div class="travel-section">
+          <div class="travel-section-label">Things to Hunt Down</div>
+          <div class="collect-list" id="collect-list"></div>
+        </div>
+
       </div>
 
       <!-- ── Grocery List View ── -->

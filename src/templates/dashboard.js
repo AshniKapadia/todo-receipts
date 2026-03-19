@@ -118,6 +118,7 @@ function switchCategory(category) {
   const isPeriod  = category === 'period';
   const isTv      = category === 'tv';
   const isGrocery = category === 'grocery';
+  const isTravel  = category === 'travel';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
@@ -127,6 +128,7 @@ function switchCategory(category) {
   document.getElementById('period-view').style.display   = isPeriod  ? 'flex'  : 'none';
   document.getElementById('tv-view').style.display       = isTv      ? 'flex'  : 'none';
   document.getElementById('grocery-view').style.display  = isGrocery ? 'flex'  : 'none';
+  document.getElementById('travel-view').style.display   = isTravel  ? 'flex'  : 'none';
   document.querySelector('.content').style.display       = isTodo    ? 'flex'  : 'none';
   document.querySelector('.date-strip').style.display    = isTodo    ? 'flex'  : 'none';
 
@@ -140,11 +142,12 @@ function switchCategory(category) {
 
   const titleEl   = document.querySelector('.topbar-title');
   const eyebrowEl = document.getElementById('topbar-date');
-  if (isCars)       titleEl.textContent = 'CARS SCORES';
+  if (isCars)         titleEl.textContent = 'CARS SCORES';
   else if (isPeriod)  titleEl.textContent = 'CYCLE TRACKER';
-  else if (isTv)    titleEl.textContent = 'THE LIST';
-  else if (isGrocery) titleEl.textContent = "MARKET RUN";
-  else              titleEl.textContent = 'TO-DO LIST';
+  else if (isTv)      titleEl.textContent = 'THE LIST';
+  else if (isGrocery) titleEl.textContent = 'MARKET RUN';
+  else if (isTravel)  titleEl.textContent = 'TRAVEL';
+  else                titleEl.textContent = 'TO-DO LIST';
 
   // Restore date eyebrow when leaving period tab
   if (!isPeriod) {
@@ -161,6 +164,8 @@ function switchCategory(category) {
     fetchPeriodLogs();
   } else if (isGrocery) {
     fetchGroceryItems();
+  } else if (isTravel) {
+    renderTravelView();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -265,6 +270,185 @@ async function clearCheckedGrocery() {
   } catch (e) {
     console.error('Failed to clear checked grocery items', e);
   }
+}
+
+// ── Travel View ───────────────────────────────────────────────────────────────
+const TRAVEL_DATA = {
+  upcoming: [
+    {
+      id: 'mediterranean',
+      num: 1,
+      name: 'Mediterranean',
+      note: 'Would probably have to break it up into smaller trips — this looks like a whole summer. Greece could be yacht week. Turkey can be a family trip much later. Jordan is dangerous rn so who knows. Egypt + Spain could be done together with a small flight in the middle.',
+      destinations: [
+        { name: 'Greece', places: 'Athens · Ios · Crete · Corfu · Mykonos · Santorini' },
+        { name: 'Turkey', places: 'Istanbul · Cappadocia' },
+        { name: 'Jordan', places: null },
+        { name: 'Croatia', places: 'Split · Hvar', aside: 'Bosnia + Herzegovina has very medieval vibe + really good wine country' },
+        { name: 'Egypt + Morocco', places: 'Cairo · iron ore train' },
+        { name: 'Spain', places: 'Barcelona · Valencia · Seville · Ibiza · Mallorca' },
+      ],
+    },
+    {
+      id: 'vietnam-thailand',
+      num: 2,
+      name: 'Vietnam + Thailand',
+      note: null,
+      destinations: [
+        { name: 'Hanoi', places: 'Train Street' },
+        { name: 'Ha Giang Loop', aside: 'Easy Ride Bikers · or Ha Giang Motorventures (more lowk, nicer homestays)' },
+        { name: 'Sapa', places: 'rice terraces · small local villages' },
+        { name: 'Phong Nha', places: null },
+        { name: 'Hong Nha', aside: 'The Duck Stop — be a duck leader for $4' },
+        { name: 'Saigon', places: null },
+        { name: 'Phu Quoc', places: null, aside: "Rory's Beach Bar · def party scene" },
+        { name: 'Thailand', places: 'Bangkok · Chiang Mai · Phuket · Koh Samui', aside: 'Elephant sanctuary · Bamboo island · Damnoen Saduak Market · Maeklong Railway Market · Angkor Wat · zip line through jungle · Wattamwua meditation retreat' },
+      ],
+    },
+    {
+      id: 'australia',
+      num: 3,
+      name: 'Australia',
+      note: 'Flight is normally $1500–2000.',
+      destinations: [
+        { name: 'Melbourne', places: null },
+        { name: 'Sydney + Bondi Beach', places: null },
+        { name: 'Brisbane', places: null },
+        { name: 'Fraser Island', aside: 'camping under stars · 4WD tours' },
+        { name: 'Cairns', places: 'Great Barrier Reef scuba diving' },
+        { name: 'Uluru', places: 'Outback', aside: 'hostels do 3-day tours' },
+      ],
+    },
+    {
+      id: 'south-america',
+      num: 4,
+      name: 'South America',
+      note: 'Can split into ~3 trips: one for adventure, one for hiking, one for party.',
+      destinations: [
+        { name: 'Guatemala', aside: 'Zephyr Lodge has hammocks · Greengos has very social party atmosphere' },
+        { name: 'Antigua', places: 'hobbit village' },
+        { name: 'Nicaragua', aside: 'Carro Negro — sand boarding down an active volcano → Bigfoot Hostel' },
+        { name: 'Cusco · Sacred Valley · Machu Picchu', places: null },
+        { name: 'Bolivia', places: 'Uyuni Salt Flats · Death Road · Sarganarga St, La Paz' },
+        { name: 'Colombia', places: 'party scene' },
+        { name: 'Cuba', places: 'Havana' },
+      ],
+    },
+    {
+      id: 'india',
+      num: 5,
+      name: 'India',
+      note: null,
+      destinations: [
+        { name: 'Goa', places: null },
+        { name: 'Ladakh', places: null },
+        { name: 'Agra', places: null },
+        { name: 'Mumbai', places: null },
+        { name: 'New Delhi', places: null },
+        { name: 'Jaipur', places: null },
+        { name: 'Lucknow', places: null },
+        { name: 'South India', places: null },
+        { name: 'Assam', places: null },
+        { name: 'Manali + Shimla', places: null },
+      ],
+    },
+  ],
+  completed: [
+    { id: 'eastern-europe', name: 'Eastern Europe', year: '2023' },
+    { id: 'italy', name: 'Italy', year: '2024' },
+    { id: 'gujarat', name: 'Gujarat', year: '2025' },
+    { id: 'iceland-denmark', name: 'Iceland + Denmark', year: '2026' },
+  ],
+  collect: [
+    'Tea kettle — next time in London',
+    'Rug from Turkey',
+    'Chai cups from a side street tea stall in India',
+    'Mt Fuji stamp stick (mountain stalls closed off-season)',
+    'Truffles + balsamic glaze from Italy',
+  ],
+};
+
+function renderTravelView() {
+  renderDreamTrips();
+  renderStamps();
+  renderCollectList();
+}
+
+function renderDreamTrips() {
+  const container = document.getElementById('dream-trips-list');
+  container.innerHTML = TRAVEL_DATA.upcoming.map(trip => `
+    <div class="trip-card" id="trip-${trip.id}">
+      <div class="trip-card-header" onclick="toggleTrip('${trip.id}')">
+        <span class="trip-card-num">${trip.num}</span>
+        <span class="trip-card-name">${escapeHtml(trip.name)}</span>
+        <span class="trip-card-count">${trip.destinations.length} stops</span>
+        <span class="trip-card-arrow">▾</span>
+      </div>
+      <div class="trip-body" id="trip-body-${trip.id}">
+        <div class="trip-destinations">
+          ${trip.destinations.map(d => `
+            <div class="dest-item">
+              <div class="dest-name">${escapeHtml(d.name)}</div>
+              ${d.places ? `<div class="dest-places">${escapeHtml(d.places)}</div>` : ''}
+              ${d.aside ? `<div class="dest-aside">${escapeHtml(d.aside)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        ${trip.note ? `
+          <div class="trip-note-block">
+            <div class="trip-note-text">${escapeHtml(trip.note)}</div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleTrip(id) {
+  const card = document.getElementById(`trip-${id}`);
+  const body = document.getElementById(`trip-body-${id}`);
+  const isOpen = card.classList.contains('open');
+  if (isOpen) {
+    body.style.maxHeight = '0';
+    card.classList.remove('open');
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    card.classList.add('open');
+    // Re-set after transition in case content changes
+    body.addEventListener('transitionend', () => {
+      if (card.classList.contains('open')) body.style.maxHeight = 'none';
+    }, { once: true });
+  }
+}
+
+function renderStamps() {
+  const container = document.getElementById('stamps-row');
+  container.innerHTML = TRAVEL_DATA.completed.map(trip => `
+    <div class="passport-stamp">
+      <span class="stamp-name">${escapeHtml(trip.name)}</span>
+      <span class="stamp-year">${trip.year}</span>
+    </div>
+  `).join('');
+}
+
+function renderCollectList() {
+  const got = JSON.parse(localStorage.getItem('travel-collect') || '[]');
+  const container = document.getElementById('collect-list');
+  container.innerHTML = TRAVEL_DATA.collect.map((item, i) => `
+    <div class="collect-item${got.includes(i) ? ' got' : ''}" onclick="toggleCollect(${i})">
+      <div class="collect-check">${got.includes(i) ? '✓' : ''}</div>
+      <span class="collect-item-text">${escapeHtml(item)}</span>
+    </div>
+  `).join('');
+}
+
+function toggleCollect(idx) {
+  const got = JSON.parse(localStorage.getItem('travel-collect') || '[]');
+  const i = got.indexOf(idx);
+  if (i === -1) got.push(idx);
+  else got.splice(i, 1);
+  localStorage.setItem('travel-collect', JSON.stringify(got));
+  renderCollectList();
 }
 
 // ── CARS View ─────────────────────────────────────────────────────────────────
