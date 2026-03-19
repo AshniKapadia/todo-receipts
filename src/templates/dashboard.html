@@ -174,8 +174,62 @@
       flex-shrink: 0;
     }
 
+    /* Brain dump toggle */
+    .brain-dump-toggle {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .brain-dump-label {
+      font-family: 'Courier Prime', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 34px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 12px;
+      height: 12px;
+      background: rgba(255,255,255,0.35);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .toggle-switch input:checked + .toggle-track::after {
+      transform: translateX(16px);
+      background: #fff;
+    }
+
+    /* Brain dump tabs: hidden unless toggle is on */
+    .brain-dump-tab { display: none !important; }
+    .brain-dump-on .brain-dump-tab { display: flex !important; }
+
     .sidebar-footer {
-      padding: 16px 20px;
+      padding: 10px 20px;
       border-top: 1px solid rgba(255,255,255,0.05);
       font-size: 8px;
       color: rgba(255,255,255,0.1);
@@ -1895,12 +1949,20 @@
 
       <nav class="list-tabs" id="list-tabs">
         <button class="list-tab active" data-category="todo"    onclick="switchCategory('todo')">To Do</button>
-        <button class="list-tab"        data-category="grocery" onclick="switchCategory('grocery')">Grocery</button>
-        <button class="list-tab"        data-category="travel"  onclick="switchCategory('travel')">Travel</button>
+        <button class="list-tab brain-dump-tab" data-category="grocery" onclick="switchCategory('grocery')">Grocery</button>
+        <button class="list-tab brain-dump-tab" data-category="travel"  onclick="switchCategory('travel')">Travel</button>
         <button class="list-tab"        data-category="cars"    onclick="switchCategory('cars')">Scores</button>
         <button class="list-tab"        data-category="period"  onclick="switchCategory('period')">Cycle</button>
         <button class="list-tab"        data-category="tv"      onclick="switchCategory('tv')">The List</button>
       </nav>
+
+      <div class="brain-dump-toggle">
+        <span class="brain-dump-label">Brain Dump</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="brain-dump-toggle" onchange="toggleBrainDump(this.checked)">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
 
       <div class="sidebar-footer">The Slip · todo-receipts</div>
     </aside>
