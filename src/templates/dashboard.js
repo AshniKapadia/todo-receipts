@@ -635,8 +635,9 @@ function renderSubjectCircles() {
             <button class="subject-save-btn"   onclick="saveSubjectEdit('${key}')">✓</button>
             <button class="subject-cancel-btn" onclick="cancelSubjectEdit()">✕</button>
           </div>
-        ` : `<div class="subject-pct">${Math.round(pct * 100)}%</div>`}
+        ` : ``}
         <div class="subject-label">${label}</div>
+        ${isEditing ? `` : `<div class="subject-pct">${Math.round(pct * 100)}%</div>`}
       </div>
     `;
   }).join('');
