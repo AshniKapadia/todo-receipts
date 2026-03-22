@@ -95,7 +95,11 @@ export class TodoDatabase {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    if (category) {
+    if (category && date) {
+      // Include the requested category AND recurring tasks for this date
+      conditions.push("(category = ? OR category = 'Recurring')");
+      params.push(category);
+    } else if (category) {
       conditions.push('category = ?');
       params.push(category);
     }
@@ -283,7 +287,6 @@ export class TodoDatabase {
     { title: 'Stand Up',      time_estimate: '30m', days: [1]             }, // Mon
     { title: 'Stand Up',      time_estimate: '15m', days: [3]             }, // Wed
     { title: 'Work Together', time_estimate: '1h',  days: [2, 4]          }, // Tue, Thu
-    { title: 'Tickets',       time_estimate: '6h',  days: [0,1,2,3,4,5,6] }, // Every day
   ];
 
   /**
