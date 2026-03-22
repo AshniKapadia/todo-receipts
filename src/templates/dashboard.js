@@ -582,7 +582,7 @@ const SUBJECT_TOTALS = {
   chem:    { label: 'Gen Chem', total: 524  },
   ps:      { label: 'P/S',      total: 2431 },
   orgo:    { label: 'Orgo',     total: 558  },
-  physics: { label: 'Physics',  total: 667  },
+  physics: { label: 'Physics',  total: 376  },
 };
 
 let editingSubject = null;
