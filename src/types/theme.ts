@@ -1,7 +1,7 @@
 export interface ReceiptTheme {
   id: string;
   headerName: string;
-  footerType: 'ops' | 'grocery';
+  footerType: 'ops' | 'grocery' | 'bigday';
 }
 
 export const RECEIPT_THEMES: Record<string, ReceiptTheme> = {
@@ -14,6 +14,11 @@ export const RECEIPT_THEMES: Record<string, ReceiptTheme> = {
     id: 'grocery',
     headerName: "ASHNI'S MARKET RUN",
     footerType: 'grocery',
+  },
+  bigday: {
+    id: 'bigday',
+    headerName: "AMOLI'S BIG DAY",
+    footerType: 'bigday',
   },
 };
 
