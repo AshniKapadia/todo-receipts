@@ -75,7 +75,6 @@ export class ReceiptGenerator {
       lines.push("EST. TOTAL:  $____________");
       lines.push(SEPARATOR);
     } else if (theme.footerType === 'bigday') {
-      lines.push(SEPARATOR);
       lines.push("NOTES: _______________________");
       lines.push(SEPARATOR);
     } else {

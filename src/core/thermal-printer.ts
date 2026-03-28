@@ -323,7 +323,6 @@ export class ThermalPrinterRenderer {
       b.drawLine("-");
       b.line();
     } else if (theme.footerType === 'bigday') {
-      b.drawLine("-");
       b.line("NOTES: " + "_".repeat(WIDTH - 7));
       b.drawLine("-");
       b.line();
