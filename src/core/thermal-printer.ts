@@ -322,6 +322,8 @@ export class ThermalPrinterRenderer {
       b.line("EST. TOTAL:  $____________");
       b.drawLine("-");
       b.line();
+    } else if (theme.footerType === 'bigday') {
+      // no footer block
     } else {
       // ops (default)
       b.line("SUPPLEMENTS TAKEN");

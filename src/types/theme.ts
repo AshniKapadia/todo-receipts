@@ -17,7 +17,7 @@ export const RECEIPT_THEMES: Record<string, ReceiptTheme> = {
   },
   bigday: {
     id: 'bigday',
-    headerName: "AMOLI'S BIG DAY",
+    headerName: "GUACAMOLI'S BIG DAY",
     footerType: 'bigday',
   },
 };
