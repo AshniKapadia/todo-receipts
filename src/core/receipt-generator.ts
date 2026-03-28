@@ -90,7 +90,7 @@ export class ReceiptGenerator {
       lines.push(SEPARATOR);
     }
     lines.push("");
-    lines.push(this.centerText("PROCESS COMPLETE", WIDTH));
+    lines.push(this.centerText(theme.signOff ?? "PROCESS COMPLETE", WIDTH));
     lines.push("");
 
     return lines.join("\n");

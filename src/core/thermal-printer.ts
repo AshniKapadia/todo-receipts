@@ -341,7 +341,7 @@ export class ThermalPrinterRenderer {
 
     // --- Footer ---
     b.align("center");
-    b.line("PROCESS COMPLETE");
+    b.line(theme.signOff ?? "PROCESS COMPLETE");
     b.line();
 
     // --- Cut ---

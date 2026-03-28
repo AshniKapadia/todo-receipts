@@ -2,6 +2,7 @@ export interface ReceiptTheme {
   id: string;
   headerName: string;
   footerType: 'ops' | 'grocery' | 'bigday';
+  signOff?: string;
 }
 
 export const RECEIPT_THEMES: Record<string, ReceiptTheme> = {
@@ -19,6 +20,7 @@ export const RECEIPT_THEMES: Record<string, ReceiptTheme> = {
     id: 'bigday',
     headerName: "GUACAMOLI'S BIG DAY",
     footerType: 'bigday',
+    signOff: 'CAR ACQUIRED',
   },
 };
 
