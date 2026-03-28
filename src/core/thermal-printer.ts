@@ -323,7 +323,10 @@ export class ThermalPrinterRenderer {
       b.drawLine("-");
       b.line();
     } else if (theme.footerType === 'bigday') {
-      // no footer block
+      b.drawLine("-");
+      b.line("NOTES: " + "_".repeat(WIDTH - 7));
+      b.drawLine("-");
+      b.line();
     } else {
       // ops (default)
       b.line("SUPPLEMENTS TAKEN");
