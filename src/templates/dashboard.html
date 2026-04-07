@@ -689,6 +689,22 @@
     }
     .cars-refresh-btn:hover { background: var(--bg); }
 
+    .cars-sheet-link {
+      padding: 7px 16px;
+      background: none;
+      border: 2px solid var(--dark);
+      border-radius: 3px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--dark);
+      letter-spacing: 1px;
+      transition: background 0.12s;
+    }
+    .cars-sheet-link:hover { background: var(--bg); }
+
     .cars-weeks {
       display: flex;
       flex-direction: column;
@@ -2451,7 +2467,8 @@
       <!-- ── CARS View ── -->
       <div class="cars-view" id="cars-view">
         <div class="cars-header">
-          <span class="cars-title">CARS SCORES</span>
+          <span class="cars-title">Scores</span>
+          <a class="cars-sheet-link" href="https://docs.google.com/spreadsheets/d/17P30_NWjBy2Nm9keI-w5qxdKkNzFtaJbKvIfzsS0Hks/edit?gid=1915150131#gid=1915150131" target="_blank" rel="noopener noreferrer">↗ Sheet</a>
           <button class="cars-refresh-btn" onclick="fetchCarsData()">↻ Refresh</button>
         </div>
         <div id="cars-grid"></div>
