@@ -174,7 +174,9 @@ function switchCategory(category) {
 
   const titleEl   = document.querySelector('.topbar-title');
   const eyebrowEl = document.getElementById('topbar-date');
-  if (isCars)              titleEl.textContent = 'CARS SCORES';
+  const sheetLink = document.getElementById('cars-sheet-link');
+  if (sheetLink) sheetLink.style.display = isCars ? 'inline-flex' : 'none';
+  if (isCars)              titleEl.textContent = 'Scores';
   else if (isPeriod)       titleEl.textContent = 'CYCLE TRACKER';
   else if (isTv)           titleEl.textContent = 'THE LIST';
   else if (isGrocery)      titleEl.textContent = 'MARKET RUN';
