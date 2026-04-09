@@ -668,18 +668,20 @@ function renderDrawingsTable() {
   </tr>`;
 
   const log = loadDrawingsLog();
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const rows = [];
 
-  for (let i = 0; i < 60; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
+  const start = new Date(2026, 3, 9);  // Apr 9
+  const end   = new Date(2026, 4, 15); // May 15
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
     const checked = log[iso] || [];
+    const isToday = d.getTime() === today.getTime();
 
-    rows.push(`<tr class="drawings-row${i === 0 ? ' today' : ''}">
+    rows.push(`<tr class="drawings-row${isToday ? ' today' : ''}">
       <td class="drawings-date-cell">${label}</td>
       ${DRAWINGS.map(name => `<td class="drawings-check-cell${checked.includes(name) ? ' checked' : ''}"
         onclick="toggleDrawingCell('${iso}','${name}')">${checked.includes(name) ? '✓' : ''}</td>`).join('')}
