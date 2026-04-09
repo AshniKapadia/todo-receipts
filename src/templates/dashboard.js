@@ -194,7 +194,7 @@ function switchCategory(category) {
 
   if (isCars) {
     fetchCarsData();
-    renderSubjectCircles();
+    fetchSectionScores();
   } else if (isPeriod) {
     fetchPeriodLogs();
   } else if (isGrocery) {
@@ -577,43 +577,43 @@ function renderCarsGrid(entries) {
 }
 
 // ── Subject Progress ──────────────────────────────────────────────────────────
-const SUBJECT_TOTALS = {
-  biochem: { label: 'Biochem',  total: 922  },
-  bio:     { label: 'Bio',      total: 1230 },
-  chem:    { label: 'Gen Chem', total: 524  },
-  ps:      { label: 'P/S',      total: 2431 },
-  orgo:    { label: 'Orgo',     total: 558  },
-  physics: { label: 'Physics',  total: 376  },
-};
+const SECTION_SCORES_URL = 'https://docs.google.com/spreadsheets/d/17P30_NWjBy2Nm9keI-w5qxdKkNzFtaJbKvIfzsS0Hks/gviz/tq?tqx=out:csv&gid=277032242';
 
-let editingSubject = null;
+async function fetchSectionScores() {
+  const grid = document.getElementById('subjects-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="cars-loading">Loading...</div>';
 
-function loadSubjectProgress() {
-  try { return JSON.parse(localStorage.getItem('subjectProgress') || '{}'); }
-  catch { return {}; }
+  try {
+    const res = await fetch(SECTION_SCORES_URL);
+    const text = await res.text();
+    const rows = text.trim().split('\n').slice(1);
+    const entries = rows
+      .map(row => {
+        const parts = row.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+        return { label: parts[0], done: parseInt(parts[1], 10) || 0, total: parseInt(parts[2], 10) || 0 };
+      })
+      .filter(e => e.label && e.total > 0);
+    renderSubjectCircles(entries);
+  } catch (err) {
+    grid.innerHTML = `<div class="error">Failed to load section scores: ${escapeHtml(err.message)}</div>`;
+  }
 }
 
-function persistSubjectProgress(progress) {
-  localStorage.setItem('subjectProgress', JSON.stringify(progress));
-}
-
-function renderSubjectCircles() {
+function renderSubjectCircles(entries) {
   const grid = document.getElementById('subjects-grid');
   if (!grid) return;
 
-  const progress = loadSubjectProgress();
   const R = 48;
   const CIRCUM = +(2 * Math.PI * R).toFixed(2);
 
-  grid.innerHTML = Object.entries(SUBJECT_TOTALS).map(([key, { label, total }]) => {
-    const done = progress[key] || 0;
-    const pct  = Math.min(done / total, 1);
+  grid.innerHTML = entries.map(({ label, done, total }) => {
+    const pct    = Math.min(done / total, 1);
     const offset = +(CIRCUM * (1 - pct)).toFixed(2);
-    const isEditing = editingSubject === key;
 
     return `
-      <div class="subject-circle-wrap" id="subject-wrap-${key}">
-        <div class="subject-svg-container" onclick="startSubjectEdit('${key}')">
+      <div class="subject-circle-wrap">
+        <div class="subject-svg-container">
           <svg width="110" height="110" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--border)" stroke-width="7"/>
             <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--red)" stroke-width="7"
@@ -628,52 +628,11 @@ function renderSubjectCircles() {
               fill="var(--muted)">/ ${total}</text>
           </svg>
         </div>
-        ${isEditing ? `
-          <div class="subject-edit-row">
-            <input type="number" class="subject-edit-input" id="subject-input-${key}"
-              value="${done}" min="0" max="${total}"
-              onkeydown="handleSubjectKeydown(event, '${key}')"/>
-            <button class="subject-save-btn"   onclick="saveSubjectEdit('${key}')">✓</button>
-            <button class="subject-cancel-btn" onclick="cancelSubjectEdit()">✕</button>
-          </div>
-        ` : ``}
-        <div class="subject-label">${label}</div>
-        ${isEditing ? `` : `<div class="subject-pct">${Math.round(pct * 100)}%</div>`}
+        <div class="subject-label">${escapeHtml(label)}</div>
+        <div class="subject-pct">${Math.round(pct * 100)}%</div>
       </div>
     `;
   }).join('');
-
-  if (editingSubject) {
-    const inp = document.getElementById(`subject-input-${editingSubject}`);
-    if (inp) { inp.focus(); inp.select(); }
-  }
-}
-
-function startSubjectEdit(key) {
-  editingSubject = key;
-  renderSubjectCircles();
-}
-
-function cancelSubjectEdit() {
-  editingSubject = null;
-  renderSubjectCircles();
-}
-
-function saveSubjectEdit(key) {
-  const inp = document.getElementById(`subject-input-${key}`);
-  if (!inp) return;
-  const val = parseInt(inp.value, 10);
-  if (isNaN(val) || val < 0) return;
-  const progress = loadSubjectProgress();
-  progress[key] = val;
-  persistSubjectProgress(progress);
-  editingSubject = null;
-  renderSubjectCircles();
-}
-
-function handleSubjectKeydown(event, key) {
-  if (event.key === 'Enter') saveSubjectEdit(key);
-  else if (event.key === 'Escape') cancelSubjectEdit();
 }
 
 // ── Fetch Todos ───────────────────────────────────────────────────────────────
