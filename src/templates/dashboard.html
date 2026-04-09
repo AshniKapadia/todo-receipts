@@ -791,55 +791,76 @@
       padding-bottom: 40px;
     }
 
-    .drawings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 12px;
+    .drawings-table-wrap {
+      overflow-x: auto;
+      border: 2.5px solid var(--dark);
+      box-shadow: 4px 4px 0 var(--dark);
     }
 
-    .drawing-card {
-      border: 2.5px solid var(--dark);
-      border-radius: 4px;
-      padding: 18px 12px 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
+    .drawings-table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 680px;
       background: var(--surface);
-      box-shadow: 3px 3px 0 var(--dark);
-      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
-      user-select: none;
     }
-    .drawing-card:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--dark); }
-    .drawing-card.done  { background: var(--olive); }
 
-    .drawing-check {
-      width: 28px;
-      height: 28px;
-      border: 2.5px solid var(--dark);
-      border-radius: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+    .drawings-table th,
+    .drawings-table td {
+      border: 1px solid var(--border);
+    }
+
+    .drawings-th {
+      background: var(--dark);
+      color: #fff;
+      font-family: 'Ashni', 'Bebas Neue', cursive;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      padding: 12px 6px 10px;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      min-width: 72px;
+    }
+
+    .drawings-th-date {
+      text-align: left;
+      padding-left: 14px;
+      min-width: 88px;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      border-right: 2px solid rgba(255,255,255,0.12);
+    }
+
+    .drawings-date-cell {
+      font-family: 'Courier Prime', monospace;
+      font-size: 10px;
       font-weight: 700;
       color: var(--dark);
+      padding: 7px 14px;
+      white-space: nowrap;
       background: var(--bg);
-      flex-shrink: 0;
-      transition: background 0.15s;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      border-right: 2px solid var(--border);
     }
-    .drawing-card.done .drawing-check { background: #fff; color: var(--olive); border-color: rgba(255,255,255,0.4); }
 
-    .drawing-name {
-      font-family: 'Ashni', 'Bebas Neue', cursive;
-      font-size: 13px;
-      letter-spacing: 1.5px;
-      text-align: center;
-      color: var(--dark);
-      line-height: 1.2;
+    .drawings-row.today .drawings-date-cell {
+      background: var(--yellow);
     }
-    .drawing-card.done .drawing-name { color: #fff; }
+
+    .drawings-check-cell {
+      text-align: center;
+      height: 34px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      transition: background 0.1s;
+    }
+    .drawings-check-cell:hover { background: rgba(196,52,30,0.1); }
+    .drawings-check-cell.checked { background: var(--olive); }
 
     .subjects-grid {
       display: flex;
@@ -2555,9 +2576,13 @@
         <div class="drawings-section">
           <div class="subjects-section-header">
             <div class="subjects-section-title">Daily Drawings</div>
-            <button class="cars-refresh-btn" onclick="resetDrawings()">↺ Reset</button>
           </div>
-          <div class="drawings-grid" id="drawings-grid"></div>
+          <div class="drawings-table-wrap">
+            <table class="drawings-table">
+              <thead id="drawings-thead"></thead>
+              <tbody id="drawings-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 

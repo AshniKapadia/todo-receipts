@@ -195,7 +195,7 @@ function switchCategory(category) {
   if (isCars) {
     fetchCarsData();
     fetchSectionScores();
-    renderDrawings();
+    renderDrawingsTable();
   } else if (isPeriod) {
     fetchPeriodLogs();
   } else if (isGrocery) {
@@ -638,46 +638,54 @@ function renderSubjectCircles(entries) {
 
 // ── Daily Drawings ────────────────────────────────────────────────────────────
 const DRAWINGS = [
-  'Amino Acids', 'Physics Equations', 'Oogenesis', 'Basal Body',
-  'CAC', 'Glycolysis', 'Gluconeogenesis', 'PPP', 'ETC'
+  'Amino Acids', 'Physics Eq.', 'Oogenesis', 'Basal Body',
+  'CAC', 'Glycolysis', 'Gluconeo.', 'PPP', 'ETC'
 ];
 
-function drawingsKey() {
-  const d = new Date();
-  return `drawings-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function loadDrawingsLog() {
+  try { return JSON.parse(localStorage.getItem('drawings-log') || '{}'); }
+  catch { return {}; }
 }
 
-function loadDrawings() {
-  try { return JSON.parse(localStorage.getItem(drawingsKey()) || '[]'); }
-  catch { return []; }
+function toggleDrawingCell(dateStr, name) {
+  const log = loadDrawingsLog();
+  if (!log[dateStr]) log[dateStr] = [];
+  const i = log[dateStr].indexOf(name);
+  if (i === -1) log[dateStr].push(name);
+  else log[dateStr].splice(i, 1);
+  localStorage.setItem('drawings-log', JSON.stringify(log));
+  renderDrawingsTable();
 }
 
-function toggleDrawing(name) {
-  const done = loadDrawings();
-  const i = done.indexOf(name);
-  if (i === -1) done.push(name); else done.splice(i, 1);
-  localStorage.setItem(drawingsKey(), JSON.stringify(done));
-  renderDrawings();
-}
+function renderDrawingsTable() {
+  const thead = document.getElementById('drawings-thead');
+  const tbody = document.getElementById('drawings-tbody');
+  if (!thead || !tbody) return;
 
-function resetDrawings() {
-  localStorage.removeItem(drawingsKey());
-  renderDrawings();
-}
+  thead.innerHTML = `<tr>
+    <th class="drawings-th drawings-th-date">DATE</th>
+    ${DRAWINGS.map(n => `<th class="drawings-th">${escapeHtml(n)}</th>`).join('')}
+  </tr>`;
 
-function renderDrawings() {
-  const grid = document.getElementById('drawings-grid');
-  if (!grid) return;
-  const done = loadDrawings();
-  grid.innerHTML = DRAWINGS.map(name => {
-    const checked = done.includes(name);
-    return `
-      <div class="drawing-card${checked ? ' done' : ''}" onclick="toggleDrawing('${escapeHtml(name)}')">
-        <div class="drawing-check">${checked ? '✓' : ''}</div>
-        <div class="drawing-name">${escapeHtml(name)}</div>
-      </div>
-    `;
-  }).join('');
+  const log = loadDrawingsLog();
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const rows = [];
+
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+    const checked = log[iso] || [];
+
+    rows.push(`<tr class="drawings-row${i === 0 ? ' today' : ''}">
+      <td class="drawings-date-cell">${label}</td>
+      ${DRAWINGS.map(name => `<td class="drawings-check-cell${checked.includes(name) ? ' checked' : ''}"
+        onclick="toggleDrawingCell('${iso}','${name}')">${checked.includes(name) ? '✓' : ''}</td>`).join('')}
+    </tr>`);
+  }
+  tbody.innerHTML = rows.join('');
 }
 
 // ── Fetch Todos ───────────────────────────────────────────────────────────────
