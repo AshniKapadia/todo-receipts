@@ -850,6 +850,7 @@
       display: none;
       flex: 1;
       flex-direction: column;
+      overflow: hidden;
     }
 
     .period-year-bar {
@@ -890,6 +891,7 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 24px 28px;
+      flex-shrink: 0;
     }
 
     .period-month-name {
@@ -963,6 +965,8 @@
       display: flex;
       flex-direction: column;
       gap: 18px;
+      flex: 1;
+      overflow-y: auto;
     }
 
     /* Chips for log panel */
