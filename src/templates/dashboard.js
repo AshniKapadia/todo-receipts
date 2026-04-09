@@ -195,6 +195,7 @@ function switchCategory(category) {
   if (isCars) {
     fetchCarsData();
     fetchSectionScores();
+    renderDrawings();
   } else if (isPeriod) {
     fetchPeriodLogs();
   } else if (isGrocery) {
@@ -630,6 +631,50 @@ function renderSubjectCircles(entries) {
         </div>
         <div class="subject-label">${escapeHtml(label)}</div>
         <div class="subject-pct">${Math.round(pct * 100)}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Daily Drawings ────────────────────────────────────────────────────────────
+const DRAWINGS = [
+  'Amino Acids', 'Physics Equations', 'Oogenesis', 'Basal Body',
+  'CAC', 'Glycolysis', 'Gluconeogenesis', 'PPP', 'ETC'
+];
+
+function drawingsKey() {
+  const d = new Date();
+  return `drawings-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function loadDrawings() {
+  try { return JSON.parse(localStorage.getItem(drawingsKey()) || '[]'); }
+  catch { return []; }
+}
+
+function toggleDrawing(name) {
+  const done = loadDrawings();
+  const i = done.indexOf(name);
+  if (i === -1) done.push(name); else done.splice(i, 1);
+  localStorage.setItem(drawingsKey(), JSON.stringify(done));
+  renderDrawings();
+}
+
+function resetDrawings() {
+  localStorage.removeItem(drawingsKey());
+  renderDrawings();
+}
+
+function renderDrawings() {
+  const grid = document.getElementById('drawings-grid');
+  if (!grid) return;
+  const done = loadDrawings();
+  grid.innerHTML = DRAWINGS.map(name => {
+    const checked = done.includes(name);
+    return `
+      <div class="drawing-card${checked ? ' done' : ''}" onclick="toggleDrawing('${escapeHtml(name)}')">
+        <div class="drawing-check">${checked ? '✓' : ''}</div>
+        <div class="drawing-name">${escapeHtml(name)}</div>
       </div>
     `;
   }).join('');

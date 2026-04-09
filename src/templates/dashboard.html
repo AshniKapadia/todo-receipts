@@ -769,13 +769,77 @@
       padding-top: 28px;
     }
 
+    .subjects-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
     .subjects-section-title {
       font-family: 'Ashni', 'Bebas Neue', cursive;
       font-size: 18px;
       letter-spacing: 3px;
       color: var(--muted);
-      margin-bottom: 24px;
     }
+
+    /* ─────────────── Daily Drawings ─────────────── */
+    .drawings-section {
+      margin-top: 40px;
+      border-top: 2px solid var(--border);
+      padding-top: 28px;
+      padding-bottom: 40px;
+    }
+
+    .drawings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .drawing-card {
+      border: 2.5px solid var(--dark);
+      border-radius: 4px;
+      padding: 18px 12px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      background: var(--surface);
+      box-shadow: 3px 3px 0 var(--dark);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      user-select: none;
+    }
+    .drawing-card:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--dark); }
+    .drawing-card.done  { background: var(--olive); }
+
+    .drawing-check {
+      width: 28px;
+      height: 28px;
+      border: 2.5px solid var(--dark);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      background: var(--bg);
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .drawing-card.done .drawing-check { background: #fff; color: var(--olive); border-color: rgba(255,255,255,0.4); }
+
+    .drawing-name {
+      font-family: 'Ashni', 'Bebas Neue', cursive;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      text-align: center;
+      color: var(--dark);
+      line-height: 1.2;
+    }
+    .drawing-card.done .drawing-name { color: #fff; }
 
     .subjects-grid {
       display: flex;
@@ -2480,8 +2544,20 @@
 
         <!-- Subject Progress Circles -->
         <div class="subjects-section">
-          <div class="subjects-section-title">Question Bank Progress</div>
+          <div class="subjects-section-header">
+            <div class="subjects-section-title">Question Bank Progress</div>
+            <button class="cars-refresh-btn" onclick="fetchSectionScores()">↻ Refresh</button>
+          </div>
           <div class="subjects-grid" id="subjects-grid"></div>
+        </div>
+
+        <!-- Daily Drawings -->
+        <div class="drawings-section">
+          <div class="subjects-section-header">
+            <div class="subjects-section-title">Daily Drawings</div>
+            <button class="cars-refresh-btn" onclick="resetDrawings()">↺ Reset</button>
+          </div>
+          <div class="drawings-grid" id="drawings-grid"></div>
         </div>
       </div>
 
