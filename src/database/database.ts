@@ -86,6 +86,19 @@ export class TodoDatabase {
     if (!hasThemeId) {
       this.db.exec("ALTER TABLE print_jobs ADD COLUMN theme_id TEXT DEFAULT 'ops'");
     }
+
+    // Migration 8: movie_posters column upgrades
+    try {
+      const movieInfo = this.db.pragma("table_info(movie_posters)") as Array<{ name: string }>;
+      if (movieInfo.length > 0) {
+        if (!movieInfo.some(c => c.name === 'poster_url')) {
+          this.db.exec("ALTER TABLE movie_posters ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''");
+        }
+        if (!movieInfo.some(c => c.name === 'language')) {
+          this.db.exec("ALTER TABLE movie_posters ADD COLUMN language TEXT NOT NULL DEFAULT 'english'");
+        }
+      }
+    } catch(e) {}
   }
 
   /**
@@ -527,20 +540,16 @@ export class TodoDatabase {
     return this.db.prepare('SELECT * FROM movie_posters ORDER BY created_at DESC').all() as MovieItem[];
   }
 
-  addMovie(title: string, imageFilename: string): MovieItem {
+  addMovie(title: string, posterUrl: string, language: string = 'english'): MovieItem {
     const now = Date.now();
     const result = this.db.prepare(
-      'INSERT INTO movie_posters (title, image_filename, created_at) VALUES (?, ?, ?)'
-    ).run(title, imageFilename, now);
-    return { id: result.lastInsertRowid as number, title, image_filename: imageFilename, created_at: now };
+      'INSERT INTO movie_posters (title, poster_url, language, created_at) VALUES (?, ?, ?, ?)'
+    ).run(title, posterUrl, language, now);
+    return { id: result.lastInsertRowid as number, title, poster_url: posterUrl, language, created_at: now };
   }
 
   deleteMovie(id: number): void {
     this.db.prepare('DELETE FROM movie_posters WHERE id = ?').run(id);
-  }
-
-  getMovieById(id: number): MovieItem | undefined {
-    return this.db.prepare('SELECT * FROM movie_posters WHERE id = ?').get(id) as MovieItem | undefined;
   }
 
   /**

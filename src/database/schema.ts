@@ -1,7 +1,8 @@
 export interface MovieItem {
   id: number;
   title: string;
-  image_filename: string;
+  poster_url: string;
+  language: string;
   created_at: number;
 }
 
@@ -91,7 +92,8 @@ export const CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS movie_posters (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT DEFAULT '',
-    image_filename TEXT NOT NULL,
+    poster_url TEXT NOT NULL DEFAULT '',
+    language TEXT NOT NULL DEFAULT 'english',
     created_at INTEGER NOT NULL
   );
 `;

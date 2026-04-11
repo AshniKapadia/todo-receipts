@@ -197,14 +197,6 @@ export class ApiRouter {
 
       if (pathname.startsWith('/api/movies/') && method === 'DELETE') {
         const id = this.extractId(pathname);
-        const movie = this.db.getMovieById(id);
-        if (movie?.image_filename) {
-          const imgPath = join(IMAGES_DIR, movie.image_filename);
-          if (existsSync(imgPath)) {
-            const { unlink } = await import('fs/promises');
-            await unlink(imgPath).catch(() => {});
-          }
-        }
         this.db.deleteMovie(id);
         this.sendJson(res, { success: true });
         return;
@@ -448,26 +440,9 @@ export class ApiRouter {
 
   private async createMovie(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const body = await this.parseBody(req);
-    const { title, imageData } = body;
-
-    if (!imageData || typeof imageData !== 'string') {
-      this.sendError(res, 400, 'imageData required');
-      return;
-    }
-
-    const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!matches) {
-      this.sendError(res, 400, 'invalid imageData');
-      return;
-    }
-
-    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
-    const buffer = Buffer.from(matches[2], 'base64');
-    const imageFilename = `movie_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    await mkdir(IMAGES_DIR, { recursive: true });
-    await writeFile(join(IMAGES_DIR, imageFilename), buffer);
-
-    const movie = this.db.addMovie(title || '', imageFilename);
+    const { title, posterUrl, language } = body;
+    if (!posterUrl) { this.sendError(res, 400, 'posterUrl required'); return; }
+    const movie = this.db.addMovie(title || '', posterUrl, language || 'english');
     this.sendJson(res, { movie });
   }
 
