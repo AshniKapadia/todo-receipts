@@ -87,15 +87,27 @@ export class TodoDatabase {
       this.db.exec("ALTER TABLE print_jobs ADD COLUMN theme_id TEXT DEFAULT 'ops'");
     }
 
-    // Migration 8: movie_posters column upgrades
+    // Migration 8: movie_posters — recreate if it has the old image_filename schema
     try {
       const movieInfo = this.db.pragma("table_info(movie_posters)") as Array<{ name: string }>;
       if (movieInfo.length > 0) {
-        if (!movieInfo.some(c => c.name === 'poster_url')) {
-          this.db.exec("ALTER TABLE movie_posters ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''");
-        }
-        if (!movieInfo.some(c => c.name === 'language')) {
-          this.db.exec("ALTER TABLE movie_posters ADD COLUMN language TEXT NOT NULL DEFAULT 'english'");
+        const hasOldSchema = movieInfo.some(c => c.name === 'image_filename');
+        if (hasOldSchema) {
+          // No data yet, safe to drop and recreate with correct schema
+          this.db.exec('DROP TABLE movie_posters');
+          this.db.exec(`
+            CREATE TABLE movie_posters (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT DEFAULT '',
+              poster_url TEXT NOT NULL DEFAULT '',
+              language TEXT NOT NULL DEFAULT 'english',
+              created_at INTEGER NOT NULL
+            )
+          `);
+        } else {
+          if (!movieInfo.some(c => c.name === 'language')) {
+            this.db.exec("ALTER TABLE movie_posters ADD COLUMN language TEXT NOT NULL DEFAULT 'english'");
+          }
         }
       }
     } catch(e) {}
