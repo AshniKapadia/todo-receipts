@@ -1827,7 +1827,7 @@
       flex-direction: column;
       flex: 1;
       background: #080808;
-      overflow: hidden;
+      overflow-y: auto;
     }
 
     .tv-inner {
@@ -2166,250 +2166,7 @@
       color: #1a1a1a;
     }
 
-    /* ─────────────── TV Sub-tabs ─────────────── */
-    .tv-subtabs-bar {
-      display: flex;
-      border-bottom: 1px solid #1a1a1a;
-      padding: 0 28px;
-      flex-shrink: 0;
-    }
-    .tv-subtab-btn {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 9.5px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: #444;
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      padding: 14px 20px 12px;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
-      margin-bottom: -1px;
-    }
-    .tv-subtab-btn:hover { color: #888; }
-    .tv-subtab-btn.active { color: #C9A84C; border-bottom-color: #C9A84C; }
 
-    .tv-shows-panel {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    /* ─────────────── Movies Panel ─────────────── */
-    .tv-movies-panel {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .movies-toolbar {
-      padding: 16px 24px;
-      border-bottom: 1px solid #1a1a1a;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-shrink: 0;
-    }
-    .movies-search-input {
-      flex: 1;
-      background: #111;
-      border: 1px solid #222;
-      color: #ccc;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      padding: 10px 14px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .movies-search-input::placeholder { color: #333; }
-    .movies-search-input:focus { border-color: #C9A84C; }
-    .movies-count-label {
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #333;
-      white-space: nowrap;
-    }
-
-    /* Search results row */
-    .movies-search-results {
-      display: flex;
-      gap: 10px;
-      padding: 14px 24px;
-      overflow-x: auto;
-      flex-shrink: 0;
-      border-bottom: 1px solid #111;
-      min-height: 0;
-      scrollbar-width: thin;
-      scrollbar-color: #222 transparent;
-    }
-    .movies-search-results:empty { display: none; }
-    .movies-searching, .movies-no-results {
-      font-family: 'Courier Prime', monospace;
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      color: #333;
-      text-transform: uppercase;
-      align-self: center;
-    }
-    .movie-search-result {
-      flex-shrink: 0;
-      width: 72px;
-      cursor: pointer;
-      opacity: 1;
-      transition: opacity 0.15s, transform 0.15s;
-    }
-    .movie-search-result:hover { transform: translateY(-3px); }
-    .movie-search-result.adding { opacity: 0.4; pointer-events: none; }
-    .movie-search-result.added { opacity: 0.3; pointer-events: none; }
-    .movie-search-poster {
-      width: 72px;
-      height: 108px;
-      overflow: hidden;
-      background: #111;
-      position: relative;
-    }
-    .movie-search-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .movie-search-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 7.5px;
-      font-weight: 600;
-      color: #555;
-      margin-top: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .movie-search-year {
-      font-family: 'Courier Prime', monospace;
-      font-size: 7px;
-      color: #333;
-    }
-
-    /* Collection grid */
-    .movies-collection {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-    }
-    .movies-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 14px;
-    }
-    .movie-card { position: relative; }
-    .movie-poster-wrap {
-      aspect-ratio: 2/3;
-      overflow: hidden;
-      background: #111;
-      position: relative;
-    }
-    .movie-poster-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: filter 0.2s, transform 0.3s;
-    }
-    .movie-card:hover .movie-poster-wrap img {
-      filter: brightness(0.5);
-      transform: scale(1.04);
-    }
-    .movie-remove {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 22px;
-      height: 22px;
-      background: #C4341E;
-      color: #fff;
-      border: none;
-      font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .movie-card:hover .movie-remove { opacity: 1; }
-    .movie-label {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 8.5px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      color: #555;
-      margin-top: 5px;
-      text-align: center;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .movies-empty-state {
-      color: #222;
-      font-family: 'Courier Prime', monospace;
-      font-size: 10px;
-      letter-spacing: 0.3em;
-      text-align: center;
-      padding: 80px 0;
-      text-transform: uppercase;
-    }
-
-    /* Section divider between English and Hindi */
-    .movies-section-divider {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin: 32px 0 8px;
-    }
-    .movies-section-divider::before,
-    .movies-section-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #1e1e1e;
-    }
-    .movies-section-label {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      color: #C9A84C;
-      text-transform: uppercase;
-    }
-    .movies-hindi-grid {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 14px;
-    }
-
-    /* Language toggle in search toolbar */
-    .movies-lang-toggle {
-      display: flex;
-      gap: 0;
-      flex-shrink: 0;
-    }
-    .movies-lang-btn {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 8.5px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      background: transparent;
-      border: 1px solid #222;
-      color: #333;
-      padding: 7px 12px;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .movies-lang-btn:first-child { border-right: none; }
-    .movies-lang-btn.active { background: #C9A84C; border-color: #C9A84C; color: #000; }
 
     /* ─────────────── Mobile ─────────────── */
     .mobile-profiles { display: none; }
@@ -2768,66 +2525,38 @@
 
       <!-- ── TV Rankings View ── -->
       <div class="tv-view" id="tv-view" style="display:none">
+        <div class="tv-inner">
 
-        <!-- Sub-tabs -->
-        <div class="tv-subtabs-bar">
-          <button class="tv-subtab-btn active" id="tv-subtab-shows" onclick="switchTvSubTab('shows')">TV Shows</button>
-          <button class="tv-subtab-btn" id="tv-subtab-movies" onclick="switchTvSubTab('movies')">Movies</button>
-        </div>
-
-        <!-- TV Shows panel -->
-        <div class="tv-shows-panel" id="tv-shows-panel">
-          <div class="tv-inner">
-
-            <div class="tv-controls-bar">
-              <div class="tv-counts">
-                <span class="tv-big-num" id="tv-ranked-count">0</span>
-                <span class="tv-big-label">ranked</span>
-                <span class="tv-big-sep">/</span>
-                <span class="tv-big-num tv-dim" id="tv-total-count">32</span>
-                <span class="tv-big-label tv-dim">total</span>
-              </div>
-              <div class="tv-btns">
-                <button class="tv-btn" onclick="tvReset()">↺ Reset</button>
-                <button class="tv-btn tv-btn-accent" onclick="tvCopy()">↗ Copy</button>
-              </div>
+          <div class="tv-controls-bar">
+            <div class="tv-counts">
+              <span class="tv-big-num" id="tv-ranked-count">0</span>
+              <span class="tv-big-label">ranked</span>
+              <span class="tv-big-sep">/</span>
+              <span class="tv-big-num tv-dim" id="tv-total-count">32</span>
+              <span class="tv-big-label tv-dim">total</span>
             </div>
-
-            <!-- Drop zone for rank #1 -->
-            <div class="tv-top-drop" id="tv-top-drop" data-pos="0">↑ drop here for #1</div>
-
-            <!-- Ranked list -->
-            <ul class="tv-ranked-list" id="tv-ranked-list"></ul>
-
-            <!-- Unranked pool -->
-            <div class="tv-unranked-section">
-              <div class="tv-section-label">
-                UNRANKED
-                <span class="tv-unranked-badge" id="tv-unranked-count">32</span>
-              </div>
-              <div class="tv-pool" id="tv-pool"></div>
+            <div class="tv-btns">
+              <button class="tv-btn" onclick="tvReset()">↺ Reset</button>
+              <button class="tv-btn tv-btn-accent" onclick="tvCopy()">↗ Copy</button>
             </div>
-
           </div>
-        </div>
 
-        <!-- Movies panel -->
-        <div class="tv-movies-panel" id="tv-movies-panel">
-          <div class="movies-toolbar">
-            <input type="text" id="movies-search-input" class="movies-search-input" placeholder="search for a movie..." autocomplete="off" oninput="moviesOnInput(this.value)" onkeydown="if(event.key==='Escape'){this.value='';moviesOnInput('')}">
-            <div class="movies-lang-toggle">
-              <button class="movies-lang-btn active" id="movies-lang-en" onclick="moviesSetLang('english')">EN</button>
-              <button class="movies-lang-btn" id="movies-lang-hi" onclick="moviesSetLang('hindi')">HI</button>
+          <!-- Drop zone for rank #1 -->
+          <div class="tv-top-drop" id="tv-top-drop" data-pos="0">↑ drop here for #1</div>
+
+          <!-- Ranked list -->
+          <ul class="tv-ranked-list" id="tv-ranked-list"></ul>
+
+          <!-- Unranked pool -->
+          <div class="tv-unranked-section">
+            <div class="tv-section-label">
+              UNRANKED
+              <span class="tv-unranked-badge" id="tv-unranked-count">32</span>
             </div>
-            <span class="movies-count-label" id="movies-count">0 movies</span>
+            <div class="tv-pool" id="tv-pool"></div>
           </div>
-          <div class="movies-search-results" id="movies-search-results"></div>
-          <div class="movies-collection">
-            <div class="movies-grid" id="movies-grid"></div>
-            <div class="movies-empty-state" id="movies-empty-state">search for a movie above to add it to your collection</div>
-          </div>
-        </div>
 
+        </div>
       </div>
 
       <!-- ── CARS View ── -->
@@ -2949,7 +2678,6 @@
       }
       tvRender();
       tvFetchMissing();
-      initMoviesDropZone();
     }
 
     function tvResetState() {
@@ -3210,146 +2938,7 @@
         .catch(() => {});
     };
 
-    // ── Movies ────────────────────────────────────────────
-    let moviesData = [];
-    let moviesSearchTimer = null;
-    let moviesAddedIds = new Set();
-    let moviesCurrentLang = 'english';
 
-    window.moviesSetLang = function(lang) {
-      moviesCurrentLang = lang;
-      document.getElementById('movies-lang-en').classList.toggle('active', lang === 'english');
-      document.getElementById('movies-lang-hi').classList.toggle('active', lang === 'hindi');
-      document.getElementById('movies-search-input').placeholder =
-        lang === 'hindi' ? 'search for a hindi movie...' : 'search for a movie...';
-    };
-
-    async function moviesLoad() {
-      const res = await fetch('/api/movies');
-      const data = await res.json();
-      moviesData = data.movies || [];
-      moviesAddedIds = new Set(moviesData.map(m => m.poster_url));
-      moviesRender();
-    }
-
-    function moviesRenderGrid(container, movies) {
-      movies.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'movie-card';
-        card.innerHTML = `
-          <div class="movie-poster-wrap">
-            <img src="${m.poster_url}" alt="${escapeHtml(m.title || '')}">
-            <button class="movie-remove" onclick="moviesRemove(${m.id})" title="Remove">×</button>
-          </div>
-          ${m.title ? `<div class="movie-label">${escapeHtml(m.title)}</div>` : ''}
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function moviesRender() {
-      const grid  = document.getElementById('movies-grid');
-      const empty = document.getElementById('movies-empty-state');
-      const count = document.getElementById('movies-count');
-      grid.innerHTML = '';
-      count.textContent = `${moviesData.length} movie${moviesData.length !== 1 ? 's' : ''}`;
-      empty.style.display = moviesData.length === 0 ? 'block' : 'none';
-
-      const english = moviesData.filter(m => m.language !== 'hindi');
-      const hindi   = moviesData.filter(m => m.language === 'hindi');
-
-      moviesRenderGrid(grid, english);
-
-      if (hindi.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'movies-section-divider';
-        divider.innerHTML = '<span class="movies-section-label">HINDI</span>';
-        grid.appendChild(divider);
-
-        const hindiGrid = document.createElement('div');
-        hindiGrid.className = 'movies-hindi-grid';
-        moviesRenderGrid(hindiGrid, hindi);
-        grid.appendChild(hindiGrid);
-      }
-
-      // Refresh added state in search results
-      document.querySelectorAll('.movie-search-result').forEach(el => {
-        el.classList.toggle('added', moviesAddedIds.has(el.dataset.posterUrl));
-      });
-    }
-
-    async function moviesSearch(query) {
-      const results = document.getElementById('movies-search-results');
-      if (!query.trim()) { results.innerHTML = ''; return; }
-      results.innerHTML = '<span class="movies-searching">searching...</span>';
-      try {
-        const res = await fetch(`/api/movies/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        results.innerHTML = '';
-        if (!data.results?.length) {
-          results.innerHTML = '<span class="movies-no-results">no results</span>';
-          return;
-        }
-        data.results.forEach(r => {
-          const isAdded = moviesAddedIds.has(r.posterUrl);
-          const el = document.createElement('div');
-          el.className = 'movie-search-result' + (isAdded ? ' added' : '');
-          el.dataset.posterUrl = r.posterUrl;
-          el.innerHTML = `
-            <div class="movie-search-poster"><img src="${r.posterUrl}" alt="${escapeHtml(r.title)}"></div>
-            <div class="movie-search-title">${escapeHtml(r.title)}</div>
-            ${r.year ? `<div class="movie-search-year">${r.year}</div>` : ''}
-          `;
-          el.addEventListener('click', () => moviesAddFromSearch(r.title, r.posterUrl, el));
-          results.appendChild(el);
-        });
-      } catch(e) {
-        results.innerHTML = '<span class="movies-no-results">search failed</span>';
-      }
-    }
-
-    async function moviesAddFromSearch(title, posterUrl, el) {
-      if (el.classList.contains('added') || el.classList.contains('adding')) return;
-      el.classList.add('adding');
-      const res = await fetch('/api/movies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, posterUrl, language: moviesCurrentLang })
-      });
-      const data = await res.json();
-      if (data.movie) {
-        moviesData.unshift(data.movie);
-        moviesAddedIds.add(posterUrl);
-        moviesRender();
-      }
-      el.classList.remove('adding');
-      el.classList.add('added');
-    }
-
-    function initMoviesDropZone() {
-      // no-op: drop zone removed in favour of search
-    }
-
-    window.moviesOnInput = function(value) {
-      clearTimeout(moviesSearchTimer);
-      moviesSearchTimer = setTimeout(() => moviesSearch(value), 350);
-    };
-
-    window.moviesRemove = async function(id) {
-      const movie = moviesData.find(m => m.id === id);
-      if (movie) moviesAddedIds.delete(movie.poster_url);
-      await fetch(`/api/movies/${id}`, { method: 'DELETE' });
-      moviesData = moviesData.filter(m => m.id !== id);
-      moviesRender();
-    };
-
-    window.switchTvSubTab = function(tab) {
-      document.getElementById('tv-subtab-shows').classList.toggle('active', tab === 'shows');
-      document.getElementById('tv-subtab-movies').classList.toggle('active', tab === 'movies');
-      document.getElementById('tv-shows-panel').style.display = tab === 'shows' ? 'flex' : 'none';
-      document.getElementById('tv-movies-panel').style.display = tab === 'movies' ? 'flex' : 'none';
-      if (tab === 'movies') moviesLoad();
-    };
 
     // Hook into switchCategory to lazy-init
     const _origSwitch = window.switchCategory;
