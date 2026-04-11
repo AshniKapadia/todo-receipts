@@ -107,10 +107,10 @@ const HINDI = [
 
 async function searchItunes(title, isHindi = false) {
   const country = isHindi ? 'in' : 'us';
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(title)}&media=movie&limit=3&country=${country}`;
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(title)}&limit=10&country=${country}`;
   const res = await fetch(url);
   const data = await res.json();
-  const result = data.results?.[0];
+  const result = data.results?.find(r => r.kind === 'feature-movie') || data.results?.[0];
   if (!result?.artworkUrl100) return null;
   return {
     title: result.trackName || title,

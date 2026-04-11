@@ -3283,14 +3283,16 @@
       if (!query.trim()) { results.innerHTML = ''; return; }
       results.innerHTML = '<span class="movies-searching">searching...</span>';
       try {
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=movie&limit=10&country=us`);
+        const country = moviesCurrentLang === 'hindi' ? 'in' : 'us';
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&limit=15&country=${country}`);
         const data = await res.json();
         results.innerHTML = '';
-        if (!data.results || !data.results.length) {
+        if (!movies.length) {
           results.innerHTML = '<span class="movies-no-results">no results</span>';
           return;
         }
-        data.results.forEach(r => {
+        const movies = data.results.filter(r => r.kind === 'feature-movie' || r.wrapperType === 'track');
+        movies.forEach(r => {
           const posterUrl = r.artworkUrl100.replace('100x100bb', '400x600bb');
           const title = r.trackName;
           const year = r.releaseDate ? new Date(r.releaseDate).getFullYear() : '';
