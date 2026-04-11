@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, WishlistItem } from "./schema.js";
+import type { TodoItem, PeriodLog, WishlistItem, MovieItem } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 
 export class TodoDatabase {
@@ -519,6 +519,28 @@ export class TodoDatabase {
 
   deleteWishlistItem(id: number): void {
     this.db.prepare('DELETE FROM wishlist_items WHERE id = ?').run(id);
+  }
+
+  // ── Movies ───────────────────────────────────────────────────────────────────
+
+  getMovies(): MovieItem[] {
+    return this.db.prepare('SELECT * FROM movie_posters ORDER BY created_at DESC').all() as MovieItem[];
+  }
+
+  addMovie(title: string, imageFilename: string): MovieItem {
+    const now = Date.now();
+    const result = this.db.prepare(
+      'INSERT INTO movie_posters (title, image_filename, created_at) VALUES (?, ?, ?)'
+    ).run(title, imageFilename, now);
+    return { id: result.lastInsertRowid as number, title, image_filename: imageFilename, created_at: now };
+  }
+
+  deleteMovie(id: number): void {
+    this.db.prepare('DELETE FROM movie_posters WHERE id = ?').run(id);
+  }
+
+  getMovieById(id: number): MovieItem | undefined {
+    return this.db.prepare('SELECT * FROM movie_posters WHERE id = ?').get(id) as MovieItem | undefined;
   }
 
   /**

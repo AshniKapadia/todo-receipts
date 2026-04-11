@@ -1,3 +1,10 @@
+export interface MovieItem {
+  id: number;
+  title: string;
+  image_filename: string;
+  created_at: number;
+}
+
 export interface WishlistItem {
   id: number;
   user_id: string;
@@ -79,6 +86,12 @@ export const CREATE_TABLE_SQL = `
     pos_x REAL DEFAULT 20,
     pos_y REAL DEFAULT 20,
     z_index INTEGER DEFAULT 1,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS movie_posters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT DEFAULT '',
+    image_filename TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
 `;

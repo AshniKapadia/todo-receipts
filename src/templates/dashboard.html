@@ -1827,7 +1827,7 @@
       flex-direction: column;
       flex: 1;
       background: #080808;
-      overflow-y: auto;
+      overflow: hidden;
     }
 
     .tv-inner {
@@ -2164,6 +2164,152 @@
       display: block;
       margin-top: 6px;
       color: #1a1a1a;
+    }
+
+    /* ─────────────── TV Sub-tabs ─────────────── */
+    .tv-subtabs-bar {
+      display: flex;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .tv-subtab-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #444;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 14px 20px 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
+    }
+    .tv-subtab-btn:hover { color: #888; }
+    .tv-subtab-btn.active { color: #C9A84C; border-bottom-color: #C9A84C; }
+
+    .tv-shows-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ─────────────── Movies Panel ─────────────── */
+    .tv-movies-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .movies-toolbar {
+      padding: 18px 28px;
+      border-bottom: 1px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .movies-add-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #C9A84C;
+      background: transparent;
+      border: 1.5px solid #C9A84C;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .movies-add-btn:hover { background: rgba(201,168,76,0.1); }
+    .movies-count-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #333;
+    }
+
+    .movies-drop-area {
+      flex: 1;
+      padding: 28px;
+      position: relative;
+    }
+    .movies-drop-area.drag-over::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border: 2px dashed #C9A84C;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .movies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 14px;
+    }
+    .movie-card { position: relative; }
+    .movie-poster-wrap {
+      aspect-ratio: 2/3;
+      overflow: hidden;
+      background: #111;
+      position: relative;
+    }
+    .movie-poster-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: filter 0.2s, transform 0.3s;
+    }
+    .movie-card:hover .movie-poster-wrap img {
+      filter: brightness(0.5);
+      transform: scale(1.04);
+    }
+    .movie-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      background: #C4341E;
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .movie-card:hover .movie-remove { opacity: 1; }
+    .movie-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #555;
+      margin-top: 5px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .movies-empty-state {
+      color: #222;
+      font-family: 'Courier Prime', monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-align: center;
+      padding: 80px 0;
+      text-transform: uppercase;
     }
 
     /* ─────────────── Mobile ─────────────── */
@@ -2523,38 +2669,62 @@
 
       <!-- ── TV Rankings View ── -->
       <div class="tv-view" id="tv-view" style="display:none">
-        <div class="tv-inner">
 
-          <div class="tv-controls-bar">
-            <div class="tv-counts">
-              <span class="tv-big-num" id="tv-ranked-count">0</span>
-              <span class="tv-big-label">ranked</span>
-              <span class="tv-big-sep">/</span>
-              <span class="tv-big-num tv-dim" id="tv-total-count">32</span>
-              <span class="tv-big-label tv-dim">total</span>
-            </div>
-            <div class="tv-btns">
-              <button class="tv-btn" onclick="tvReset()">↺ Reset</button>
-              <button class="tv-btn tv-btn-accent" onclick="tvCopy()">↗ Copy</button>
-            </div>
-          </div>
-
-          <!-- Drop zone for rank #1 -->
-          <div class="tv-top-drop" id="tv-top-drop" data-pos="0">↑ drop here for #1</div>
-
-          <!-- Ranked list -->
-          <ul class="tv-ranked-list" id="tv-ranked-list"></ul>
-
-          <!-- Unranked pool -->
-          <div class="tv-unranked-section">
-            <div class="tv-section-label">
-              UNRANKED
-              <span class="tv-unranked-badge" id="tv-unranked-count">32</span>
-            </div>
-            <div class="tv-pool" id="tv-pool"></div>
-          </div>
-
+        <!-- Sub-tabs -->
+        <div class="tv-subtabs-bar">
+          <button class="tv-subtab-btn active" id="tv-subtab-shows" onclick="switchTvSubTab('shows')">TV Shows</button>
+          <button class="tv-subtab-btn" id="tv-subtab-movies" onclick="switchTvSubTab('movies')">Movies</button>
         </div>
+
+        <!-- TV Shows panel -->
+        <div class="tv-shows-panel" id="tv-shows-panel">
+          <div class="tv-inner">
+
+            <div class="tv-controls-bar">
+              <div class="tv-counts">
+                <span class="tv-big-num" id="tv-ranked-count">0</span>
+                <span class="tv-big-label">ranked</span>
+                <span class="tv-big-sep">/</span>
+                <span class="tv-big-num tv-dim" id="tv-total-count">32</span>
+                <span class="tv-big-label tv-dim">total</span>
+              </div>
+              <div class="tv-btns">
+                <button class="tv-btn" onclick="tvReset()">↺ Reset</button>
+                <button class="tv-btn tv-btn-accent" onclick="tvCopy()">↗ Copy</button>
+              </div>
+            </div>
+
+            <!-- Drop zone for rank #1 -->
+            <div class="tv-top-drop" id="tv-top-drop" data-pos="0">↑ drop here for #1</div>
+
+            <!-- Ranked list -->
+            <ul class="tv-ranked-list" id="tv-ranked-list"></ul>
+
+            <!-- Unranked pool -->
+            <div class="tv-unranked-section">
+              <div class="tv-section-label">
+                UNRANKED
+                <span class="tv-unranked-badge" id="tv-unranked-count">32</span>
+              </div>
+              <div class="tv-pool" id="tv-pool"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Movies panel -->
+        <div class="tv-movies-panel" id="tv-movies-panel">
+          <div class="movies-toolbar">
+            <button class="movies-add-btn" onclick="moviesPickFiles()">+ Add Posters</button>
+            <span class="movies-count-label" id="movies-count">0 movies</span>
+            <input type="file" id="movies-file-input" accept="image/*" multiple style="display:none" onchange="moviesFilesSelected(this)">
+          </div>
+          <div class="movies-drop-area" id="movies-drop-area">
+            <div class="movies-grid" id="movies-grid"></div>
+            <div class="movies-empty-state" id="movies-empty-state">drop posters here or click add posters</div>
+          </div>
+        </div>
+
       </div>
 
       <!-- ── CARS View ── -->
@@ -2676,6 +2846,7 @@
       }
       tvRender();
       tvFetchMissing();
+      initMoviesDropZone();
     }
 
     function tvResetState() {
@@ -2934,6 +3105,103 @@
       navigator.clipboard.writeText(lines.join('\n'))
         .then(() => { /* silent success */ })
         .catch(() => {});
+    };
+
+    // ── Movies ────────────────────────────────────────────
+    let moviesData = [];
+    let moviesUploading = false;
+
+    async function moviesLoad() {
+      const res = await fetch('/api/movies');
+      const data = await res.json();
+      moviesData = data.movies || [];
+      moviesRender();
+    }
+
+    function moviesRender() {
+      const grid  = document.getElementById('movies-grid');
+      const empty = document.getElementById('movies-empty-state');
+      const count = document.getElementById('movies-count');
+      grid.innerHTML = '';
+      count.textContent = `${moviesData.length} movie${moviesData.length !== 1 ? 's' : ''}`;
+      empty.style.display = moviesData.length === 0 ? 'block' : 'none';
+      moviesData.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.innerHTML = `
+          <div class="movie-poster-wrap">
+            <img src="/api/images/${m.image_filename}" alt="${escapeHtml(m.title || '')}">
+            <button class="movie-remove" onclick="moviesRemove(${m.id})" title="Remove">×</button>
+          </div>
+          ${m.title ? `<div class="movie-label">${escapeHtml(m.title)}</div>` : ''}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function moviesUploadFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const res = await fetch('/api/movies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: file.name.replace(/\.[^.]+$/, ''),
+              imageData: e.target.result
+            })
+          });
+          const data = await res.json();
+          if (data.movie) moviesData.unshift(data.movie);
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function moviesAddFiles(files) {
+      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!imageFiles.length || moviesUploading) return;
+      moviesUploading = true;
+      document.getElementById('movies-count').textContent = 'uploading...';
+      for (const file of imageFiles) {
+        await moviesUploadFile(file);
+      }
+      moviesUploading = false;
+      moviesRender();
+    }
+
+    function initMoviesDropZone() {
+      const area = document.getElementById('movies-drop-area');
+      area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+      area.addEventListener('dragleave', e => { if (!area.contains(e.relatedTarget)) area.classList.remove('drag-over'); });
+      area.addEventListener('drop', e => {
+        e.preventDefault(); area.classList.remove('drag-over');
+        moviesAddFiles(e.dataTransfer.files);
+      });
+    }
+
+    window.moviesPickFiles = function() {
+      document.getElementById('movies-file-input').click();
+    };
+
+    window.moviesFilesSelected = function(input) {
+      moviesAddFiles(input.files);
+      input.value = '';
+    };
+
+    window.moviesRemove = async function(id) {
+      await fetch(`/api/movies/${id}`, { method: 'DELETE' });
+      moviesData = moviesData.filter(m => m.id !== id);
+      moviesRender();
+    };
+
+    window.switchTvSubTab = function(tab) {
+      document.getElementById('tv-subtab-shows').classList.toggle('active', tab === 'shows');
+      document.getElementById('tv-subtab-movies').classList.toggle('active', tab === 'movies');
+      document.getElementById('tv-shows-panel').style.display = tab === 'shows' ? 'flex' : 'none';
+      document.getElementById('tv-movies-panel').style.display = tab === 'movies' ? 'flex' : 'none';
+      if (tab === 'movies') moviesLoad();
     };
 
     // Hook into switchCategory to lazy-init
