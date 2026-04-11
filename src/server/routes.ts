@@ -190,6 +190,11 @@ export class ApiRouter {
         return;
       }
 
+      if (pathname === '/api/movies/search' && method === 'GET') {
+        await this.searchMovies(res, parsedUrl.searchParams.get('q') || '');
+        return;
+      }
+
       if (pathname === '/api/movies' && method === 'POST') {
         await this.createMovie(req, res);
         return;
@@ -436,6 +441,26 @@ export class ApiRouter {
   ): void {
     res.writeHead(code, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: message }));
+  }
+
+  private async searchMovies(res: ServerResponse, query: string): Promise<void> {
+    if (!query.trim()) { this.sendJson(res, { results: [] }); return; }
+    const token = process.env.TMDB_TOKEN;
+    if (!token) { this.sendError(res, 503, 'TMDB_TOKEN not configured'); return; }
+    const tmdbRes = await fetch(
+      `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&include_adult=false`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await tmdbRes.json() as { results?: Array<{ title: string; poster_path: string; release_date: string }> };
+    const results = (data.results || [])
+      .filter(r => r.poster_path)
+      .slice(0, 10)
+      .map(r => ({
+        title: r.title,
+        posterUrl: `https://image.tmdb.org/t/p/w500${r.poster_path}`,
+        year: r.release_date ? r.release_date.slice(0, 4) : '',
+      }));
+    this.sendJson(res, { results });
   }
 
   private async createMovie(req: IncomingMessage, res: ServerResponse): Promise<void> {

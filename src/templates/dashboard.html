@@ -3283,29 +3283,24 @@
       if (!query.trim()) { results.innerHTML = ''; return; }
       results.innerHTML = '<span class="movies-searching">searching...</span>';
       try {
-        const country = moviesCurrentLang === 'hindi' ? 'in' : 'us';
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&limit=15&country=${country}`);
+        const res = await fetch(`/api/movies/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         results.innerHTML = '';
-        if (!movies.length) {
+        if (!data.results?.length) {
           results.innerHTML = '<span class="movies-no-results">no results</span>';
           return;
         }
-        const movies = data.results.filter(r => r.kind === 'feature-movie' || r.wrapperType === 'track');
-        movies.forEach(r => {
-          const posterUrl = r.artworkUrl100.replace('100x100bb', '400x600bb');
-          const title = r.trackName;
-          const year = r.releaseDate ? new Date(r.releaseDate).getFullYear() : '';
-          const isAdded = moviesAddedIds.has(posterUrl);
+        data.results.forEach(r => {
+          const isAdded = moviesAddedIds.has(r.posterUrl);
           const el = document.createElement('div');
           el.className = 'movie-search-result' + (isAdded ? ' added' : '');
-          el.dataset.posterUrl = posterUrl;
+          el.dataset.posterUrl = r.posterUrl;
           el.innerHTML = `
-            <div class="movie-search-poster"><img src="${posterUrl}" alt="${escapeHtml(title)}"></div>
-            <div class="movie-search-title">${escapeHtml(title)}</div>
-            ${year ? `<div class="movie-search-year">${year}</div>` : ''}
+            <div class="movie-search-poster"><img src="${r.posterUrl}" alt="${escapeHtml(r.title)}"></div>
+            <div class="movie-search-title">${escapeHtml(r.title)}</div>
+            ${r.year ? `<div class="movie-search-year">${r.year}</div>` : ''}
           `;
-          el.addEventListener('click', () => moviesAddFromSearch(title, posterUrl, el));
+          el.addEventListener('click', () => moviesAddFromSearch(r.title, r.posterUrl, el));
           results.appendChild(el);
         });
       } catch(e) {

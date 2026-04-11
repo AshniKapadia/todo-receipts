@@ -1,21 +1,31 @@
-// Seed script — fetches posters from iTunes and posts to the app API
-// Usage: node seed-movies.js [BASE_URL]
-// Default BASE_URL: http://localhost:3000
-// Example for Railway: node seed-movies.js https://ashnisreceipts.up.railway.app
+// Seed script — fetches posters from TMDB and posts to the app API
+// Usage:
+//   node seed-movies.js [BASE_URL] [--force]
+//   Requires TMDB_TOKEN env var (or set it inline)
+//
+// Example:
+//   TMDB_TOKEN=eyJ... node seed-movies.js https://ashnisreceipts.up.railway.app --force
 
-const BASE_URL = process.argv[2] || 'http://localhost:3000';
+const args = process.argv.slice(2);
+const BASE_URL = args.find(a => a.startsWith('http')) || 'http://localhost:3000';
+const FORCE = args.includes('--force');
+const TMDB_TOKEN = process.env.TMDB_TOKEN;
+
+if (!TMDB_TOKEN) {
+  console.error('Missing TMDB_TOKEN env var. Run as:\n  TMDB_TOKEN=yourtoken node seed-movies.js ...');
+  process.exit(1);
+}
 
 const ENGLISH = [
   "Daddio", "Coyote Ugly", "The Godfather", "The Godfather Part II",
   "Aliens in the Attic", "Monsters vs Aliens", "Zathura",
-  "Jumanji", "Jurassic Park", "Dead Poets Society", "Imagine Me & You",
+  "Jumanji", "Jurassic Park", "Dead Poets Society", "Imagine Me and You",
   "Goodrich", "We Live in Time", "Whiplash", "The Other Woman",
   "Crazy Stupid Love", "Life as We Know It", "Friends with Benefits",
   "Set It Up", "Just Go with It", "Sleeping with Other People",
   "Moneyball", "The Sandlot", "Margin Call", "The Big Short",
   "The Founder", "The Social Network", "Worth", "The Imitation Game",
-  "Freedom Writers",
-  "The Inventor Out for Blood in Silicon Valley",
+  "Freedom Writers", "The Inventor Out for Blood in Silicon Valley",
   "The Devil Wears Prada", "We Bought a Zoo",
   "Ice Age", "Ice Age The Meltdown", "Ice Age Dawn of the Dinosaurs",
   "The Last Song", "Ramona and Beezus", "Spider-Man",
@@ -32,8 +42,7 @@ const ENGLISH = [
   "Ella Enchanted", "How to Build a Better Boy", "Den Brother",
   "Cloud Nine", "High School Musical", "High School Musical 2", "High School Musical 3 Senior Year",
   "WALL-E", "My Big Fat Greek Wedding", "Soul",
-  "Percy Jackson & the Olympians The Lightning Thief",
-  // Avengers / MCU up to Endgame
+  "Percy Jackson and the Olympians The Lightning Thief",
   "Iron Man", "Iron Man 2", "Thor",
   "Captain America The First Avenger", "The Avengers",
   "Iron Man 3", "Thor The Dark World",
@@ -105,19 +114,35 @@ const HINDI = [
   "Rocky Aur Rani Kii Prem Kahaani", "Brahmastra", "Shaandaar",
 ];
 
-async function searchItunes(title, isHindi = false) {
-  const country = isHindi ? 'in' : 'us';
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(title)}&limit=10&country=${country}`;
-  const res = await fetch(url);
+// ── TMDB search ───────────────────────────────────────────────────────────────
+async function searchTmdb(title) {
+  const url = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}&include_adult=false`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${TMDB_TOKEN}` }
+  });
+  if (!res.ok) throw new Error(`TMDB HTTP ${res.status}`);
   const data = await res.json();
-  const result = data.results?.find(r => r.kind === 'feature-movie') || data.results?.[0];
-  if (!result?.artworkUrl100) return null;
+  const result = data.results?.[0];
+  if (!result?.poster_path) return null;
   return {
-    title: result.trackName || title,
-    posterUrl: result.artworkUrl100.replace('100x100bb', '400x600bb'),
+    title: result.title || title,
+    posterUrl: `https://image.tmdb.org/t/p/w500${result.poster_path}`,
   };
 }
 
+async function searchWithRetry(title, attempts = 3) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await searchTmdb(title);
+    } catch (e) {
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      } else throw e;
+    }
+  }
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
 async function addMovie(title, posterUrl, language) {
   const res = await fetch(`${BASE_URL}/api/movies`, {
     method: 'POST',
@@ -127,39 +152,62 @@ async function addMovie(title, posterUrl, language) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
-async function seed(movies, language) {
-  for (const title of movies) {
-    try {
-      const result = await searchItunes(title, language === 'hindi');
-      if (!result) {
-        console.log(`  ✗ not found: ${title}`);
-        continue;
-      }
-      await addMovie(result.title, result.posterUrl, language);
-      console.log(`  ✓ ${result.title}`);
-      await new Promise(r => setTimeout(r, 120)); // rate limit
-    } catch (e) {
-      console.log(`  ✗ error: ${title} — ${e.message}`);
-    }
+async function clearMovies() {
+  const res = await fetch(`${BASE_URL}/api/movies`);
+  const { movies } = await res.json();
+  if (!movies?.length) return;
+  console.log(`Clearing ${movies.length} existing movies...`);
+  for (const m of movies) {
+    await fetch(`${BASE_URL}/api/movies/${m.id}`, { method: 'DELETE' });
   }
+  console.log('Cleared.\n');
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+async function seed(movies, language) {
+  let ok = 0, skip = 0, fail = 0;
+  for (const title of movies) {
+    process.stdout.write(`  ${title}...`);
+    try {
+      const result = await searchWithRetry(title);
+      if (!result) {
+        process.stdout.write(` ✗ no poster\n`);
+        skip++;
+      } else {
+        await addMovie(result.title, result.posterUrl, language);
+        process.stdout.write(` ✓\n`);
+        ok++;
+      }
+    } catch (e) {
+      process.stdout.write(` ✗ ${e.message}\n`);
+      fail++;
+    }
+    await new Promise(r => setTimeout(r, 150));
+  }
+  return { ok, skip, fail };
 }
 
 async function main() {
-  // Check if already seeded
-  const check = await fetch(`${BASE_URL}/api/movies`);
-  const existing = await check.json();
-  if (existing.movies?.length > 0) {
-    console.log(`Already seeded (${existing.movies.length} movies). Skipping.`);
-    console.log('Delete all movies first if you want to re-seed.');
-    return;
+  if (FORCE) {
+    await clearMovies();
+  } else {
+    const check = await fetch(`${BASE_URL}/api/movies`);
+    const existing = await check.json();
+    if (existing.movies?.length > 0) {
+      console.log(`Already seeded (${existing.movies.length} movies). Use --force to re-seed.`);
+      return;
+    }
   }
 
   console.log(`Seeding to ${BASE_URL}...\n`);
   console.log(`── ENGLISH (${ENGLISH.length} titles) ──`);
-  await seed(ENGLISH, 'english');
+  const eng = await seed(ENGLISH, 'english');
+
   console.log(`\n── HINDI (${HINDI.length} titles) ──`);
-  await seed(HINDI, 'hindi');
-  console.log('\nDone!');
+  const hin = await seed(HINDI, 'hindi');
+
+  const total = eng.ok + hin.ok;
+  console.log(`\nDone! ${total} added, ${eng.skip + hin.skip} no poster found, ${eng.fail + hin.fail} errors.`);
 }
 
 main().catch(console.error);
