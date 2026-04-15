@@ -558,20 +558,11 @@ function renderCarsGrid(entries) {
     return;
   }
 
-  const weeks = [];
-  for (let i = 0; i < entries.length; i += 7) {
-    weeks.push(entries.slice(i, i + 7));
-  }
-
   grid.innerHTML = `<div class="cars-weeks">${
-    weeks.map(week => `
-      <div class="cars-week">
-        ${week.map(({ date, score }) => `
-          <div class="cars-day">
-            <div class="cars-circle ${scoreColor(score)}">${escapeHtml(score)}</div>
-            <div class="cars-date">${escapeHtml(date)}</div>
-          </div>
-        `).join('')}
+    entries.map(({ date, score }) => `
+      <div class="cars-day">
+        <div class="cars-circle ${scoreColor(score)}">${escapeHtml(score)}</div>
+        <div class="cars-date">${escapeHtml(date)}</div>
       </div>
     `).join('')
   }</div>`;

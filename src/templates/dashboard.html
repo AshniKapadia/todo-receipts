@@ -708,15 +708,9 @@
     .cars-sheet-link:hover { background: var(--bg); }
 
     .cars-weeks {
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-
-    .cars-week {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+      gap: 18px 12px;
     }
 
     .cars-day {
