@@ -547,6 +547,7 @@ function scoreColor(score) {
   if (isNaN(num) || isNaN(denom)) return '';
   const diff = denom - num;
   if (diff === 0) return 'green';
+  if ((denom === 7 && num === 6) || (denom === 6 && num === 5)) return 'green';
   if (diff <= 2) return 'yellow';
   return 'red';
 }
