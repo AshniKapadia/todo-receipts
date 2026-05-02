@@ -1857,14 +1857,20 @@ const Investments = {
       return;
     }
 
+    let lastYear = null;
     tbody.innerHTML = rows.map(t => {
-      const isBuy = t.action_type === 'BUY' || t.action_type === 'OPTIONS_BUY';
-      const amt   = t.amount ? '$' + Math.abs(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
-      const price = t.price  ? '$' + parseFloat(t.price).toFixed(2)  : '—';
-      const qty   = t.quantity ? (+t.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—';
+      const year    = t.run_date.slice(-4);
+      const yearRow = year !== lastYear
+        ? `<tr class="inv-year-divider"><td colspan="9">${year}</td></tr>`
+        : '';
+      lastYear = year;
+
+      const amt      = t.amount   ? '$' + Math.abs(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+      const price    = t.price    ? '$' + parseFloat(t.price).toFixed(2) : '—';
+      const qty      = t.quantity ? (+t.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—';
       const badgeCls = 'inv-action-' + t.action_type.toLowerCase();
-      const acct  = t.account === 'Joint WROS' ? 'JOINT' : 'ROTH';
-      return `
+      const acct     = t.account === 'Joint WROS' ? 'JOINT' : 'ROTH';
+      return yearRow + `
         <tr class="inv-row" data-id="${t.id}">
           <td class="inv-cell-date">${invFmtDate(t.run_date)}</td>
           <td class="inv-cell-acct">${acct}</td>

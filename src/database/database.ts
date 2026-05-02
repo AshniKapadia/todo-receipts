@@ -657,7 +657,12 @@ export class TodoDatabase {
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = this.db.prepare(`
-      SELECT * FROM investments ${where} ORDER BY run_date DESC, id DESC
+      SELECT * FROM investments ${where}
+      ORDER BY
+        substr(run_date,7,4) DESC,
+        substr(run_date,1,2) DESC,
+        substr(run_date,4,2) DESC,
+        id DESC
     `).all(...params) as any[];
     return rows.map(r => ({ ...r, is_option: r.is_option === 1 }));
   }
