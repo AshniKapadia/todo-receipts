@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, WishlistItem, MovieItem, Investment } from "./schema.js";
+import type { TodoItem, PeriodLog, MovieItem, Investment } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 
 export class TodoDatabase {
@@ -499,51 +499,6 @@ export class TodoDatabase {
       "UPDATE print_jobs SET status = 'completed', completed_at = ? WHERE id = ?"
     );
     stmt.run(Date.now(), id);
-  }
-
-  // ── Wishlist ─────────────────────────────────────────────────────────────────
-
-  getWishlistItems(listType: string, userId: string = 'ashni'): WishlistItem[] {
-    const stmt = this.db.prepare(
-      `SELECT * FROM wishlist_items WHERE list_type = ? AND user_id = ? ORDER BY z_index ASC, created_at ASC`
-    );
-    return stmt.all(listType, userId) as WishlistItem[];
-  }
-
-  createWishlistItem(
-    listType: string, title: string, sourceUrl: string,
-    imageFilename: string, rotation: number, posX: number, posY: number,
-    userId: string = 'ashni'
-  ): WishlistItem {
-    const now = Date.now();
-    const stmt = this.db.prepare(`
-      INSERT INTO wishlist_items (user_id, list_type, title, source_url, image_filename, rotation, pos_x, pos_y, z_index, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-    `);
-    const result = stmt.run(userId, listType, title, sourceUrl, imageFilename, rotation, posX, posY, now);
-    return {
-      id: result.lastInsertRowid as number,
-      user_id: userId, list_type: listType as 'make' | 'buy',
-      title, source_url: sourceUrl, image_filename: imageFilename,
-      rotation, pos_x: posX, pos_y: posY, z_index: 1, created_at: now
-    };
-  }
-
-  updateWishlistItem(id: number, updates: { title?: string; source_url?: string; pos_x?: number; pos_y?: number; z_index?: number }): void {
-    const fields: string[] = [];
-    const params: unknown[] = [];
-    if (updates.title !== undefined) { fields.push('title = ?'); params.push(updates.title); }
-    if (updates.source_url !== undefined) { fields.push('source_url = ?'); params.push(updates.source_url); }
-    if (updates.pos_x !== undefined) { fields.push('pos_x = ?'); params.push(updates.pos_x); }
-    if (updates.pos_y !== undefined) { fields.push('pos_y = ?'); params.push(updates.pos_y); }
-    if (updates.z_index !== undefined) { fields.push('z_index = ?'); params.push(updates.z_index); }
-    if (!fields.length) return;
-    params.push(id);
-    this.db.prepare(`UPDATE wishlist_items SET ${fields.join(', ')} WHERE id = ?`).run(...params);
-  }
-
-  deleteWishlistItem(id: number): void {
-    this.db.prepare('DELETE FROM wishlist_items WHERE id = ?').run(id);
   }
 
   // ── Movies ───────────────────────────────────────────────────────────────────

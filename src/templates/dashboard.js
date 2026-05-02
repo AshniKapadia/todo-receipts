@@ -6,14 +6,6 @@ let selectedDate = todayISO();
 let suggestions = [];
 let currentUser = localStorage.getItem('currentUser') || 'ashni';
 
-// Wishlist state
-let wishlistType = 'make';
-let wishlistItems = [];
-let wishlistDragState = null;
-let wishlistMaxZ = 10;
-let modalEditingId = null;
-let modalImageFilename = null;
-let modalImageDataUrl = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function todayISO() {
@@ -54,7 +46,7 @@ function toggleBrainDump(on) {
   localStorage.setItem('brainDump', on ? '1' : '0');
   document.querySelector('.sidebar').classList.toggle('brain-dump-on', on);
   // If a brain-dump tab is currently active and we're hiding them, go back to todo
-  if (!on && (currentCategory === 'grocery' || currentCategory === 'travel' || currentCategory === 'tv' || currentCategory === 'make' || currentCategory === 'buy')) {
+  if (!on && (currentCategory === 'grocery' || currentCategory === 'travel' || currentCategory === 'tv')) {
     switchCategory('todo');
   }
 }
@@ -88,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') addGroceryItem();
   });
 
-  initWishlistDropzone();
 });
 
 // ── Date Strip ────────────────────────────────────────────────────────────────
@@ -145,7 +136,6 @@ function switchCategory(category) {
   const isTv          = category === 'tv';
   const isGrocery     = category === 'grocery';
   const isTravel      = category === 'travel';
-  const isWishlist    = (category === 'make' || category === 'buy');
   const isInvestments = category === 'investments';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
@@ -157,17 +147,12 @@ function switchCategory(category) {
   document.getElementById('tv-view').style.display          = isTv          ? 'flex'  : 'none';
   document.getElementById('grocery-view').style.display     = isGrocery     ? 'flex'  : 'none';
   document.getElementById('travel-view').style.display      = isTravel      ? 'flex'  : 'none';
-  document.getElementById('make-view').style.display        = (category === 'make') ? 'flex' : 'none';
-  document.getElementById('buy-view').style.display         = (category === 'buy')  ? 'flex' : 'none';
   document.querySelector('.content').style.display          = isTodo        ? 'flex'  : 'none';
   document.querySelector('.date-strip').style.display       = isTodo        ? 'flex'  : 'none';
   document.getElementById('inv-section').style.display      = isInvestments ? 'flex'  : 'none';
 
   // Hide topbar when investments is active (has its own hero)
   document.querySelector('.topbar').style.display = isInvestments ? 'none' : '';
-
-  const dropzone = document.getElementById('wishlist-dropzone');
-  if (dropzone) dropzone.classList.toggle('active', isWishlist);
 
   const printBtnWrap = document.getElementById('print-btn').parentElement;
   printBtnWrap.style.display = (isTodo || isGrocery) ? 'flex' : 'none';
@@ -182,11 +167,9 @@ function switchCategory(category) {
   document.getElementById('cars-sheet-link').style.display = isCars ? 'inline-block' : 'none';
   if (isCars)              titleEl.textContent = 'Scores';
   else if (isPeriod)       titleEl.textContent = 'CYCLE TRACKER';
-  else if (isTv)           titleEl.textContent = 'THE LIST';
+  else if (isTv)           titleEl.textContent = 'TV GUIDE';
   else if (isGrocery)      titleEl.textContent = 'MARKET RUN';
   else if (isTravel)       titleEl.textContent = 'TRAVEL';
-  else if (category === 'make') titleEl.textContent = 'WANNA MAKE';
-  else if (category === 'buy')  titleEl.textContent = 'WANNA BUY';
   else                     titleEl.textContent = 'TO-DO LIST';
 
   // Restore date eyebrow when leaving period tab
@@ -207,8 +190,6 @@ function switchCategory(category) {
     fetchGroceryItems();
   } else if (isTravel) {
     renderTravelView();
-  } else if (isWishlist) {
-    fetchWishlist(category);
   } else if (isInvestments) {
     Investments.init();
   } else {
@@ -1349,328 +1330,6 @@ function itemRand(id, offset) {
   const x = Math.sin(id * 127.1 + offset * 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
-
-async function fetchWishlist(type) {
-  wishlistType = type;
-  const res = await fetch(`/api/wishlist?type=${type}&user=${currentUser}`);
-  const { items } = await res.json();
-  wishlistItems = items;
-  renderWishlist(type, items);
-}
-
-function renderWishlist(type, items) {
-  const boardId = type === 'make' ? 'make-board' : 'buy-board';
-  const board = document.getElementById(boardId);
-  board.innerHTML = '';
-  wishlistMaxZ = 10;
-  items.forEach(item => {
-    wishlistMaxZ = Math.max(wishlistMaxZ, item.z_index || 1);
-    board.appendChild(createPolaroidEl(item, board));
-  });
-}
-
-function createPolaroidEl(item, board) {
-  const el = document.createElement('div');
-  el.className = 'polaroid';
-  el.dataset.id = item.id;
-  el.style.transform = `rotate(${item.rotation}deg)`;
-  el.style.zIndex = item.z_index || 1;
-  el.style.left = item.pos_x + '%';
-  el.style.top  = item.pos_y + '%';
-
-  // Pushpin
-  const pin = document.createElement('div');
-  pin.className = 'pushpin';
-  el.appendChild(pin);
-
-  // Image or placeholder
-  if (item.image_filename) {
-    const img = document.createElement('img');
-    img.className = 'polaroid-img';
-    img.src = `/api/images/${item.image_filename}`;
-    img.draggable = false;
-    el.appendChild(img);
-  } else {
-    const ph = document.createElement('div');
-    ph.className = 'polaroid-img-placeholder';
-    ph.textContent = '?';
-    el.appendChild(ph);
-  }
-
-  // Caption
-  const cap = document.createElement('div');
-  const hasTitle = item.title && item.title.trim();
-  const hasUrl = item.source_url && item.source_url.trim();
-  cap.className = 'polaroid-caption' + (!hasTitle && hasUrl ? ' is-url' : '');
-
-  let captionText = '';
-  if (hasTitle) {
-    captionText = item.title;
-  } else if (hasUrl) {
-    try { captionText = new URL(item.source_url).hostname; }
-    catch { captionText = item.source_url.slice(0, 30); }
-  }
-
-  if (captionText && hasUrl) {
-    const a = document.createElement('a');
-    a.href = item.source_url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = captionText;
-    a.addEventListener('pointerdown', e => e.stopPropagation());
-    cap.appendChild(a);
-  } else {
-    cap.textContent = captionText;
-  }
-  el.appendChild(cap);
-
-  // Delete button
-  const del = document.createElement('button');
-  del.className = 'polaroid-delete';
-  del.textContent = '×';
-  del.title = 'delete';
-  del.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (!confirm('Remove this?')) return;
-    await fetch(`/api/wishlist/${item.id}`, { method: 'DELETE' });
-    el.remove();
-  });
-  el.appendChild(del);
-
-  // Drag / click logic
-  let startX, startY, moved;
-  el.addEventListener('pointerdown', (e) => {
-    if (e.target === del) return;
-    e.preventDefault();
-    el.setPointerCapture(e.pointerId);
-    startX = e.clientX; startY = e.clientY; moved = false;
-    el.style.zIndex = ++wishlistMaxZ;
-    const boardRect = board.getBoundingClientRect();
-    const scroller = board.parentElement; // wishlist-view
-    const offsetX = e.clientX - boardRect.left + scroller.scrollLeft - el.offsetLeft;
-    const offsetY = e.clientY - boardRect.top + scroller.scrollTop - el.offsetTop;
-    wishlistDragState = { el, id: item.id, board, boardRect, scroller, offsetX, offsetY };
-  });
-
-  el.addEventListener('pointermove', (e) => {
-    if (!wishlistDragState || wishlistDragState.id !== item.id) return;
-    if (!moved && (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)) {
-      moved = true;
-      el.classList.add('dragging');
-    }
-    if (!moved) return;
-    const { boardRect, scroller, offsetX, offsetY } = wishlistDragState;
-    const newLeft = e.clientX - boardRect.left + scroller.scrollLeft - offsetX;
-    const newTop = e.clientY - boardRect.top + scroller.scrollTop - offsetY;
-    el.style.left = newLeft + 'px';
-    el.style.top = newTop + 'px';
-  });
-
-  el.addEventListener('pointerup', async (e) => {
-    if (!wishlistDragState || wishlistDragState.id !== item.id) return;
-    el.classList.remove('dragging');
-    const wasMoved = moved;
-    wishlistDragState = null;
-
-    if (!wasMoved) {
-      // Click — open edit modal
-      openWishlistModal(item);
-      return;
-    }
-
-    // Save new position as percentage
-    const pos_x = (el.offsetLeft / board.offsetWidth) * 100;
-    const pos_y = (el.offsetTop / board.offsetHeight) * 100;
-    item.pos_x = pos_x; item.pos_y = pos_y;
-    item.z_index = parseInt(el.style.zIndex) || 1;
-
-    await fetch(`/api/wishlist/${item.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pos_x, pos_y, z_index: item.z_index })
-    });
-  });
-
-  return el;
-}
-
-// ── Drop zone ──────────────────────────────────────────────────────────────────
-function initWishlistDropzone() {
-  const zone = document.getElementById('wishlist-dropzone');
-  zone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    zone.classList.add('drag-over');
-  });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0 && files[0].type.startsWith('image/')) {
-      // Image file dropped
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        openWishlistModal(null, ev.target.result, null);
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    // URL dropped
-    const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '';
-    if (url) {
-      openWishlistModal(null, null, url);
-    } else {
-      openWishlistModal(null, null, null);
-    }
-  });
-
-  // Also allow clicking the dropzone to open the modal
-  zone.addEventListener('click', () => openWishlistModal(null, null, null));
-}
-
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function openWishlistModal(existingItem, imageDataUrl, prefillUrl) {
-  modalEditingId = existingItem ? existingItem.id : null;
-  modalImageFilename = existingItem ? existingItem.image_filename : null;
-  modalImageDataUrl = imageDataUrl || null;
-
-  // Reset fields
-  document.getElementById('modal-url').value = existingItem?.source_url || prefillUrl || '';
-  document.getElementById('modal-heading').value = existingItem?.title || '';
-  document.getElementById('modal-fetch-status').textContent = '';
-
-  // Image preview
-  const preview = document.getElementById('modal-img-preview');
-  preview.innerHTML = '';
-  if (modalImageDataUrl) {
-    const img = document.createElement('img');
-    img.src = modalImageDataUrl;
-    preview.appendChild(img);
-  } else if (modalImageFilename) {
-    const img = document.createElement('img');
-    img.src = `/api/images/${modalImageFilename}`;
-    preview.appendChild(img);
-  } else {
-    preview.innerHTML = '<div class="no-img-hint">click to attach image<br>or fetch from url below</div>';
-  }
-
-  // Show/hide delete button
-  document.getElementById('modal-delete-btn').style.display = existingItem ? 'flex' : 'none';
-
-  // If URL pre-filled and no image yet, auto-fetch
-  if (prefillUrl && !modalImageDataUrl && !modalImageFilename) {
-    fetchOgFromModal();
-  }
-
-  document.getElementById('wishlist-modal').style.display = 'flex';
-}
-
-function closeWishlistModal() {
-  document.getElementById('wishlist-modal').style.display = 'none';
-  modalEditingId = null;
-  modalImageFilename = null;
-  modalImageDataUrl = null;
-}
-
-function onModalFileSelected(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    modalImageDataUrl = e.target.result;
-    modalImageFilename = null;
-    const preview = document.getElementById('modal-img-preview');
-    preview.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = modalImageDataUrl;
-    preview.appendChild(img);
-  };
-  reader.readAsDataURL(file);
-}
-
-async function fetchOgFromModal() {
-  const url = document.getElementById('modal-url').value.trim();
-  if (!url) return;
-  const status = document.getElementById('modal-fetch-status');
-  status.textContent = 'fetching...';
-  try {
-    const res = await fetch('/api/wishlist/fetch-og', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    const data = await res.json();
-    if (data.success && data.filename) {
-      modalImageFilename = data.filename;
-      modalImageDataUrl = null;
-      const preview = document.getElementById('modal-img-preview');
-      preview.innerHTML = '';
-      const img = document.createElement('img');
-      img.src = `/api/images/${data.filename}`;
-      preview.appendChild(img);
-      status.textContent = 'got it!';
-    } else {
-      status.textContent = 'no image found — attach one manually';
-    }
-  } catch {
-    status.textContent = 'fetch failed — attach one manually';
-  }
-}
-
-async function saveWishlistItem() {
-  const title = document.getElementById('modal-heading').value.trim();
-  const sourceUrl = document.getElementById('modal-url').value.trim();
-
-  if (modalEditingId) {
-    // Update existing (title + url only; image not changeable after creation for now)
-    await fetch(`/api/wishlist/${modalEditingId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, source_url: sourceUrl })
-    });
-    closeWishlistModal();
-    await fetchWishlist(wishlistType);
-    return;
-  }
-
-  // Create new
-  const body = {
-    listType: wishlistType,
-    title,
-    sourceUrl,
-    user: currentUser,
-  };
-  if (modalImageDataUrl) {
-    body.imageData = modalImageDataUrl;
-  } else if (modalImageFilename) {
-    body.imageFilename = modalImageFilename;
-  }
-
-  const res = await fetch('/api/wishlist', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const { item } = await res.json();
-  closeWishlistModal();
-
-  // Add to board without full re-render
-  const boardId = wishlistType === 'make' ? 'make-board' : 'buy-board';
-  const board = document.getElementById(boardId);
-  board.appendChild(createPolaroidEl(item, board));
-}
-
-async function deleteWishlistItem() {
-  if (!modalEditingId) return;
-  if (!confirm('Remove this?')) return;
-  await fetch(`/api/wishlist/${modalEditingId}`, { method: 'DELETE' });
-  closeWishlistModal();
-  await fetchWishlist(wishlistType);
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // THE FLOOR — Investment Tracker
 // ══════════════════════════════════════════════════════════════════════════════

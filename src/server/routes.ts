@@ -5,7 +5,6 @@ import { ReceiptGenerator } from "../core/receipt-generator.js";
 import { HtmlRenderer } from "../core/html-renderer.js";
 import { ThermalPrinterRenderer } from "../core/thermal-printer.js";
 import { readFile } from "fs/promises";
-import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir } from "os";
 import { dirname, resolve, join } from "path";
@@ -152,38 +151,6 @@ export class ApiRouter {
         return;
       }
 
-      // Wishlist routes
-      if (pathname === '/api/wishlist' && method === 'GET') {
-        const listType = parsedUrl.searchParams.get('type') || 'make';
-        const userId = parsedUrl.searchParams.get('user') || 'ashni';
-        const items = this.db.getWishlistItems(listType, userId);
-        this.sendJson(res, { items });
-        return;
-      }
-
-      if (pathname === '/api/wishlist' && method === 'POST') {
-        await this.createWishlistItem(req, res);
-        return;
-      }
-
-      if (pathname === '/api/wishlist/fetch-og' && method === 'POST') {
-        await this.fetchOgImage(req, res);
-        return;
-      }
-
-      if (pathname.startsWith('/api/wishlist/') && method === 'PUT') {
-        const id = this.extractId(pathname);
-        await this.updateWishlistItem(req, res, id);
-        return;
-      }
-
-      if (pathname.startsWith('/api/wishlist/') && method === 'DELETE') {
-        const id = this.extractId(pathname);
-        this.db.deleteWishlistItem(id);
-        this.sendJson(res, { success: true });
-        return;
-      }
-
       // Movie routes
       if (pathname === '/api/movies' && method === 'GET') {
         this.sendJson(res, { movies: this.db.getMovies() });
@@ -210,15 +177,6 @@ export class ApiRouter {
       // Serve stored images
       if (pathname.startsWith('/api/images/') && method === 'GET') {
         await this.serveImage(res, pathname.slice('/api/images/'.length));
-        return;
-      }
-
-      // Cork board background image
-      if (pathname === '/corkboard.jpg' && method === 'GET') {
-        const imgPath = resolve(__dirname, '../templates/corkboard.jpg');
-        const img = await readFile(imgPath);
-        res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=31536000' });
-        res.end(img);
         return;
       }
 
@@ -511,100 +469,6 @@ export class ApiRouter {
     if (!posterUrl) { this.sendError(res, 400, 'posterUrl required'); return; }
     const movie = this.db.addMovie(title || '', posterUrl, language || 'english');
     this.sendJson(res, { movie });
-  }
-
-  private async createWishlistItem(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const body = await this.parseBody(req);
-    const { listType, title, sourceUrl, imageData, imageFilename: existingFilename, user } = body;
-
-    let imageFilename = existingFilename || '';
-
-    if (imageData && typeof imageData === 'string') {
-      // base64 data URL — decode and save
-      const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
-      if (matches) {
-        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
-        const buffer = Buffer.from(matches[2], 'base64');
-        imageFilename = `wishlist_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        await mkdir(IMAGES_DIR, { recursive: true });
-        await writeFile(join(IMAGES_DIR, imageFilename), buffer);
-      }
-    }
-
-    const rotation = (Math.random() * 24) - 12; // -12 to +12 degrees
-    const posX = 5 + Math.random() * 70;        // 5% to 75%
-    const posY = 5 + Math.random() * 60;        // 5% to 65%
-
-    const item = this.db.createWishlistItem(
-      listType || 'make',
-      title || '',
-      sourceUrl || '',
-      imageFilename,
-      rotation, posX, posY,
-      user || 'ashni'
-    );
-    this.sendJson(res, { item });
-  }
-
-  private async updateWishlistItem(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
-    const body = await this.parseBody(req);
-    const updates: { title?: string; source_url?: string; pos_x?: number; pos_y?: number; z_index?: number } = {};
-    if (body.title !== undefined) updates.title = body.title;
-    if (body.source_url !== undefined) updates.source_url = body.source_url;
-    if (body.pos_x !== undefined) updates.pos_x = body.pos_x;
-    if (body.pos_y !== undefined) updates.pos_y = body.pos_y;
-    if (body.z_index !== undefined) updates.z_index = body.z_index;
-    this.db.updateWishlistItem(id, updates);
-    this.sendJson(res, { success: true });
-  }
-
-  private async fetchOgImage(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const body = await this.parseBody(req);
-    const { url } = body;
-    if (!url || typeof url !== 'string') {
-      this.sendError(res, 400, 'url is required');
-      return;
-    }
-    try {
-      // Fetch the page
-      const pageRes = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; bot/1.0)' },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!pageRes.ok) throw new Error(`HTTP ${pageRes.status}`);
-      const html = await pageRes.text();
-
-      // Extract og:image
-      const ogMatch =
-        html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
-        html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
-
-      if (!ogMatch || !ogMatch[1]) {
-        this.sendJson(res, { success: false, reason: 'no og:image found' });
-        return;
-      }
-
-      let imageUrl = ogMatch[1];
-      if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
-
-      // Download the image
-      const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
-      if (!imgRes.ok) throw new Error(`Image fetch failed: ${imgRes.status}`);
-
-      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
-      const ext = contentType.includes('png') ? 'png' : contentType.includes('gif') ? 'gif' : contentType.includes('webp') ? 'webp' : 'jpg';
-      const buffer = Buffer.from(await imgRes.arrayBuffer());
-      const filename = `wishlist_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-
-      await mkdir(IMAGES_DIR, { recursive: true });
-      await writeFile(join(IMAGES_DIR, filename), buffer);
-
-      this.sendJson(res, { success: true, filename });
-    } catch (err) {
-      this.sendJson(res, { success: false, reason: err instanceof Error ? err.message : 'fetch failed' });
-    }
   }
 
   private async serveImage(res: ServerResponse, filename: string): Promise<void> {
