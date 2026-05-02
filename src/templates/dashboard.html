@@ -2817,6 +2817,20 @@
       color: #F5C842;
       letter-spacing: -0.5px;
     }
+    .inv-clear-all-btn {
+      margin-left: auto;
+      padding: 5px 12px;
+      background: transparent;
+      border: 1.5px solid #C4341E;
+      color: #C4341E;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .inv-clear-all-btn:hover { background: #C4341E; color: white; }
     .inv-modal-close {
       background: none;
       border: none;
@@ -3438,6 +3452,7 @@
           <div class="inv-modal">
             <div class="inv-modal-header">
               <span class="inv-modal-title">Import CSV</span>
+              <button class="inv-clear-all-btn" id="inv-clear-all">Clear all trades</button>
               <button class="inv-modal-close" id="inv-modal-close">✕</button>
             </div>
             <div class="inv-modal-body">

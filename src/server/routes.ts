@@ -230,6 +230,12 @@ export class ApiRouter {
         return;
       }
 
+      if (pathname === '/api/investments/clear' && method === 'DELETE') {
+        const deleted = this.db.clearInvestments();
+        this.sendJson(res, { deleted });
+        return;
+      }
+
       if (pathname === '/api/investments/import' && method === 'POST') {
         const body = await this.parseBody(req);
         if (!Array.isArray(body.transactions)) {

@@ -1984,6 +1984,14 @@ const Investments = {
 
     document.getElementById('inv-confirm-import')?.addEventListener('click', () => Investments.confirmImport());
     document.getElementById('inv-cancel-import')?.addEventListener('click',  () => invResetModal());
+
+    document.getElementById('inv-clear-all')?.addEventListener('click', async () => {
+      if (!confirm('Delete all trades? This cannot be undone.')) return;
+      await fetch('/api/investments/clear', { method: 'DELETE' });
+      invCloseModal();
+      await Investments.loadPatterns();
+      await Investments.loadTransactions();
+    });
   },
 
   pendingTransactions: [],

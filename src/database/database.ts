@@ -643,6 +643,11 @@ export class TodoDatabase {
     return consolidated;
   }
 
+  clearInvestments(): number {
+    const result = this.db.prepare('DELETE FROM investments').run();
+    return result.changes;
+  }
+
   getInvestments(account?: string): Investment[] {
     const conditions: string[] = [];
     const params: unknown[] = [];
