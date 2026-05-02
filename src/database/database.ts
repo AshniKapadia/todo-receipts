@@ -597,15 +597,16 @@ export class TodoDatabase {
   }
 
   private consolidateSplitTransactions(): number {
-    // Fidelity splits single trades into whole-share + fractional rows at the same price.
-    // Group by (date, account, action, symbol, price) and merge any groups with >1 row.
+    // Fidelity splits a single trade into whole-share + fractional rows.
+    // They share the same date/account/action/ticker but may have a 1-cent price difference.
+    // Group by (date, account, action, symbol) — no price restriction — and merge any group with >1 row.
     const groups = this.db.prepare(`
-      SELECT run_date, account, action_type, symbol, price
+      SELECT run_date, account, action_type, symbol
       FROM investments
-      WHERE price IS NOT NULL AND is_option = 0
-      GROUP BY run_date, account, action_type, symbol, price
+      WHERE is_option = 0
+      GROUP BY run_date, account, action_type, symbol
       HAVING COUNT(*) > 1
-    `).all() as Array<{ run_date: string; account: string; action_type: string; symbol: string; price: number }>;
+    `).all() as Array<{ run_date: string; account: string; action_type: string; symbol: string }>;
 
     if (!groups.length) return 0;
 
@@ -613,26 +614,28 @@ export class TodoDatabase {
     const merge = this.db.transaction(() => {
       for (const g of groups) {
         const rows = this.db.prepare(`
-          SELECT id, quantity, amount, reason, future_goal
+          SELECT id, quantity, amount, price, reason, future_goal
           FROM investments
-          WHERE run_date = ? AND account = ? AND action_type = ? AND symbol = ? AND price = ?
+          WHERE run_date = ? AND account = ? AND action_type = ? AND symbol = ? AND is_option = 0
           ORDER BY
             CASE WHEN reason IS NOT NULL OR future_goal IS NOT NULL THEN 0 ELSE 1 END ASC,
             ABS(COALESCE(quantity, 0)) DESC
-        `).all(g.run_date, g.account, g.action_type, g.symbol, g.price) as Array<{
-          id: number; quantity: number | null; amount: number | null;
+        `).all(g.run_date, g.account, g.action_type, g.symbol) as Array<{
+          id: number; quantity: number | null; amount: number | null; price: number | null;
           reason: string | null; future_goal: string | null;
         }>;
 
         if (rows.length < 2) continue;
 
-        const keeper = rows[0];
+        const keeper   = rows[0];
         const totalQty = rows.reduce((s, r) => s + Math.abs(r.quantity ?? 0), 0);
         const totalAmt = rows.reduce((s, r) => s + (r.amount ?? 0), 0);
         const signedQty = (keeper.quantity ?? 0) >= 0 ? totalQty : -totalQty;
+        // Weighted average execution price
+        const avgPrice = totalQty > 0 ? Math.abs(totalAmt) / totalQty : keeper.price;
 
-        this.db.prepare(`UPDATE investments SET quantity = ?, amount = ? WHERE id = ?`)
-          .run(signedQty, totalAmt, keeper.id);
+        this.db.prepare(`UPDATE investments SET quantity = ?, amount = ?, price = ? WHERE id = ?`)
+          .run(signedQty, totalAmt, avgPrice, keeper.id);
         for (const r of rows.slice(1)) {
           this.db.prepare(`DELETE FROM investments WHERE id = ?`).run(r.id);
         }
