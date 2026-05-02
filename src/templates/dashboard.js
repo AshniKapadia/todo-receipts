@@ -2034,9 +2034,13 @@ const Investments = {
         body: JSON.stringify({ transactions: this.pendingTransactions }),
       });
       const data = await res.json();
+      const details = [
+        data.duplicates > 0 ? `${data.duplicates} duplicates skipped` : '',
+        data.consolidated > 0 ? `${data.consolidated} split trades merged` : '',
+      ].filter(Boolean).join(' · ');
       document.getElementById('inv-preview-stats').innerHTML =
         `<span class="inv-preview-count inv-import-success">✓ ${data.imported} new transactions imported</span>` +
-        (data.duplicates > 0 ? `<span class="inv-preview-detail">${data.duplicates} duplicates skipped</span>` : '');
+        (details ? `<span class="inv-preview-detail">${details}</span>` : '');
       document.getElementById('inv-confirm-import').style.display = 'none';
       await this.loadPatterns();
       await this.loadTransactions();
