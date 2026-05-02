@@ -1920,6 +1920,13 @@ const Investments = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: val || null }),
       });
+      // Switch to "all" so the just-annotated row stays visible
+      if (val && Investments.currentFilter === 'unannotated') {
+        Investments.currentFilter = 'all';
+        document.querySelectorAll('.inv-filter-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.filter === 'all');
+        });
+      }
       await Investments.loadPatterns();
       await Investments.loadTransactions();
     });
