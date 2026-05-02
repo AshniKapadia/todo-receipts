@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, WishlistItem, MovieItem } from "./schema.js";
+import type { TodoItem, PeriodLog, WishlistItem, MovieItem, Investment } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 
 export class TodoDatabase {
@@ -562,6 +562,106 @@ export class TodoDatabase {
 
   deleteMovie(id: number): void {
     this.db.prepare('DELETE FROM movie_posters WHERE id = ?').run(id);
+  }
+
+  // ── Investments ──────────────────────────────────────────────────────────────
+
+  importInvestments(transactions: Array<{
+    account: string; run_date: string; action_type: string; symbol: string;
+    description: string; price: number | null; quantity: number | null;
+    amount: number | null; is_option: boolean; option_type: string | null;
+    option_action: string | null; raw_action: string; fidelity_key: string;
+  }>): { imported: number; duplicates: number } {
+    const stmt = this.db.prepare(`
+      INSERT OR IGNORE INTO investments
+      (account, run_date, action_type, symbol, description, price, quantity, amount,
+       is_option, option_type, option_action, reason, future_goal, raw_action, fidelity_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?)
+    `);
+    let imported = 0;
+    let duplicates = 0;
+    const now = Date.now();
+    const run = this.db.transaction(() => {
+      for (const t of transactions) {
+        const result = stmt.run(
+          t.account, t.run_date, t.action_type, t.symbol, t.description,
+          t.price, t.quantity, t.amount, t.is_option ? 1 : 0,
+          t.option_type, t.option_action, t.raw_action, t.fidelity_key, now
+        );
+        if (result.changes > 0) imported++; else duplicates++;
+      }
+    });
+    run();
+    return { imported, duplicates };
+  }
+
+  getInvestments(account?: string): Investment[] {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (account && account !== 'all') {
+      conditions.push('account = ?');
+      params.push(account);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const rows = this.db.prepare(`
+      SELECT * FROM investments ${where} ORDER BY run_date DESC, id DESC
+    `).all(...params) as any[];
+    return rows.map(r => ({ ...r, is_option: r.is_option === 1 }));
+  }
+
+  updateInvestment(id: number, updates: { reason?: string | null; future_goal?: string | null }): void {
+    const fields: string[] = [];
+    const params: unknown[] = [];
+    if (updates.reason !== undefined) { fields.push('reason = ?'); params.push(updates.reason); }
+    if (updates.future_goal !== undefined) { fields.push('future_goal = ?'); params.push(updates.future_goal); }
+    if (!fields.length) return;
+    params.push(id);
+    this.db.prepare(`UPDATE investments SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+  }
+
+  getInvestmentPatterns(): {
+    monthlyActivity: Array<{ month: string; buys: number; sells: number }>;
+    tickerFrequency: Array<{ symbol: string; count: number; buys: number; sells: number }>;
+    annotationProgress: { total: number; annotated: number };
+    totalStats: { total: number; buys: number; sells: number; options: number };
+    accountSplit: Array<{ account: string; count: number }>;
+  } {
+    const monthlyRows = this.db.prepare(`
+      SELECT
+        substr(run_date, 7, 4) || '-' || substr(run_date, 1, 2) as month,
+        SUM(CASE WHEN action_type IN ('BUY','OPTIONS_BUY') THEN 1 ELSE 0 END) as buys,
+        SUM(CASE WHEN action_type IN ('SELL','OPTIONS_SELL','EXPIRED') THEN 1 ELSE 0 END) as sells
+      FROM investments
+      GROUP BY month ORDER BY month ASC
+    `).all() as Array<{ month: string; buys: number; sells: number }>;
+
+    const tickerRows = this.db.prepare(`
+      SELECT symbol,
+        COUNT(*) as count,
+        SUM(CASE WHEN action_type IN ('BUY','OPTIONS_BUY') THEN 1 ELSE 0 END) as buys,
+        SUM(CASE WHEN action_type IN ('SELL','OPTIONS_SELL','EXPIRED') THEN 1 ELSE 0 END) as sells
+      FROM investments GROUP BY symbol ORDER BY count DESC LIMIT 15
+    `).all() as Array<{ symbol: string; count: number; buys: number; sells: number }>;
+
+    const annotation = this.db.prepare(`
+      SELECT COUNT(*) as total,
+        SUM(CASE WHEN reason IS NOT NULL AND reason != '' THEN 1 ELSE 0 END) as annotated
+      FROM investments
+    `).get() as { total: number; annotated: number };
+
+    const stats = this.db.prepare(`
+      SELECT COUNT(*) as total,
+        SUM(CASE WHEN action_type IN ('BUY','OPTIONS_BUY') THEN 1 ELSE 0 END) as buys,
+        SUM(CASE WHEN action_type IN ('SELL','OPTIONS_SELL','EXPIRED') THEN 1 ELSE 0 END) as sells,
+        SUM(CASE WHEN is_option = 1 THEN 1 ELSE 0 END) as options
+      FROM investments
+    `).get() as { total: number; buys: number; sells: number; options: number };
+
+    const accountSplit = this.db.prepare(`
+      SELECT account, COUNT(*) as count FROM investments GROUP BY account
+    `).all() as Array<{ account: string; count: number }>;
+
+    return { monthlyActivity: monthlyRows, tickerFrequency: tickerRows, annotationProgress: annotation, totalStats: stats, accountSplit };
   }
 
   /**

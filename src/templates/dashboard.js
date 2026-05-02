@@ -139,27 +139,32 @@ function updateTasksHeader() {
 // ── Category Tabs ─────────────────────────────────────────────────────────────
 function switchCategory(category) {
   currentCategory = category;
-  const isTodo     = category === 'todo';
-  const isCars     = category === 'cars';
-  const isPeriod   = category === 'period';
-  const isTv       = category === 'tv';
-  const isGrocery  = category === 'grocery';
-  const isTravel   = category === 'travel';
-  const isWishlist = (category === 'make' || category === 'buy');
+  const isTodo        = category === 'todo';
+  const isCars        = category === 'cars';
+  const isPeriod      = category === 'period';
+  const isTv          = category === 'tv';
+  const isGrocery     = category === 'grocery';
+  const isTravel      = category === 'travel';
+  const isWishlist    = (category === 'make' || category === 'buy');
+  const isInvestments = category === 'investments';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
   });
 
-  document.getElementById('cars-view').style.display     = isCars    ? 'block' : 'none';
-  document.getElementById('period-view').style.display   = isPeriod  ? 'flex'  : 'none';
-  document.getElementById('tv-view').style.display       = isTv      ? 'flex'  : 'none';
-  document.getElementById('grocery-view').style.display  = isGrocery ? 'flex'  : 'none';
-  document.getElementById('travel-view').style.display   = isTravel  ? 'flex'  : 'none';
-  document.getElementById('make-view').style.display     = (category === 'make') ? 'flex' : 'none';
-  document.getElementById('buy-view').style.display      = (category === 'buy')  ? 'flex' : 'none';
-  document.querySelector('.content').style.display       = isTodo    ? 'flex'  : 'none';
-  document.querySelector('.date-strip').style.display    = isTodo    ? 'flex'  : 'none';
+  document.getElementById('cars-view').style.display        = isCars        ? 'block' : 'none';
+  document.getElementById('period-view').style.display      = isPeriod      ? 'flex'  : 'none';
+  document.getElementById('tv-view').style.display          = isTv          ? 'flex'  : 'none';
+  document.getElementById('grocery-view').style.display     = isGrocery     ? 'flex'  : 'none';
+  document.getElementById('travel-view').style.display      = isTravel      ? 'flex'  : 'none';
+  document.getElementById('make-view').style.display        = (category === 'make') ? 'flex' : 'none';
+  document.getElementById('buy-view').style.display         = (category === 'buy')  ? 'flex' : 'none';
+  document.querySelector('.content').style.display          = isTodo        ? 'flex'  : 'none';
+  document.querySelector('.date-strip').style.display       = isTodo        ? 'flex'  : 'none';
+  document.getElementById('inv-section').style.display      = isInvestments ? 'flex'  : 'none';
+
+  // Hide topbar when investments is active (has its own hero)
+  document.querySelector('.topbar').style.display = isInvestments ? 'none' : '';
 
   const dropzone = document.getElementById('wishlist-dropzone');
   if (dropzone) dropzone.classList.toggle('active', isWishlist);
@@ -204,6 +209,8 @@ function switchCategory(category) {
     renderTravelView();
   } else if (isWishlist) {
     fetchWishlist(category);
+  } else if (isInvestments) {
+    Investments.init();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -1662,4 +1669,465 @@ async function deleteWishlistItem() {
   await fetch(`/api/wishlist/${modalEditingId}`, { method: 'DELETE' });
   closeWishlistModal();
   await fetchWishlist(wishlistType);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// THE FLOOR — Investment Tracker
+// ══════════════════════════════════════════════════════════════════════════════
+
+const Investments = {
+  currentAccount: 'all',
+  currentFilter: 'unannotated',
+  currentInnerTab: 'trades',
+  transactions: [],
+  patterns: null,
+  charts: {},
+  listenersAttached: false,
+
+  async init() {
+    if (!this.listenersAttached) {
+      this.attachListeners();
+      this.listenersAttached = true;
+    }
+    await Promise.all([this.loadPatterns(), this.loadTransactions()]);
+  },
+
+  async loadPatterns() {
+    try {
+      const data = await fetch('/api/investments/patterns').then(r => r.json());
+      this.patterns = data;
+      this.renderStats();
+      if (this.currentInnerTab === 'patterns') this.renderCharts();
+    } catch (e) { console.error('Failed to load investment patterns', e); }
+  },
+
+  async loadTransactions() {
+    try {
+      const params = new URLSearchParams();
+      if (this.currentAccount !== 'all') params.set('account', this.currentAccount);
+      const data = await fetch(`/api/investments?${params}`).then(r => r.json());
+      this.transactions = data.transactions || [];
+      this.renderTable();
+    } catch (e) { console.error('Failed to load investments', e); }
+  },
+
+  renderStats() {
+    if (!this.patterns) return;
+    const { totalStats: s, annotationProgress: a } = this.patterns;
+    const totalEl    = document.getElementById('inv-total');
+    const buysEl     = document.getElementById('inv-buys');
+    const sellsEl    = document.getElementById('inv-sells');
+    const decodedEl  = document.getElementById('inv-decoded');
+    const fillEl     = document.getElementById('inv-progress-fill');
+    const textEl     = document.getElementById('inv-progress-text');
+    if (totalEl)   totalEl.textContent   = s.total;
+    if (buysEl)    buysEl.textContent    = s.buys;
+    if (sellsEl)   sellsEl.textContent   = s.sells;
+    const pct = a.total > 0 ? Math.round((a.annotated / a.total) * 100) : 0;
+    if (decodedEl) decodedEl.textContent = pct + '%';
+    if (fillEl)    fillEl.style.width    = pct + '%';
+    if (textEl)    textEl.textContent    = a.annotated + ' / ' + a.total + ' decoded';
+
+    // Sync analysis panel progress
+    const pfill      = document.getElementById('inv-analysis-pfill');
+    const ptext      = document.getElementById('inv-analysis-ptext');
+    const analyzeBtn = document.getElementById('inv-analyze-btn');
+    const analyzeHint = document.getElementById('inv-analyze-hint');
+    if (pfill)  pfill.style.width  = pct + '%';
+    if (ptext)  ptext.textContent  = a.annotated + ' / ' + a.total + ' decoded';
+    const unlocked = a.annotated >= 50;
+    if (analyzeBtn)  analyzeBtn.disabled = !unlocked;
+    if (analyzeHint) analyzeHint.textContent = unlocked
+      ? 'Analysis ready — powered by Claude API'
+      : `Decode ${Math.max(0, 50 - a.annotated)} more trades to unlock`;
+  },
+
+  switchInnerTab(tab) {
+    this.currentInnerTab = tab;
+    document.querySelectorAll('.inv-inner-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.invTab === tab);
+    });
+    document.getElementById('inv-trades-panel').style.display   = tab === 'trades'   ? 'block' : 'none';
+    document.getElementById('inv-patterns-panel').style.display = tab === 'patterns' ? 'block' : 'none';
+    document.getElementById('inv-analysis-panel').style.display = tab === 'analysis' ? 'block' : 'none';
+    if (tab === 'patterns' && this.patterns) this.renderCharts();
+  },
+
+  renderCharts() {
+    if (!this.patterns || typeof Chart === 'undefined') return;
+    this.renderMonthlyChart();
+    this.renderTickerChart();
+  },
+
+  renderMonthlyChart() {
+    const ctx = document.getElementById('inv-monthly-chart');
+    if (!ctx) return;
+    if (this.charts.monthly) { this.charts.monthly.destroy(); this.charts.monthly = null; }
+    const { monthlyActivity: data } = this.patterns;
+    if (!data || !data.length) return;
+
+    this.charts.monthly = new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: data.map(m => {
+          const [y, mo] = m.month.split('-');
+          return new Date(+y, +mo - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        }),
+        datasets: [
+          { label: 'Buys',  data: data.map(m => m.buys),  backgroundColor: '#FF5C35', borderRadius: 3 },
+          { label: 'Sells', data: data.map(m => m.sells), backgroundColor: '#F5C842', borderRadius: 3 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#141410', font: { family: 'DM Mono, monospace', size: 10 }, boxWidth: 10 } },
+          tooltip: {
+            backgroundColor: '#141410', titleColor: '#F5C842', bodyColor: '#F9F5EE',
+            titleFont: { family: 'Syne, sans-serif', size: 13 },
+            bodyFont: { family: 'DM Mono, monospace', size: 11 },
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#9A8F7E', font: { family: 'DM Mono, monospace', size: 9 }, maxRotation: 45 }, border: { color: '#E0D8C8' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(20,20,16,0.055)' }, ticks: { color: '#9A8F7E', font: { family: 'DM Mono, monospace', size: 9 }, stepSize: 1 }, border: { color: '#E0D8C8' } }
+        }
+      }
+    });
+  },
+
+  renderTickerChart() {
+    const ctx = document.getElementById('inv-ticker-chart');
+    if (!ctx) return;
+    if (this.charts.ticker) { this.charts.ticker.destroy(); this.charts.ticker = null; }
+    const { tickerFrequency: data } = this.patterns;
+    if (!data || !data.length) return;
+    const top = data.slice(0, 12);
+
+    this.charts.ticker = new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: top.map(t => t.symbol),
+        datasets: [
+          { label: 'Buys',  data: top.map(t => t.buys),  backgroundColor: '#FF5C35', borderRadius: 2 },
+          { label: 'Sells', data: top.map(t => t.sells), backgroundColor: '#F5C842', borderRadius: 2 },
+        ]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#141410', font: { family: 'DM Mono, monospace', size: 10 }, boxWidth: 10 } },
+          tooltip: {
+            backgroundColor: '#141410', titleColor: '#F5C842', bodyColor: '#F9F5EE',
+            titleFont: { family: 'Syne, sans-serif', size: 13 },
+            bodyFont: { family: 'DM Mono, monospace', size: 11 },
+          }
+        },
+        scales: {
+          x: { stacked: true, grid: { color: 'rgba(20,20,16,0.055)' }, ticks: { color: '#9A8F7E', font: { family: 'DM Mono, monospace', size: 9 }, stepSize: 1 }, border: { color: '#E0D8C8' } },
+          y: { stacked: true, grid: { display: false }, ticks: { color: '#141410', font: { family: 'DM Mono, monospace', weight: '500', size: 10 } }, border: { color: '#E0D8C8' } }
+        }
+      }
+    });
+  },
+
+  renderTable() {
+    const tbody = document.getElementById('inv-tbody');
+    if (!tbody) return;
+
+    let rows = [...this.transactions];
+    if (this.currentFilter === 'unannotated') rows = rows.filter(t => !t.reason);
+    else if (this.currentFilter === 'annotated') rows = rows.filter(t => !!t.reason);
+
+    const q = (document.getElementById('inv-search')?.value || '').toLowerCase();
+    if (q) rows = rows.filter(t =>
+      t.symbol.toLowerCase().includes(q) ||
+      (t.reason || '').toLowerCase().includes(q) ||
+      (t.description || '').toLowerCase().includes(q)
+    );
+
+    if (!rows.length) {
+      const msg = this.currentFilter === 'unannotated'
+        ? '🎉 All trades decoded! Switch to "All" to see everything.'
+        : 'No trades found.';
+      tbody.innerHTML = `<tr><td colspan="9" class="inv-empty-row">${msg}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map(t => {
+      const isBuy = t.action_type === 'BUY' || t.action_type === 'OPTIONS_BUY';
+      const amt   = t.amount ? '$' + Math.abs(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+      const price = t.price  ? '$' + parseFloat(t.price).toFixed(2)  : '—';
+      const qty   = t.quantity ? (+t.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—';
+      const badgeCls = 'inv-action-' + t.action_type.toLowerCase();
+      const acct  = t.account === 'Joint WROS' ? 'JOINT' : 'ROTH';
+      return `
+        <tr class="inv-row" data-id="${t.id}">
+          <td class="inv-cell-date">${invFmtDate(t.run_date)}</td>
+          <td class="inv-cell-acct">${acct}</td>
+          <td><span class="inv-action-badge ${badgeCls}">${invActionLabel(t)}</span></td>
+          <td class="inv-cell-ticker">${t.symbol}</td>
+          <td class="inv-cell-num">${qty}</td>
+          <td class="inv-cell-num">${price}</td>
+          <td class="inv-cell-num inv-cell-amount">${amt}</td>
+          <td class="inv-cell-reason" data-id="${t.id}" data-field="reason">
+            ${t.reason
+              ? `<span class="inv-annotation-text">${invEscape(t.reason)}</span>`
+              : `<span class="inv-annotation-placeholder">+ add reason</span>`}
+          </td>
+          <td class="inv-cell-goal" data-id="${t.id}" data-field="future_goal">
+            ${t.future_goal
+              ? `<span class="inv-annotation-text">${invEscape(t.future_goal)}</span>`
+              : `<span class="inv-annotation-placeholder">+ add goal</span>`}
+          </td>
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('.inv-cell-reason, .inv-cell-goal').forEach(cell => {
+      cell.addEventListener('click', () => Investments.openEdit(cell));
+    });
+  },
+
+  openEdit(cell) {
+    const id    = cell.dataset.id;
+    const field = cell.dataset.field;
+    const cur   = cell.querySelector('.inv-annotation-text')?.textContent?.trim() || '';
+    const ph    = field === 'reason' ? 'Why did you make this trade?' : "What's your goal for this position?";
+    cell.innerHTML = `
+      <div class="inv-edit-wrap">
+        <textarea class="inv-edit-textarea" rows="2" placeholder="${ph}">${invEscape(cur)}</textarea>
+        <div class="inv-edit-actions">
+          <button class="inv-edit-save">Save</button>
+          <button class="inv-edit-cancel">Cancel</button>
+        </div>
+      </div>`;
+    const ta = cell.querySelector('.inv-edit-textarea');
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    cell.querySelector('.inv-edit-save').addEventListener('click', async () => {
+      const val = ta.value.trim();
+      await fetch(`/api/investments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: val || null }),
+      });
+      await Investments.loadPatterns();
+      await Investments.loadTransactions();
+    });
+    cell.querySelector('.inv-edit-cancel').addEventListener('click', () => Investments.renderTable());
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); Investments.renderTable(); }
+    });
+  },
+
+  attachListeners() {
+    // Inner tabs (Trades / Patterns / Analysis)
+    document.querySelectorAll('.inv-inner-tab').forEach(btn => {
+      btn.addEventListener('click', () => Investments.switchInnerTab(btn.dataset.invTab));
+    });
+
+    // Analyze button
+    document.getElementById('inv-analyze-btn')?.addEventListener('click', () => {
+      alert('Behavior analysis is coming soon.\n\nOnce connected to the Claude API, this will analyze your annotated trade reasons and surface patterns in your decision-making.');
+    });
+
+    // Account tabs — also switch to Trades view so table is immediately visible
+    document.querySelectorAll('.inv-acct-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.inv-acct-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Investments.currentAccount = btn.dataset.acct;
+        Investments.switchInnerTab('trades');
+        Investments.loadTransactions();
+      });
+    });
+
+    // Filter buttons
+    document.querySelectorAll('.inv-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.inv-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Investments.currentFilter = btn.dataset.filter;
+        Investments.renderTable();
+      });
+    });
+
+    // Search
+    document.getElementById('inv-search')?.addEventListener('input', () => Investments.renderTable());
+
+    // Import modal open/close
+    document.getElementById('inv-import-open')?.addEventListener('click', () => {
+      document.getElementById('inv-modal').style.display = 'flex';
+    });
+    document.getElementById('inv-modal-close')?.addEventListener('click', () => invCloseModal());
+    document.getElementById('inv-modal')?.addEventListener('click', e => {
+      if (e.target === document.getElementById('inv-modal')) invCloseModal();
+    });
+
+    // Drop zone
+    const dropZone  = document.getElementById('inv-drop-zone');
+    const fileInput = document.getElementById('inv-file-input');
+    dropZone?.addEventListener('click', () => fileInput.click());
+    dropZone?.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone?.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone?.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) Investments.handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput?.addEventListener('change', e => {
+      if (e.target.files[0]) Investments.handleFile(e.target.files[0]);
+    });
+
+    document.getElementById('inv-confirm-import')?.addEventListener('click', () => Investments.confirmImport());
+    document.getElementById('inv-cancel-import')?.addEventListener('click',  () => invResetModal());
+  },
+
+  pendingTransactions: [],
+
+  handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const txns = invParseCSV(e.target.result);
+      this.pendingTransactions = txns;
+      this.showPreview(txns);
+    };
+    reader.readAsText(file);
+  },
+
+  showPreview(txns) {
+    document.getElementById('inv-drop-zone').style.display = 'none';
+    const preview = document.getElementById('inv-preview');
+    preview.style.display = 'block';
+
+    const buys  = txns.filter(t => t.action_type === 'BUY' || t.action_type === 'OPTIONS_BUY').length;
+    const sells = txns.length - buys;
+    document.getElementById('inv-preview-stats').innerHTML =
+      `<span class="inv-preview-count">${txns.length} transactions found</span>` +
+      `<span class="inv-preview-detail">${buys} buys · ${sells} sells/expireds</span>`;
+
+    const slice = txns.slice(0, 6);
+    document.getElementById('inv-preview-table').innerHTML = `
+      <thead><tr><th>Date</th><th>Account</th><th>Action</th><th>Ticker</th><th>Amount</th></tr></thead>
+      <tbody>
+        ${slice.map(t => `<tr>
+          <td>${t.run_date}</td><td>${t.account}</td>
+          <td><span class="inv-action-badge inv-action-${t.action_type.toLowerCase()}">${t.action_type}</span></td>
+          <td>${t.symbol}</td>
+          <td>${t.amount ? '$' + Math.abs(t.amount).toFixed(2) : '—'}</td>
+        </tr>`).join('')}
+        ${txns.length > 6 ? `<tr><td colspan="5" class="inv-preview-more">… and ${txns.length - 6} more</td></tr>` : ''}
+      </tbody>`;
+  },
+
+  async confirmImport() {
+    const btn = document.getElementById('inv-confirm-import');
+    btn.textContent = 'Importing…';
+    btn.disabled = true;
+    try {
+      const res  = await fetch('/api/investments/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: this.pendingTransactions }),
+      });
+      const data = await res.json();
+      document.getElementById('inv-preview-stats').innerHTML =
+        `<span class="inv-preview-count inv-import-success">✓ ${data.imported} new transactions imported</span>` +
+        (data.duplicates > 0 ? `<span class="inv-preview-detail">${data.duplicates} duplicates skipped</span>` : '');
+      document.getElementById('inv-confirm-import').style.display = 'none';
+      await this.loadPatterns();
+      await this.loadTransactions();
+      setTimeout(() => invCloseModal(), 2200);
+    } catch (err) {
+      btn.textContent = 'Import Transactions';
+      btn.disabled = false;
+    }
+  }
+};
+
+function invCloseModal() {
+  document.getElementById('inv-modal').style.display = 'none';
+  invResetModal();
+}
+
+function invResetModal() {
+  document.getElementById('inv-preview').style.display    = 'none';
+  document.getElementById('inv-drop-zone').style.display  = 'flex';
+  document.getElementById('inv-confirm-import').style.display = '';
+  document.getElementById('inv-confirm-import').disabled  = false;
+  document.getElementById('inv-confirm-import').textContent = 'Import Transactions';
+  document.getElementById('inv-file-input').value         = '';
+}
+
+function invParseCSV(text) {
+  const lines = text.split('\n');
+  const headerIdx = lines.findIndex(l => l.startsWith('Run Date,'));
+  if (headerIdx === -1) return [];
+  const results = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = invParseCSVLine(line);
+    if (cols.length < 13) continue;
+    const [runDate, account, accountNum, action, symbol, description, , price, quantity, , , , amount] = cols;
+    const actionUp = action.toUpperCase();
+    if (!actionUp.includes('YOU BOUGHT') && !actionUp.includes('YOU SOLD') && !actionUp.includes('EXPIRED')) continue;
+    const isOpt = actionUp.includes('OPENING TRANSACTION') || actionUp.includes('CLOSING TRANSACTION') ||
+                  (actionUp.includes('EXPIRED') && (actionUp.includes('CALL') || actionUp.includes('PUT')));
+    let actionType, optType = null, optAction = null;
+    if (actionUp.includes('EXPIRED')) {
+      actionType = 'EXPIRED';
+      optType    = actionUp.includes('CALL') ? 'CALL' : actionUp.includes('PUT') ? 'PUT' : null;
+      optAction  = 'EXPIRED';
+    } else if (actionUp.includes('YOU BOUGHT')) {
+      if (isOpt) { actionType = 'OPTIONS_BUY';  optType = actionUp.includes('CALL') ? 'CALL' : 'PUT'; optAction = 'OPENING'; }
+      else         actionType = 'BUY';
+    } else {
+      if (isOpt) { actionType = 'OPTIONS_SELL'; optType = actionUp.includes('CALL') ? 'CALL' : 'PUT'; optAction = 'CLOSING'; }
+      else         actionType = 'SELL';
+    }
+    const priceN  = price    ? parseFloat(price)    || null : null;
+    const qtyN    = quantity ? parseFloat(quantity) || null : null;
+    const amountN = amount   ? parseFloat(amount)   || null : null;
+    const fKey    = `${runDate}|${accountNum}|${symbol}|${price}|${quantity}|${amount}`;
+    results.push({
+      account: account.trim(), run_date: runDate.trim(), action_type: actionType,
+      symbol: symbol.trim(), description: description.trim(),
+      price: priceN, quantity: qtyN, amount: amountN,
+      is_option: isOpt, option_type: optType, option_action: optAction,
+      raw_action: action.trim(), fidelity_key: fKey,
+    });
+  }
+  return results;
+}
+
+function invParseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function invFmtDate(s) {
+  if (!s) return '—';
+  const [m, d, y] = s.split('/');
+  if (!m) return s;
+  return new Date(+y, +m - 1, +d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+function invActionLabel(t) {
+  if (t.action_type === 'BUY')          return 'BUY';
+  if (t.action_type === 'SELL')         return 'SELL';
+  if (t.action_type === 'OPTIONS_BUY')  return (t.option_type || '') + ' BUY';
+  if (t.action_type === 'OPTIONS_SELL') return (t.option_type || '') + ' SELL';
+  if (t.action_type === 'EXPIRED')      return (t.option_type || '') + ' EXP';
+  return t.action_type;
+}
+
+function invEscape(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

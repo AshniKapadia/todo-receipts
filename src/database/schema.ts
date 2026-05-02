@@ -44,6 +44,26 @@ export interface TodoItem {
   user_id: string;
 }
 
+export interface Investment {
+  id: number;
+  account: string;
+  run_date: string;
+  action_type: 'BUY' | 'SELL' | 'OPTIONS_BUY' | 'OPTIONS_SELL' | 'EXPIRED';
+  symbol: string;
+  description: string;
+  price: number | null;
+  quantity: number | null;
+  amount: number | null;
+  is_option: boolean;
+  option_type: 'CALL' | 'PUT' | null;
+  option_action: 'OPENING' | 'CLOSING' | 'EXPIRED' | null;
+  reason: string | null;
+  future_goal: string | null;
+  raw_action: string;
+  fidelity_key: string;
+  created_at: number;
+}
+
 export const CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS todos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,6 +114,25 @@ export const CREATE_TABLE_SQL = `
     title TEXT DEFAULT '',
     poster_url TEXT NOT NULL DEFAULT '',
     language TEXT NOT NULL DEFAULT 'english',
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS investments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account TEXT NOT NULL,
+    run_date TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    price REAL,
+    quantity REAL,
+    amount REAL,
+    is_option INTEGER DEFAULT 0,
+    option_type TEXT DEFAULT NULL,
+    option_action TEXT DEFAULT NULL,
+    reason TEXT DEFAULT NULL,
+    future_goal TEXT DEFAULT NULL,
+    raw_action TEXT NOT NULL DEFAULT '',
+    fidelity_key TEXT UNIQUE NOT NULL,
     created_at INTEGER NOT NULL
   );
 `;

@@ -222,6 +222,42 @@ export class ApiRouter {
         return;
       }
 
+      // Investment routes
+      if (pathname === '/api/investments' && method === 'GET') {
+        const account = parsedUrl.searchParams.get('account') || undefined;
+        const transactions = this.db.getInvestments(account);
+        this.sendJson(res, { transactions });
+        return;
+      }
+
+      if (pathname === '/api/investments/import' && method === 'POST') {
+        const body = await this.parseBody(req);
+        if (!Array.isArray(body.transactions)) {
+          this.sendError(res, 400, 'transactions array required');
+          return;
+        }
+        const result = this.db.importInvestments(body.transactions);
+        this.sendJson(res, result);
+        return;
+      }
+
+      if (pathname === '/api/investments/patterns' && method === 'GET') {
+        const patterns = this.db.getInvestmentPatterns();
+        this.sendJson(res, patterns);
+        return;
+      }
+
+      if (pathname.startsWith('/api/investments/') && method === 'PUT') {
+        const id = this.extractId(pathname);
+        const body = await this.parseBody(req);
+        const updates: { reason?: string | null; future_goal?: string | null } = {};
+        if (body.reason !== undefined) updates.reason = body.reason || null;
+        if (body.future_goal !== undefined) updates.future_goal = body.future_goal || null;
+        this.db.updateInvestment(id, updates);
+        this.sendJson(res, { success: true });
+        return;
+      }
+
       // 404
       this.sendError(res, 404, "Not found");
     } catch (error) {

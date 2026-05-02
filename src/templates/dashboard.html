@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Slip</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     @font-face {
       font-family: 'Ashni';
@@ -2267,6 +2268,648 @@
         color: #fff;
       }
     }
+
+    /* ═══════════════════════════════════════════════════
+       THE FLOOR — Investment Tab
+       ═══════════════════════════════════════════════════ */
+
+    .inv-section {
+      flex: 1;
+      overflow-y: auto;
+      flex-direction: column;
+      background: #F9F5EE;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Hero */
+    .inv-hero {
+      background: #1B3A2D;
+      padding: 32px 40px 28px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .inv-hero::before {
+      content: 'THE FLOOR THE FLOOR THE FLOOR';
+      position: absolute;
+      top: -14px;
+      right: -10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 80px;
+      color: rgba(245,200,66,0.055);
+      letter-spacing: -2px;
+      white-space: nowrap;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .inv-hero-text { flex: 1; }
+    .inv-hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #F5C842;
+      margin-bottom: 10px;
+    }
+    .inv-hero-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 68px;
+      line-height: 0.88;
+      color: #F9F5EE;
+      letter-spacing: -2px;
+      margin-bottom: 14px;
+    }
+    .inv-hero-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: rgba(249,245,238,0.35);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .inv-bull-wrap { flex-shrink: 0; }
+    .inv-bull-svg {
+      width: 118px;
+      height: auto;
+      filter: drop-shadow(3px 5px 0 rgba(0,0,0,0.4));
+    }
+    .inv-hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .inv-acct-tabs { display: flex; gap: 6px; }
+    .inv-acct-tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: 2px solid rgba(249,245,238,0.18);
+      color: rgba(249,245,238,0.38);
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 2px;
+    }
+    .inv-acct-tab:hover {
+      border-color: rgba(249,245,238,0.45);
+      color: #F9F5EE;
+    }
+    .inv-acct-tab.active {
+      background: #F5C842;
+      border-color: #F5C842;
+      color: #141410;
+    }
+
+    /* Inner navigation tabs (Trades / Patterns / Analysis) */
+    .inv-inner-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 3px solid #141410;
+      background: #F9F5EE;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .inv-inner-tab {
+      padding: 14px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #8A7F6E;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .inv-inner-tab:hover { color: #141410; }
+    .inv-inner-tab.active {
+      color: #141410;
+      border-bottom-color: #FF5C35;
+    }
+
+    /* Stats row */
+    .inv-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 3px solid #141410;
+      flex-shrink: 0;
+    }
+    .inv-stat-card {
+      padding: 22px 32px;
+      border-right: 2px solid #E0D8C8;
+      background: #F9F5EE;
+    }
+    .inv-stat-card:last-child { border-right: none; }
+    .inv-stat-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 42px;
+      color: #141410;
+      line-height: 1;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    .inv-stat-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #8A7F6E;
+    }
+
+    /* Charts row */
+    .inv-charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      border-bottom: 3px solid #141410;
+      flex-shrink: 0;
+    }
+    .inv-chart-card {
+      padding: 22px 28px 20px;
+      background: #F9F5EE;
+      border-right: 2px solid #E0D8C8;
+    }
+    .inv-chart-card:last-child { border-right: none; }
+    .inv-chart-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      color: #8A7F6E;
+      margin-bottom: 14px;
+    }
+    .inv-chart-canvas-wrap {
+      position: relative;
+      height: 200px;
+    }
+
+    /* Analysis panel */
+    .inv-analysis-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 40px;
+      min-height: 420px;
+    }
+    .inv-analysis-card {
+      max-width: 540px;
+      text-align: center;
+    }
+    .inv-analysis-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: #FF5C35;
+      margin-bottom: 14px;
+    }
+    .inv-analysis-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 52px;
+      letter-spacing: -2px;
+      color: #141410;
+      line-height: 0.95;
+      margin-bottom: 22px;
+    }
+    .inv-analysis-body {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      color: #5A5040;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .inv-analysis-progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .inv-analysis-pbar {
+      width: 200px;
+      height: 6px;
+      background: #E0D8C8;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .inv-analysis-pfill {
+      height: 100%;
+      background: #FF5C35;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .inv-analysis-ptext {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #8A7F6E;
+    }
+    .inv-analyze-btn {
+      display: block;
+      width: 100%;
+      padding: 15px 32px;
+      background: #1B3A2D;
+      border: 3px solid #141410;
+      color: #F5C842;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #141410;
+      transition: all 0.1s;
+      margin-bottom: 14px;
+    }
+    .inv-analyze-btn:hover:not(:disabled) { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #141410; }
+    .inv-analyze-btn:disabled {
+      background: #E8E0D0;
+      border-color: #C8BFA8;
+      color: #B8AF9A;
+      box-shadow: 2px 2px 0 #C8BFA8;
+      cursor: not-allowed;
+    }
+    .inv-analyze-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: #B0A890;
+      text-transform: uppercase;
+    }
+
+    /* Control bar */
+    .inv-control-bar {
+      padding: 14px 28px;
+      background: #1B3A2D;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .inv-control-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 17px;
+      color: #F9F5EE;
+      letter-spacing: -0.5px;
+      margin-right: 4px;
+    }
+    .inv-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .inv-progress-bar {
+      width: 100px;
+      height: 5px;
+      background: rgba(249,245,238,0.12);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .inv-progress-fill {
+      height: 100%;
+      background: #F5C842;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .inv-progress-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: rgba(249,245,238,0.42);
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .inv-filters { display: flex; gap: 5px; }
+    .inv-filter-btn {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1.5px solid rgba(249,245,238,0.18);
+      color: rgba(249,245,238,0.38);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.3px;
+      text-transform: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 2px;
+    }
+    .inv-filter-btn:hover {
+      border-color: rgba(249,245,238,0.45);
+      color: #F9F5EE;
+    }
+    .inv-filter-btn.active {
+      background: #FF5C35;
+      border-color: #FF5C35;
+      color: #fff;
+    }
+    .inv-search-input {
+      padding: 6px 12px;
+      background: rgba(249,245,238,0.08);
+      border: 1.5px solid rgba(249,245,238,0.14);
+      color: #F9F5EE;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      border-radius: 2px;
+      outline: none;
+      width: 170px;
+    }
+    .inv-search-input::placeholder { color: rgba(249,245,238,0.28); }
+    .inv-search-input:focus { border-color: rgba(245,200,66,0.5); }
+    .inv-import-btn {
+      padding: 7px 14px;
+      background: #F5C842;
+      border: 2px solid #141410;
+      color: #141410;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      border-radius: 2px;
+      box-shadow: 2px 2px 0 #141410;
+      transition: all 0.1s;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .inv-import-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #141410; }
+
+    /* Transaction table */
+    .inv-table-wrap {
+      overflow-x: auto;
+      background: #F9F5EE;
+    }
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'DM Mono', monospace;
+    }
+    .inv-table thead th {
+      padding: 10px 12px;
+      background: #F9F5EE;
+      border-bottom: 2.5px solid #141410;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #8A7F6E;
+      font-weight: 500;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .inv-table thead th.th-num { text-align: right; }
+    .inv-table thead th.th-date  { width: 86px; }
+    .inv-table thead th.th-acct  { width: 56px; }
+    .inv-table thead th.th-act   { width: 96px; }
+    .inv-table thead th.th-tick  { width: 68px; }
+    .inv-table thead th.th-num   { width: 72px; }
+    .inv-table thead th.th-why   { min-width: 200px; }
+    .inv-table thead th.th-goal  { min-width: 160px; }
+    .inv-row {
+      border-bottom: 1px solid #E8E2D8;
+      transition: background 0.1s;
+    }
+    .inv-row:hover { background: rgba(27,58,45,0.04); }
+    .inv-row td {
+      padding: 10px 12px;
+      font-size: 11.5px;
+      color: #141410;
+      vertical-align: middle;
+    }
+    .inv-row .inv-cell-reason,
+    .inv-row .inv-cell-goal { vertical-align: top; padding-top: 11px; }
+    .inv-cell-date {
+      color: #9A8F7E !important;
+      white-space: nowrap;
+      font-size: 11px !important;
+      width: 86px;
+    }
+    .inv-cell-acct {
+      font-size: 11px !important;
+      letter-spacing: 0.2px;
+      color: #9A8F7E !important;
+      white-space: nowrap;
+      width: 56px;
+    }
+    .inv-action-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 2px;
+      font-size: 8.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .inv-action-buy   { background: rgba(196,52,30,0.1);  color: #C4341E; }
+    .inv-action-sell  { background: rgba(138,106,0,0.12); color: #8A6A00; }
+    .inv-action-options_buy  { background: rgba(196,52,30,0.07); color: #C4341E; border: 1px dashed rgba(196,52,30,0.3); }
+    .inv-action-options_sell { background: rgba(138,106,0,0.07); color: #8A6A00; border: 1px dashed rgba(138,106,0,0.3); }
+    .inv-action-expired      { background: rgba(90,82,72,0.1);   color: #5A5248; border: 1px dashed #C8BFA8; }
+    .inv-cell-ticker {
+      font-weight: 500;
+      font-size: 13px !important;
+      letter-spacing: 0.3px;
+    }
+    .inv-cell-num {
+      text-align: right !important;
+      color: #6A6058 !important;
+      font-variant-numeric: tabular-nums;
+    }
+    .inv-cell-amount { font-weight: 500; color: #141410 !important; }
+    .inv-cell-reason, .inv-cell-goal {
+      cursor: pointer;
+      max-width: 200px;
+      min-width: 110px;
+    }
+    .inv-annotation-text {
+      font-size: 10.5px;
+      color: #1B3A2D;
+      line-height: 1.45;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .inv-annotation-placeholder {
+      font-size: 10px;
+      color: rgba(20,20,16,0.2);
+    }
+    .inv-cell-reason:hover .inv-annotation-placeholder,
+    .inv-cell-goal:hover .inv-annotation-placeholder { color: rgba(20,20,16,0.38); }
+    .inv-edit-wrap { display: flex; flex-direction: column; gap: 5px; }
+    .inv-edit-textarea {
+      width: 100%;
+      min-width: 170px;
+      padding: 6px 8px;
+      border: 2px solid #1B3A2D;
+      border-radius: 2px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      resize: vertical;
+      outline: none;
+      background: #F9F5EE;
+      color: #141410;
+    }
+    .inv-edit-actions { display: flex; gap: 5px; }
+    .inv-edit-save, .inv-edit-cancel {
+      padding: 4px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1.5px solid;
+    }
+    .inv-edit-save   { background: #1B3A2D; border-color: #1B3A2D; color: #F5C842; }
+    .inv-edit-cancel { background: transparent; border-color: #D0C8B8; color: #8A7F6E; }
+    .inv-empty-row {
+      text-align: center !important;
+      padding: 56px !important;
+      color: #9A8F7E !important;
+      font-size: 12px !important;
+      font-family: 'Space Grotesk', sans-serif !important;
+    }
+
+    /* Import Modal */
+    .inv-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20,20,16,0.72);
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .inv-modal {
+      background: #F9F5EE;
+      border: 3px solid #141410;
+      box-shadow: 8px 8px 0 #141410;
+      width: 560px;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .inv-modal-header {
+      padding: 20px 24px;
+      background: #1B3A2D;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .inv-modal-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: #F5C842;
+      letter-spacing: -0.5px;
+    }
+    .inv-modal-close {
+      background: none;
+      border: none;
+      color: rgba(249,245,238,0.45);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .inv-modal-close:hover { color: #F9F5EE; }
+    .inv-modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+    .inv-drop-zone {
+      border: 3px dashed #C8BFA8;
+      border-radius: 4px;
+      padding: 48px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .inv-drop-zone:hover, .inv-drop-zone.drag-over {
+      border-color: #1B3A2D;
+      background: rgba(27,58,45,0.04);
+    }
+    .inv-drop-icon { font-size: 38px; }
+    .inv-drop-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: #8A7F6E;
+    }
+    .inv-preview-stats {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .inv-preview-count {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: #141410;
+    }
+    .inv-import-success { color: #1B3A2D; }
+    .inv-preview-detail {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #8A7F6E;
+    }
+    .inv-preview-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .inv-preview-table { width: 100%; border-collapse: collapse; font-family: 'DM Mono', monospace; font-size: 11px; }
+    .inv-preview-table th {
+      padding: 8px 12px;
+      background: #1B3A2D;
+      color: #F5C842;
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 400;
+    }
+    .inv-preview-table td { padding: 8px 12px; border-bottom: 1px solid #E8E2D8; color: #5A5248; }
+    .inv-preview-more { text-align: center; color: #9A8F7E !important; }
+    .inv-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .inv-cancel-btn, .inv-confirm-btn {
+      padding: 10px 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.1s;
+    }
+    .inv-cancel-btn { background: transparent; border: 2px solid #C8BFA8; color: #8A7F6E; }
+    .inv-cancel-btn:hover { border-color: #141410; color: #141410; }
+    .inv-confirm-btn {
+      background: #1B3A2D;
+      border: 2px solid #141410;
+      color: #F5C842;
+      box-shadow: 2px 2px 0 #141410;
+      font-weight: 500;
+    }
+    .inv-confirm-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #141410; }
+    .inv-confirm-btn:disabled { opacity: 0.5; transform: none !important; box-shadow: 2px 2px 0 #141410 !important; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -2315,6 +2958,7 @@
         <button class="list-tab brain-dump-tab" data-category="make" onclick="switchCategory('make')">Wanna Make</button>
         <button class="list-tab brain-dump-tab" data-category="buy"  onclick="switchCategory('buy')">Wanna Buy</button>
         <button class="list-tab brain-dump-tab" data-category="tv" onclick="switchCategory('tv')">The List</button>
+        <button class="list-tab" data-category="investments" onclick="switchCategory('investments')">Trading Floor</button>
       </nav>
 
       <div class="brain-dump-toggle">
@@ -2583,6 +3227,240 @@
           </div>
         </div>
       </div>
+
+      <!-- ── INVESTMENTS View ── -->
+      <div class="inv-section" id="inv-section" style="display:none">
+
+        <!-- Hero -->
+        <div class="inv-hero">
+          <div class="inv-hero-text">
+            <div class="inv-hero-eyebrow">BEHAVIORAL TRADING ANALYSIS</div>
+            <div class="inv-hero-title">TRADING<br>FLOOR</div>
+            <div class="inv-hero-sub">why you buy · why you sell · what it means</div>
+          </div>
+          <div class="inv-bull-wrap">
+            <svg class="inv-bull-svg" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="inv-sketch" x="-8%" y="-8%" width="116%" height="116%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.055 0.045" numOctaves="3" seed="14" result="noise"/>
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+              </defs>
+              <g filter="url(#inv-sketch)">
+                <!-- Body / chest -->
+                <path d="M 18 220 C 22 194 40 178 68 172 C 84 168 100 166 100 166 C 100 166 116 168 132 172 C 160 178 178 194 182 220 Z"
+                      fill="#B8841E" stroke="#2C1A05" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M 86 168 C 88 182 90 198 90 214" fill="none" stroke="#2C1A05" stroke-width="1" opacity="0.26" stroke-linecap="round"/>
+                <path d="M 114 168 C 112 182 110 198 110 214" fill="none" stroke="#2C1A05" stroke-width="1" opacity="0.26" stroke-linecap="round"/>
+                <!-- Neck (thick, muscular) -->
+                <path d="M 60 148 C 52 162 44 178 38 200 C 56 182 78 174 100 172 C 122 174 144 182 162 200 C 156 178 148 162 140 148 C 130 142 116 138 100 138 C 84 138 70 142 60 148 Z"
+                      fill="#C49028" stroke="#2C1A05" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M 88 150 C 86 164 84 180 82 198" fill="none" stroke="#2C1A05" stroke-width="1.2" opacity="0.30" stroke-linecap="round"/>
+                <!-- Far horn (bull's right, foreshortened) -->
+                <path d="M 64 54 C 52 42 36 26 38 14 C 40 6 54 8 60 18 C 64 28 64 44 64 54 Z"
+                      fill="#E4DCA8" stroke="#2C1A05" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M 62 50 C 54 40 44 28 46 18" fill="none" stroke="#2C1A05" stroke-width="1" opacity="0.32" stroke-linecap="round"/>
+                <!-- Near horn (bull's left, full length) -->
+                <path d="M 150 52 C 164 36 184 18 190 6 C 192 0 182 -2 172 6 C 162 16 156 34 150 52 Z"
+                      fill="#E4DCA8" stroke="#2C1A05" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M 150 50 C 162 36 180 20 186 10 C 176 4 168 12 160 26" fill="none" stroke="#2C1A05" stroke-width="1.2" opacity="0.38" stroke-linecap="round"/>
+                <!-- Far ear (partially visible, left) -->
+                <path d="M 50 84 C 38 72 34 56 42 48 C 48 42 58 48 60 60 C 62 70 56 82 50 84 Z"
+                      fill="#C49028" stroke="#2C1A05" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M 50 82 C 42 72 40 58 46 52 C 50 48 56 54 58 64 C 58 72 54 80 50 82 Z"
+                      fill="#DCA038"/>
+                <!-- Near ear (right side) -->
+                <path d="M 158 82 C 170 70 174 54 166 46 C 160 40 150 46 148 58 C 146 68 152 80 158 82 Z"
+                      fill="#B8841E" stroke="#2C1A05" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M 157 80 C 166 70 168 56 162 50 C 158 46 152 52 150 62 C 148 70 153 78 157 80 Z"
+                      fill="#D09830"/>
+                <!-- Head shape (3/4 view, slightly asymmetric) -->
+                <path d="M 58 50 C 48 64 42 82 42 102 C 42 120 48 134 56 146 C 64 156 80 164 100 166 C 120 164 138 156 146 144 C 156 130 162 114 162 96 C 162 76 156 58 146 46 C 136 36 118 28 100 28 C 82 28 68 38 58 50 Z"
+                      fill="#C49028" stroke="#2C1A05" stroke-width="3" stroke-linejoin="round"/>
+                <!-- Forehead highlight -->
+                <path d="M 68 42 C 80 34 120 34 136 44 C 146 50 146 62 138 66 C 122 58 80 58 66 68 C 58 62 58 48 68 42 Z"
+                      fill="#D4A838" opacity="0.52"/>
+                <!-- Muzzle (large, dominant) -->
+                <path d="M 56 128 C 58 116 72 110 100 110 C 128 110 142 116 144 128 C 148 140 142 156 128 162 C 118 167 82 167 72 162 C 58 156 52 140 56 128 Z"
+                      fill="#D09838" stroke="#2C1A05" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M 72 116 C 82 112 118 112 128 116 C 134 120 130 128 100 130 C 70 128 66 120 72 116 Z"
+                      fill="#E4B848" opacity="0.42"/>
+                <!-- Nostrils -->
+                <ellipse cx="82" cy="146" rx="9" ry="7" fill="#2C1A05" opacity="0.92"/>
+                <ellipse cx="118" cy="146" rx="9" ry="7" fill="#2C1A05" opacity="0.92"/>
+                <ellipse cx="79" cy="143" rx="3" ry="2" fill="white" opacity="0.30"/>
+                <ellipse cx="115" cy="143" rx="3" ry="2" fill="white" opacity="0.30"/>
+                <!-- Far eye (small, foreshortened) -->
+                <ellipse cx="72" cy="84" rx="7" ry="6" fill="#1C0E04" stroke="#2C1A05" stroke-width="1.5"/>
+                <ellipse cx="74" cy="82" rx="2" ry="1.5" fill="white" opacity="0.48"/>
+                <!-- Near eye (larger, detailed) -->
+                <ellipse cx="134" cy="80" rx="10" ry="9" fill="#1C0E04" stroke="#2C1A05" stroke-width="2"/>
+                <path d="M 126 77 C 128 72 136 70 142 74 C 144 78 142 86 138 88" fill="none" stroke="#7A5820" stroke-width="1" opacity="0.42"/>
+                <ellipse cx="138" cy="77" rx="3" ry="2.5" fill="white" opacity="0.58"/>
+                <!-- Brow ridges -->
+                <path d="M 56 76 C 62 70 72 68 82 72" fill="none" stroke="#2C1A05" stroke-width="2" stroke-linecap="round" opacity="0.48"/>
+                <path d="M 124 70 C 132 66 142 67 150 73" fill="none" stroke="#2C1A05" stroke-width="2.2" stroke-linecap="round" opacity="0.60"/>
+                <!-- 3/4 cheek shadow plane -->
+                <path d="M 152 60 C 158 74 162 92 160 110 C 158 126 152 138 146 146" fill="none" stroke="#2C1A05" stroke-width="1.5" opacity="0.26" stroke-linecap="round"/>
+                <!-- Fur texture hatching -->
+                <path d="M 44 96 L 50 92" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.20"/>
+                <path d="M 43 106 L 49 101" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.20"/>
+                <path d="M 44 116 L 50 112" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.18"/>
+                <path d="M 154 92 L 160 88" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.20"/>
+                <path d="M 156 102 L 162 98" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.20"/>
+                <path d="M 155 112 L 161 108" stroke="#2C1A05" stroke-width="1" stroke-linecap="round" opacity="0.18"/>
+                <!-- Chin shadow -->
+                <path d="M 68 152 C 78 162 92 167 100 168 C 108 167 122 162 132 152" fill="none" stroke="#2C1A05" stroke-width="1.5" opacity="0.36" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+          <div class="inv-hero-right">
+            <div class="inv-acct-tabs">
+              <button class="inv-acct-tab active" data-acct="all">All</button>
+              <button class="inv-acct-tab" data-acct="Joint WROS">Joint WROS</button>
+              <button class="inv-acct-tab" data-acct="Roth IRA">Roth IRA</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inner tab navigation -->
+        <div class="inv-inner-tabs">
+          <button class="inv-inner-tab active" data-inv-tab="trades">Trades</button>
+          <button class="inv-inner-tab" data-inv-tab="patterns">Patterns</button>
+          <button class="inv-inner-tab" data-inv-tab="analysis">Analysis</button>
+        </div>
+
+        <!-- ── TRADES PANEL (default) ── -->
+        <div id="inv-trades-panel">
+
+        <!-- Stats row -->
+        <div class="inv-stats-row">
+          <div class="inv-stat-card">
+            <div class="inv-stat-num" id="inv-total">—</div>
+            <div class="inv-stat-label">Total Trades</div>
+          </div>
+          <div class="inv-stat-card">
+            <div class="inv-stat-num" id="inv-buys" style="color:#C4341E">—</div>
+            <div class="inv-stat-label">Buys</div>
+          </div>
+          <div class="inv-stat-card">
+            <div class="inv-stat-num" id="inv-sells" style="color:#8A6A00">—</div>
+            <div class="inv-stat-label">Sells</div>
+          </div>
+          <div class="inv-stat-card">
+            <div class="inv-stat-num" id="inv-decoded" style="color:#1B3A2D">0%</div>
+            <div class="inv-stat-label">Decoded</div>
+          </div>
+        </div>
+
+        <!-- Control bar -->
+        <div class="inv-control-bar">
+          <span class="inv-control-title">Decode Your Trades</span>
+          <div class="inv-progress-wrap">
+            <div class="inv-progress-bar">
+              <div class="inv-progress-fill" id="inv-progress-fill" style="width:0%"></div>
+            </div>
+            <span class="inv-progress-text" id="inv-progress-text">0 / 0 decoded</span>
+          </div>
+          <div class="inv-filters">
+            <button class="inv-filter-btn active" data-filter="unannotated">Needs Decoding</button>
+            <button class="inv-filter-btn" data-filter="all">All</button>
+            <button class="inv-filter-btn" data-filter="annotated">Decoded</button>
+          </div>
+          <input type="text" class="inv-search-input" id="inv-search" placeholder="Search ticker or reason…">
+          <button class="inv-import-btn" id="inv-import-open">+ Import CSV</button>
+        </div>
+
+        <!-- Transaction table -->
+        <div class="inv-table-wrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th class="th-date">Date</th>
+                <th class="th-acct">Account</th>
+                <th class="th-act">Action</th>
+                <th class="th-tick">Ticker</th>
+                <th class="th-num">Shares</th>
+                <th class="th-num">Price</th>
+                <th class="th-num">Amount</th>
+                <th class="th-why">Why?</th>
+                <th class="th-goal">Goal</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+
+        </div><!-- /inv-trades-panel -->
+
+        <!-- ── PATTERNS PANEL ── -->
+        <div id="inv-patterns-panel" style="display:none">
+
+        <!-- Charts -->
+        <div class="inv-charts-row">
+          <div class="inv-chart-card">
+            <div class="inv-chart-label">Trading Activity by Month</div>
+            <div class="inv-chart-canvas-wrap">
+              <canvas id="inv-monthly-chart"></canvas>
+            </div>
+          </div>
+          <div class="inv-chart-card">
+            <div class="inv-chart-label">Most Traded Tickers</div>
+            <div class="inv-chart-canvas-wrap">
+              <canvas id="inv-ticker-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        </div><!-- /inv-patterns-panel -->
+
+        <!-- ── ANALYSIS PANEL ── -->
+        <div id="inv-analysis-panel" style="display:none">
+          <div class="inv-analysis-wrap">
+            <div class="inv-analysis-card">
+              <div class="inv-analysis-eyebrow">Coming Soon</div>
+              <div class="inv-analysis-title">Behavior<br>Analysis</div>
+              <p class="inv-analysis-body">Once you've decoded enough trades — annotating the why behind each buy and sell — this tab will surface the patterns in your trading psychology. What triggers your buys. How you pick exits. What your gut instinct is actually telling you.</p>
+              <div class="inv-analysis-progress-row">
+                <div class="inv-analysis-pbar">
+                  <div class="inv-analysis-pfill" id="inv-analysis-pfill" style="width:0%"></div>
+                </div>
+                <span class="inv-analysis-ptext" id="inv-analysis-ptext">0 / 0 decoded</span>
+              </div>
+              <button class="inv-analyze-btn" id="inv-analyze-btn" disabled>Analyze My Behavior</button>
+              <div class="inv-analyze-hint" id="inv-analyze-hint">Decode 50+ trades to unlock</div>
+            </div>
+          </div>
+        </div><!-- /inv-analysis-panel -->
+
+        <!-- Import Modal (overlay) -->
+        <div class="inv-modal-overlay" id="inv-modal" style="display:none">
+          <div class="inv-modal">
+            <div class="inv-modal-header">
+              <span class="inv-modal-title">Import CSV</span>
+              <button class="inv-modal-close" id="inv-modal-close">✕</button>
+            </div>
+            <div class="inv-modal-body">
+              <div class="inv-drop-zone" id="inv-drop-zone">
+                <div class="inv-drop-icon">📂</div>
+                <div class="inv-drop-text">Drop your Fidelity CSV here, or click to browse</div>
+                <input type="file" id="inv-file-input" accept=".csv" style="display:none">
+              </div>
+              <div id="inv-preview" style="display:none">
+                <div class="inv-preview-stats" id="inv-preview-stats"></div>
+                <div class="inv-preview-table-wrap">
+                  <table class="inv-preview-table" id="inv-preview-table"></table>
+                </div>
+                <div class="inv-modal-actions">
+                  <button class="inv-cancel-btn" id="inv-cancel-import">Cancel</button>
+                  <button class="inv-confirm-btn" id="inv-confirm-import">Import Transactions</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /inv-section -->
 
     </main>
 
