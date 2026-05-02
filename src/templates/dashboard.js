@@ -1726,7 +1726,7 @@ const Investments = {
     const pct = a.total > 0 ? Math.round((a.annotated / a.total) * 100) : 0;
     if (decodedEl) decodedEl.textContent = pct + '%';
     if (fillEl)    fillEl.style.width    = pct + '%';
-    if (textEl)    textEl.textContent    = a.annotated + ' / ' + a.total + ' decoded';
+    if (textEl)    textEl.textContent    = (a.annotated ?? 0) + ' / ' + (a.total ?? 0) + ' decoded';
 
     // Sync analysis panel progress
     const pfill      = document.getElementById('inv-analysis-pfill');
@@ -1734,7 +1734,7 @@ const Investments = {
     const analyzeBtn = document.getElementById('inv-analyze-btn');
     const analyzeHint = document.getElementById('inv-analyze-hint');
     if (pfill)  pfill.style.width  = pct + '%';
-    if (ptext)  ptext.textContent  = a.annotated + ' / ' + a.total + ' decoded';
+    if (ptext)  ptext.textContent  = (a.annotated ?? 0) + ' / ' + (a.total ?? 0) + ' decoded';
     const unlocked = a.annotated >= 50;
     if (analyzeBtn)  analyzeBtn.disabled = !unlocked;
     if (analyzeHint) analyzeHint.textContent = unlocked
@@ -1847,9 +1847,12 @@ const Investments = {
     );
 
     if (!rows.length) {
-      const msg = this.currentFilter === 'unannotated'
-        ? '🎉 All trades decoded! Switch to "All" to see everything.'
-        : 'No trades found.';
+      const total = this.transactions.length;
+      const msg = total === 0
+        ? 'No trades yet. Import a Fidelity CSV to get started.'
+        : this.currentFilter === 'unannotated'
+          ? 'All trades decoded. Switch to "All" to see everything.'
+          : 'No trades match this filter.';
       tbody.innerHTML = `<tr><td colspan="9" class="inv-empty-row">${msg}</td></tr>`;
       return;
     }
