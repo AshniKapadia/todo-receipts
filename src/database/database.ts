@@ -635,6 +635,26 @@ export class TodoDatabase {
     this.db.prepare(`UPDATE investments SET ${fields.join(', ')} WHERE id = ?`).run(...params);
   }
 
+  getAnnotatedInvestments(): Investment[] {
+    return this.db.prepare(`
+      SELECT * FROM investments
+      WHERE (reason IS NOT NULL AND reason != '') OR (future_goal IS NOT NULL AND future_goal != '')
+      ORDER BY run_date ASC
+    `).all() as Investment[];
+  }
+
+  getCachedAnalysis(): { value: string; created_at: number } | null {
+    return this.db.prepare(`SELECT value, created_at FROM kv_store WHERE key = 'investment_analysis'`).get() as { value: string; created_at: number } | null;
+  }
+
+  setCachedAnalysis(result: string): void {
+    this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('investment_analysis', ?, ?)`).run(result, Date.now());
+  }
+
+  clearCachedAnalysis(): void {
+    this.db.prepare(`DELETE FROM kv_store WHERE key = 'investment_analysis'`).run();
+  }
+
   getInvestmentPatterns(): {
     monthlyActivity: Array<{ month: string; buys: number; sells: number }>;
     tickerFrequency: Array<{ symbol: string; count: number; buys: number; sells: number }>;

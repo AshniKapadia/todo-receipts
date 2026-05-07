@@ -1341,6 +1341,7 @@ const Investments = {
   transactions: [],
   patterns: null,
   charts: {},
+  cachedAnalysis: null,
   listenersAttached: false,
 
   async init() {
@@ -1348,7 +1349,69 @@ const Investments = {
       this.attachListeners();
       this.listenersAttached = true;
     }
-    await Promise.all([this.loadPatterns(), this.loadTransactions()]);
+    await Promise.all([this.loadPatterns(), this.loadTransactions(), this.loadCachedAnalysis()]);
+  },
+
+  async loadCachedAnalysis() {
+    try {
+      const data = await fetch('/api/investments/analyze').then(r => r.json());
+      if (data.analysis) {
+        this.cachedAnalysis = data;
+        if (this.currentInnerTab === 'analysis') this.renderAnalysis(data);
+      }
+    } catch (e) { console.error('Failed to load cached analysis', e); }
+  },
+
+  showAnalysisState(state) {
+    document.getElementById('inv-analysis-placeholder').style.display = state === 'placeholder' ? 'flex' : 'none';
+    document.getElementById('inv-analysis-loading').style.display     = state === 'loading'     ? 'block' : 'none';
+    document.getElementById('inv-analysis-results').style.display    = state === 'results'     ? 'block' : 'none';
+  },
+
+  async runAnalysis() {
+    this.showAnalysisState('loading');
+    try {
+      const data = await fetch('/api/investments/analyze', { method: 'POST' }).then(r => r.json());
+      if (data.error) throw new Error(data.error);
+      this.cachedAnalysis = data;
+      this.renderAnalysis(data);
+    } catch (e) {
+      console.error('Analysis failed', e);
+      this.showAnalysisState('placeholder');
+      alert('Analysis failed: ' + (e.message || 'Unknown error. Check that ANTHROPIC_API_KEY is set.'));
+    }
+  },
+
+  renderAnalysis(data) {
+    const { analysis, cached_at } = data;
+    document.getElementById('inv-archetype-name').textContent  = analysis.archetype || '—';
+    document.getElementById('inv-archetype-tagline').textContent = analysis.tagline || '';
+    document.getElementById('inv-exit-style').textContent = analysis.exit_style || '';
+
+    const patternList = document.getElementById('inv-pattern-list');
+    patternList.innerHTML = (analysis.patterns || []).map(p => `
+      <div class="inv-pattern-item">
+        <div class="inv-pattern-name">${invEscape(p.name)}</div>
+        <div class="inv-pattern-desc">${invEscape(p.description)}</div>
+        ${p.evidence?.length ? `<div class="inv-pattern-evidence">${p.evidence.map(e => `<span class="inv-evidence-tag">${invEscape(e)}</span>`).join('')}</div>` : ''}
+      </div>
+    `).join('');
+
+    document.getElementById('inv-buy-triggers').innerHTML = (analysis.buy_triggers || []).map(t =>
+      `<div class="inv-tag-item"><div class="inv-tag-bullet"></div><span>${invEscape(t)}</span></div>`
+    ).join('');
+
+    document.getElementById('inv-blind-spots').innerHTML = (analysis.blind_spots || []).map(b =>
+      `<div class="inv-tag-item"><div class="inv-tag-bullet"></div><span>${invEscape(b)}</span></div>`
+    ).join('');
+
+    const meta = document.getElementById('inv-results-meta');
+    if (cached_at) {
+      const d = new Date(cached_at);
+      meta.textContent = `Based on ${analysis.annotated_count || '?'} annotated trades · analyzed ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+
+    this.showAnalysisState('results');
   },
 
   async loadPatterns() {
@@ -1410,6 +1473,10 @@ const Investments = {
     document.getElementById('inv-patterns-panel').style.display = tab === 'patterns' ? 'block' : 'none';
     document.getElementById('inv-analysis-panel').style.display = tab === 'analysis' ? 'block' : 'none';
     if (tab === 'patterns' && this.patterns) this.renderCharts();
+    if (tab === 'analysis') {
+      if (this.cachedAnalysis) this.renderAnalysis(this.cachedAnalysis);
+      else this.showAnalysisState('placeholder');
+    }
   },
 
   renderCharts() {
@@ -1602,8 +1669,14 @@ const Investments = {
     });
 
     // Analyze button
-    document.getElementById('inv-analyze-btn')?.addEventListener('click', () => {
-      alert('Behavior analysis is coming soon.\n\nOnce connected to the Claude API, this will analyze your annotated trade reasons and surface patterns in your decision-making.');
+    document.getElementById('inv-analyze-btn')?.addEventListener('click', () => Investments.runAnalysis());
+
+    // Re-run button (clears cache and re-runs)
+    document.getElementById('inv-rerun-btn')?.addEventListener('click', async () => {
+      await fetch('/api/investments/analyze/clear', { method: 'DELETE' });
+      Investments.cachedAnalysis = null;
+      Investments.showAnalysisState('placeholder');
+      Investments.runAnalysis();
     });
 
     // Account tabs — also switch to Trades view so table is immediately visible

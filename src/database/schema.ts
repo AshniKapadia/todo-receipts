@@ -135,4 +135,9 @@ export const CREATE_TABLE_SQL = `
     fidelity_key TEXT UNIQUE NOT NULL,
     created_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS kv_store (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
 `;

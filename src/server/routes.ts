@@ -9,12 +9,172 @@ import { existsSync } from "fs";
 import { homedir } from "os";
 import { dirname, resolve, join } from "path";
 import { fileURLToPath } from "url";
+import Anthropic from "@anthropic-ai/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const DATA_DIR = process.env.DATA_DIR || join(homedir(), '.todo-receipts');
 const IMAGES_DIR = join(DATA_DIR, 'images');
+
+// ── Local behavioral analysis (no API key required) ──────────────────────────
+
+import type { Investment } from "../database/schema.js";
+
+const THEMES: Record<string, string[]> = {
+  dip_buying:      ['dip', 'drop', 'dropped', 'fell', 'down', 'cheap', 'lower', 'pullback', 'discount', 'undervalued', 'correction', 'sold off', 'sell-off', 'oversold'],
+  long_term:       ['long term', 'long-term', 'hold', 'thesis', 'fundamental', 'growth', 'future', 'believe', 'conviction', 'years', 'patient', 'core position', 'hold forever'],
+  diversification: ['diversif', 'index', 'etf', 'broad', 'exposure', 'rebalanc', 'hedge', 'balanced', 'spread', 'allocation'],
+  averaging:       ['average', 'avg', 'dca', 'dollar cost', 'adding more', 'add more', 'accumulate', 'cost basis', 'keep buying', 'buying more'],
+  momentum:        ['fomo', 'momentum', 'trending', 'hot', 'run', 'rally', 'surge', 'hype', 'breakout', 'moving', 'up big', 'on a run', 'going up'],
+  income:          ['dividend', 'income', 'yield', 'distribution', 'passive', 'payout'],
+  news_driven:     ['earnings', 'news', 'catalyst', 'report', 'event', 'launch', 'announcement', 'beat', 'guidance'],
+  risk_management: ['stop loss', 'limit', 'protect', 'defensive', 'safe', 'reduce risk', 'trim', 'too much exposure', 'rebalance'],
+  profit_taking:   ['profit', 'gain', 'up', 'return', 'selling high', 'take some off', 'lock in', 'target reached', 'goal met'],
+};
+
+function scoreText(text: string, keywords: string[]): number {
+  const lower = text.toLowerCase();
+  return keywords.reduce((n, kw) => n + (lower.includes(kw) ? 1 : 0), 0);
+}
+
+function topTickers(trades: Investment[], n = 3): string[] {
+  const counts: Record<string, number> = {};
+  for (const t of trades) counts[t.symbol] = (counts[t.symbol] ?? 0) + 1;
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n).map(([s]) => s);
+}
+
+function analyzeInvestmentsLocally(trades: Investment[]) {
+  const buys  = trades.filter(t => t.action_type === 'BUY' || t.action_type === 'OPTIONS_BUY');
+  const sells = trades.filter(t => t.action_type === 'SELL' || t.action_type === 'OPTIONS_SELL' || t.action_type === 'EXPIRED');
+
+  // Score every trade's combined text against each theme
+  const themeScores: Record<string, number> = {};
+  const themeEvidence: Record<string, string[]> = {};
+  for (const [theme, keywords] of Object.entries(THEMES)) {
+    themeScores[theme] = 0;
+    themeEvidence[theme] = [];
+    for (const t of trades) {
+      const text = [t.reason ?? '', t.future_goal ?? ''].join(' ');
+      const hit = scoreText(text, keywords);
+      if (hit > 0) {
+        themeScores[theme] += hit;
+        if (themeEvidence[theme].length < 3) themeEvidence[theme].push(t.symbol);
+      }
+    }
+  }
+
+  const ranked = Object.entries(themeScores)
+    .filter(([, s]) => s > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const top = ranked.slice(0, 5).map(([theme]) => theme);
+  const dominant = top[0] ?? 'long_term';
+
+  // Archetype
+  const archetypeMap: Record<string, [string, string]> = {
+    dip_buying:      ['The Dip Buyer',       'Buys fear, holds conviction — waiting for the market to prove itself wrong.'],
+    long_term:       ['The Conviction Holder','Slow, deliberate, and thesis-driven — built for the long game, not the next quarter.'],
+    diversification: ['The Index Architect',  'Methodical and measured — spreading risk across sectors before concentrating anywhere.'],
+    averaging:       ['The Dollar-Cost Machine','Patient and systematic — keeps feeding positions regardless of short-term noise.'],
+    momentum:        ['The Momentum Chaser',  'Follows price action and energy — gets in when things are moving, not before.'],
+    income:          ['The Yield Hunter',     'Buys for cash flow — dividends and distributions are the thesis, not just a bonus.'],
+    news_driven:     ['The Catalyst Trader',  'Event-driven and reactive — enters when there\'s a clear trigger, not just a feeling.'],
+    risk_management: ['The Risk Manager',     'Thinks in exits before entries — every position has a defined limit.'],
+    profit_taking:   ['The Disciplined Trimmer','Sets targets and actually hits them — doesn\'t let winners run into regret.'],
+  };
+
+  const [archetype, tagline] = archetypeMap[dominant] ?? ['The Pragmatist', 'Adaptable and data-aware — no single style defines the approach.'];
+
+  // Build patterns from top themes
+  const patternDescriptions: Record<string, string> = {
+    dip_buying:      'You consistently step in when prices are down, treating market fear as an entry signal. This shows patience and contrarian instinct — but watch for catching falling knives without a recovery thesis.',
+    long_term:       'Your annotations reveal a thesis-first mindset. You buy when you believe in the story, not the price action, and your goals are measured in years. This is the backbone of most great investor profiles.',
+    diversification: 'You deliberately spread exposure across sectors and asset classes. This suggests an awareness of concentration risk and a preference for stable compounding over high-conviction single-stock bets.',
+    averaging:       'You return to the same positions over time, lowering your cost basis and adding conviction incrementally. Dollar-cost averaging is your default move when you believe in the direction but not the timing.',
+    momentum:        'Some of your trades are driven by price action and energy — you enter when things are already moving. This can capture real upside but also creates FOMO risk if not paired with a clear thesis.',
+    income:          'Dividends and yield are a recurring theme. You think about returns in terms of cash flow, not just price appreciation — a sign of long-term portfolio planning.',
+    news_driven:     'Earnings, launches, and catalysts pull you in. You\'re watching for triggers that justify a move, which can be disciplined — or reactive depending on the source.',
+    risk_management: 'You think about exits before you enter. Trimming, hedging, and reducing exposure feature in your reasoning — a sign of portfolio-level thinking, not just stock-picking.',
+    profit_taking:   'You actually sell when you hit targets. Locking in gains is a skill most investors underuse — your annotations suggest you\'ve built this habit.',
+  };
+
+  const patterns = top.slice(0, 4).map(theme => ({
+    name: theme.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    description: patternDescriptions[theme] ?? 'A recurring pattern in your trade reasoning.',
+    evidence: [...new Set(themeEvidence[theme])].slice(0, 4),
+  }));
+
+  // Buy triggers from buy-side themes
+  const buyThemes = ['dip_buying', 'averaging', 'momentum', 'news_driven', 'long_term', 'income', 'diversification'];
+  const buyTriggers = buyThemes
+    .filter(t => themeScores[t] > 0 && (buys.some(b => scoreText([b.reason ?? '', b.future_goal ?? ''].join(' '), THEMES[t]) > 0)))
+    .slice(0, 5)
+    .map(t => ({
+      dip_buying:      'Price is down — you see an entry, not a warning',
+      averaging:       'Already holding — time to lower the cost basis',
+      momentum:        'Price action is strong and confirming',
+      news_driven:     'Earnings or catalyst creates a clear trigger',
+      long_term:       'Conviction in the thesis, regardless of short-term price',
+      income:          'Dividend or yield justifies the position',
+      diversification: 'Portfolio needs exposure to this sector or asset class',
+    }[t] ?? t));
+
+  // Exit style from sell-side annotations
+  const sellAnnotated = sells.filter(t => t.reason || t.future_goal);
+  const exitThemeScores: Record<string, number> = {};
+  for (const t of sellAnnotated) {
+    const text = [t.reason ?? '', t.future_goal ?? ''].join(' ');
+    for (const [theme, keywords] of Object.entries(THEMES)) {
+      exitThemeScores[theme] = (exitThemeScores[theme] ?? 0) + scoreText(text, keywords);
+    }
+  }
+  const topExitTheme = Object.entries(exitThemeScores).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const exitStyleMap: Record<string, string> = {
+    profit_taking:   'You exit when targets are hit — disciplined and pre-planned. Sells are often clean decisions, not emotional ones.',
+    risk_management: 'You sell to manage exposure and reduce risk. Exits are defensive and deliberate, not reactive to panic.',
+    diversification: 'You rebalance rather than abandon — sells are usually rotations, not full exits from a thesis.',
+    long_term:       'You rarely sell, and when you do it\'s because the thesis has changed, not just the price.',
+    news_driven:     'Catalysts trigger exits as much as entries — you sell when the event has played out or the story changes.',
+    dip_buying:      'You tend to hold through dips rather than exit — selling isn\'t your default move.',
+  };
+  const exitStyle = sellAnnotated.length === 0
+    ? 'Most of your annotated trades are buys — your exit behavior is still being decoded as you add sell annotations.'
+    : exitStyleMap[topExitTheme ?? ''] ?? 'Your exits are deliberate but varied — no single pattern dominates your sell behavior yet.';
+
+  // Blind spots
+  const blindSpots: string[] = [];
+  const sellRatio = sells.length / (trades.length || 1);
+  if (sellAnnotated.length < sellRatio * trades.length * 0.3) {
+    blindSpots.push('Exit reasoning is underdeveloped — most annotated trades are buys, leaving sell decisions under-documented');
+  }
+  if (themeScores['momentum'] > themeScores['long_term'] * 0.6) {
+    blindSpots.push('Momentum-driven entries can blur the line between a thesis and FOMO — worth auditing which is which');
+  }
+  const tickerCounts: Record<string, number> = {};
+  for (const t of trades) tickerCounts[t.symbol] = (tickerCounts[t.symbol] ?? 0) + 1;
+  const topTicker = Object.entries(tickerCounts).sort((a, b) => b[1] - a[1])[0];
+  if (topTicker && topTicker[1] > trades.length * 0.15) {
+    blindSpots.push(`Heavy repeat trading in ${topTicker[0]} — high familiarity can become overconfidence`);
+  }
+  if (themeScores['dip_buying'] > 0 && themeScores['risk_management'] === 0) {
+    blindSpots.push('Dip-buying without documented stop-loss reasoning means entries have no defined exit floor');
+  }
+  if (blindSpots.length === 0) {
+    blindSpots.push('Annotation coverage is still building — the clearer your reasons, the sharper the blind spots become');
+  }
+
+  return {
+    archetype,
+    tagline,
+    patterns,
+    buy_triggers: buyTriggers.length > 0 ? buyTriggers : ['Conviction in a long-term thesis', 'Price creates a compelling entry point'],
+    exit_style: exitStyle,
+    blind_spots: blindSpots.slice(0, 3),
+    annotated_count: trades.length,
+    engine: 'local',
+  };
+}
 
 export class ApiRouter {
   constructor(
@@ -218,6 +378,84 @@ export class ApiRouter {
         if (body.reason !== undefined) updates.reason = body.reason || null;
         if (body.future_goal !== undefined) updates.future_goal = body.future_goal || null;
         this.db.updateInvestment(id, updates);
+        this.sendJson(res, { success: true });
+        return;
+      }
+
+      if (pathname === '/api/investments/analyze' && method === 'GET') {
+        const cached = this.db.getCachedAnalysis();
+        this.sendJson(res, cached ? { analysis: JSON.parse(cached.value), cached_at: cached.created_at } : { analysis: null });
+        return;
+      }
+
+      if (pathname === '/api/investments/analyze' && method === 'POST') {
+        const annotated = this.db.getAnnotatedInvestments();
+        if (annotated.length < 10) {
+          this.sendError(res, 400, 'Not enough annotated trades to analyze');
+          return;
+        }
+
+        let analysis: object;
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+
+        if (apiKey) {
+          const client = new Anthropic({ apiKey });
+          const tradeLines = annotated.map(t => {
+            const parts = [
+              `${t.run_date} | ${t.action_type} | ${t.symbol}`,
+              t.amount != null ? `$${Math.abs(t.amount).toFixed(0)}` : '',
+              t.reason ? `Reason: "${t.reason}"` : '',
+              t.future_goal ? `Goal: "${t.future_goal}"` : '',
+            ].filter(Boolean);
+            return parts.join(' | ');
+          }).join('\n');
+
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1500,
+            messages: [{
+              role: 'user',
+              content: `You are analyzing the trading psychology of an individual investor based on their annotated trade history. Each trade has the date, action, ticker, amount, and the investor's own reason/goal written in their own words.
+
+Here are ${annotated.length} annotated trades (out of their full history):
+
+${tradeLines}
+
+Analyze this data and return a JSON object with this exact structure:
+{
+  "archetype": "short name for their trading personality (e.g. 'The Conviction Holder', 'The Dip Buyer')",
+  "tagline": "one punchy sentence that captures their style",
+  "patterns": [
+    {
+      "name": "pattern name",
+      "description": "2-3 sentence description of what drives this behavior, backed by the data",
+      "evidence": ["specific ticker or trade that exemplifies this"]
+    }
+  ],
+  "buy_triggers": ["concise trigger 1", "concise trigger 2", "..."],
+  "exit_style": "1-2 sentences on how/when they sell",
+  "blind_spots": ["potential risk or bias 1", "potential risk or bias 2"],
+  "annotated_count": ${annotated.length}
+}
+
+Produce 3-5 patterns. Be specific and reference actual tickers and reasons from the data. Return only valid JSON, no other text.`
+            }]
+          });
+
+          const raw = (message.content[0] as { type: string; text: string }).text.trim();
+          const jsonStr = raw.startsWith('{') ? raw : raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+          analysis = JSON.parse(jsonStr);
+        } else {
+          analysis = analyzeInvestmentsLocally(annotated);
+        }
+
+        this.db.setCachedAnalysis(JSON.stringify(analysis));
+        this.sendJson(res, { analysis, cached_at: Date.now() });
+        return;
+      }
+
+      if (pathname === '/api/investments/analyze/clear' && method === 'DELETE') {
+        this.db.clearCachedAnalysis();
         this.sendJson(res, { success: true });
         return;
       }
