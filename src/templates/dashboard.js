@@ -131,7 +131,6 @@ function updateTasksHeader() {
 function switchCategory(category) {
   currentCategory = category;
   const isTodo        = category === 'todo';
-  const isCars        = category === 'cars';
   const isPeriod      = category === 'period';
   const isTv          = category === 'tv';
   const isGrocery     = category === 'grocery';
@@ -142,7 +141,6 @@ function switchCategory(category) {
     btn.classList.toggle('active', btn.dataset.category === category);
   });
 
-  document.getElementById('cars-view').style.display        = isCars        ? 'block' : 'none';
   document.getElementById('period-view').style.display      = isPeriod      ? 'flex'  : 'none';
   document.getElementById('tv-view').style.display          = isTv          ? 'flex'  : 'none';
   document.getElementById('grocery-view').style.display     = isGrocery     ? 'flex'  : 'none';
@@ -164,9 +162,7 @@ function switchCategory(category) {
 
   const titleEl   = document.querySelector('.topbar-title');
   const eyebrowEl = document.getElementById('topbar-date');
-  document.getElementById('cars-sheet-link').style.display = isCars ? 'inline-block' : 'none';
-  if (isCars)              titleEl.textContent = 'Scores';
-  else if (isPeriod)       titleEl.textContent = 'CYCLE TRACKER';
+  if (isPeriod)            titleEl.textContent = 'CYCLE TRACKER';
   else if (isTv)           titleEl.textContent = 'TV GUIDE';
   else if (isGrocery)      titleEl.textContent = 'MARKET RUN';
   else if (isTravel)       titleEl.textContent = 'TRAVEL';
@@ -180,11 +176,7 @@ function switchCategory(category) {
       _d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   }
 
-  if (isCars) {
-    fetchCarsData();
-    fetchSectionScores();
-    renderDrawingsTable();
-  } else if (isPeriod) {
+  if (isPeriod) {
     fetchPeriodLogs();
   } else if (isGrocery) {
     fetchGroceryItems();
@@ -505,169 +497,6 @@ function toggleCollect(idx) {
   else got.splice(i, 1);
   localStorage.setItem('travel-collect', JSON.stringify(got));
   renderCollectList();
-}
-
-// ── CARS View ─────────────────────────────────────────────────────────────────
-const CARS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/17P30_NWjBy2Nm9keI-w5qxdKkNzFtaJbKvIfzsS0Hks/gviz/tq?tqx=out:csv';
-
-async function fetchCarsData() {
-  const grid = document.getElementById('cars-grid');
-  grid.innerHTML = '<div class="cars-loading">Loading...</div>';
-
-  try {
-    const res = await fetch(CARS_SHEET_URL);
-    const text = await res.text();
-    const rows = text.trim().split('\n').slice(1);
-    const entries = rows
-      .map(row => {
-        const parts = row.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-        return { date: parts[0], score: parts[1] };
-      })
-      .filter(e => e.date && e.score);
-    renderCarsGrid(entries);
-  } catch (err) {
-    grid.innerHTML = `<div class="error">Failed to load CARS data: ${escapeHtml(err.message)}</div>`;
-  }
-}
-
-function scoreColor(score) {
-  const [num, denom] = score.split('/').map(Number);
-  if (isNaN(num) || isNaN(denom)) return '';
-  const diff = denom - num;
-  if (diff === 0) return 'green';
-  if ((denom === 7 && num === 6) || (denom === 6 && num === 5)) return 'green';
-  if (diff <= 2) return 'yellow';
-  return 'red';
-}
-
-function renderCarsGrid(entries) {
-  const grid = document.getElementById('cars-grid');
-  if (entries.length === 0) {
-    grid.innerHTML = '<div class="cars-loading">No data yet.</div>';
-    return;
-  }
-
-  grid.innerHTML = `<div class="cars-weeks">${
-    entries.map(({ date, score }) => `
-      <div class="cars-day">
-        <div class="cars-circle ${scoreColor(score)}">${escapeHtml(score)}</div>
-        <div class="cars-date">${escapeHtml(date)}</div>
-      </div>
-    `).join('')
-  }</div>`;
-}
-
-// ── Subject Progress ──────────────────────────────────────────────────────────
-const SECTION_SCORES_URL = 'https://docs.google.com/spreadsheets/d/17P30_NWjBy2Nm9keI-w5qxdKkNzFtaJbKvIfzsS0Hks/gviz/tq?tqx=out:csv&gid=277032242';
-
-async function fetchSectionScores() {
-  const grid = document.getElementById('subjects-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div class="cars-loading">Loading...</div>';
-
-  try {
-    const res = await fetch(SECTION_SCORES_URL);
-    const text = await res.text();
-    const rows = text.trim().split('\n').slice(1);
-    const entries = rows
-      .map(row => {
-        const parts = row.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-        return { label: parts[0], done: parseInt(parts[1], 10) || 0, total: parseInt(parts[2], 10) || 0 };
-      })
-      .filter(e => e.label && e.total > 0);
-    renderSubjectCircles(entries);
-  } catch (err) {
-    grid.innerHTML = `<div class="error">Failed to load section scores: ${escapeHtml(err.message)}</div>`;
-  }
-}
-
-function renderSubjectCircles(entries) {
-  const grid = document.getElementById('subjects-grid');
-  if (!grid) return;
-
-  const R = 48;
-  const CIRCUM = +(2 * Math.PI * R).toFixed(2);
-
-  grid.innerHTML = entries.map(({ label, done, total }) => {
-    const pct    = Math.min(done / total, 1);
-    const offset = +(CIRCUM * (1 - pct)).toFixed(2);
-
-    return `
-      <div class="subject-circle-wrap">
-        <div class="subject-svg-container">
-          <svg width="110" height="110" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--border)" stroke-width="7"/>
-            <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--red)" stroke-width="7"
-              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
-              stroke-linecap="round" transform="rotate(-90 60 60)"
-              style="transition: stroke-dashoffset 0.4s ease"/>
-            <text x="60" y="58" text-anchor="middle"
-              font-family="Courier Prime, monospace" font-size="15" font-weight="700"
-              fill="var(--dark)">${done}</text>
-            <text x="60" y="72" text-anchor="middle"
-              font-family="Space Grotesk, sans-serif" font-size="9"
-              fill="var(--muted)">/ ${total}</text>
-          </svg>
-        </div>
-        <div class="subject-label">${escapeHtml(label)}</div>
-        <div class="subject-pct">${Math.round(pct * 100)}%</div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ── Daily Drawings ────────────────────────────────────────────────────────────
-const DRAWINGS = [
-  'Amino Acids', 'Physics Eq.', 'Oogenesis', 'Basal Body',
-  'CAC', 'Glycolysis', 'Gluconeo.', 'PPP', 'ETC'
-];
-
-function loadDrawingsLog() {
-  try { return JSON.parse(localStorage.getItem('drawings-log') || '{}'); }
-  catch { return {}; }
-}
-
-function toggleDrawingCell(dateStr, name) {
-  const log = loadDrawingsLog();
-  if (!log[dateStr]) log[dateStr] = [];
-  const i = log[dateStr].indexOf(name);
-  if (i === -1) log[dateStr].push(name);
-  else log[dateStr].splice(i, 1);
-  localStorage.setItem('drawings-log', JSON.stringify(log));
-  renderDrawingsTable();
-}
-
-function renderDrawingsTable() {
-  const thead = document.getElementById('drawings-thead');
-  const tbody = document.getElementById('drawings-tbody');
-  if (!thead || !tbody) return;
-
-  thead.innerHTML = `<tr>
-    <th class="drawings-th drawings-th-date">DATE</th>
-    ${DRAWINGS.map(n => `<th class="drawings-th">${escapeHtml(n)}</th>`).join('')}
-  </tr>`;
-
-  const log = loadDrawingsLog();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const rows = [];
-
-  const start = new Date(2026, 3, 9);  // Apr 9
-  const end   = new Date(2026, 4, 15); // May 15
-
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
-    const checked = log[iso] || [];
-    const isToday = d.getTime() === today.getTime();
-
-    rows.push(`<tr class="drawings-row${isToday ? ' today' : ''}">
-      <td class="drawings-date-cell">${label}</td>
-      ${DRAWINGS.map(name => `<td class="drawings-check-cell${checked.includes(name) ? ' checked' : ''}"
-        onclick="toggleDrawingCell('${iso}','${name}')">${checked.includes(name) ? '✓' : ''}</td>`).join('')}
-    </tr>`);
-  }
-  tbody.innerHTML = rows.join('');
 }
 
 // ── Fetch Todos ───────────────────────────────────────────────────────────────
