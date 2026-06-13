@@ -4,6 +4,7 @@ import { mkdir } from "fs/promises";
 import { dirname } from "path";
 import type { TodoItem, PeriodLog, MovieItem, Investment } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
+import { DEFAULT_TRAITS, type BehaviorTrait } from "../server/behavioral-analysis.js";
 
 export class TodoDatabase {
   private db: Database.Database;
@@ -653,6 +654,36 @@ export class TodoDatabase {
 
   clearCachedAnalysis(): void {
     this.db.prepare(`DELETE FROM kv_store WHERE key = 'investment_analysis'`).run();
+  }
+
+  // ── Behavior trait taxonomy (data-driven, no redeploy to extend) ─────────────
+
+  /** Returns the stored taxonomy, seeding it from DEFAULT_TRAITS on first read. */
+  getBehaviorTraits(): BehaviorTrait[] {
+    const row = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'behavior_traits'`).get() as { value: string } | undefined;
+    if (!row) {
+      this.setBehaviorTraits(DEFAULT_TRAITS);
+      return DEFAULT_TRAITS;
+    }
+    try {
+      const parsed = JSON.parse(row.value) as BehaviorTrait[];
+      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_TRAITS;
+    } catch {
+      return DEFAULT_TRAITS;
+    }
+  }
+
+  setBehaviorTraits(traits: BehaviorTrait[]): void {
+    this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('behavior_traits', ?, ?)`)
+      .run(JSON.stringify(traits), Date.now());
+  }
+
+  /** Add or replace a single trait by id; returns the full updated taxonomy. */
+  upsertBehaviorTrait(trait: BehaviorTrait): BehaviorTrait[] {
+    const traits = this.getBehaviorTraits().filter(t => t.id !== trait.id);
+    traits.push(trait);
+    this.setBehaviorTraits(traits);
+    return traits;
   }
 
   getInvestmentPatterns(): {

@@ -2081,6 +2081,94 @@
     }
     .inv-rerun-btn:hover { border-color: #1B3A2D; color: #1B3A2D; }
 
+    /* Structural metric strip */
+    .inv-metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 2px;
+      background: #E0D8C8;
+      border: 2px solid #141410;
+      box-shadow: 4px 4px 0 #141410;
+      margin-bottom: 24px;
+    }
+    .inv-metric {
+      background: #F9F5EE;
+      padding: 16px 18px;
+    }
+    .inv-metric-value {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 26px;
+      line-height: 1;
+      color: #141410;
+      margin-bottom: 7px;
+    }
+    .inv-metric-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #FF5C35;
+      margin-bottom: 3px;
+    }
+    .inv-metric-sub {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      color: #9A8F7E;
+    }
+    .inv-metric-good .inv-metric-value { color: #1B7A4B; }
+    .inv-metric-bad  .inv-metric-value { color: #C4351E; }
+    .inv-metric-warn .inv-metric-value { color: #B8860B; }
+
+    /* Emerging themes */
+    .inv-emerging-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .inv-emerging-item {
+      border: 1.5px dashed #C9BFAD;
+      padding: 12px 14px;
+      background: #FBF8F1;
+    }
+    .inv-emerging-term {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .inv-emerging-word {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      color: #141410;
+      text-transform: capitalize;
+    }
+    .inv-emerging-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #FF5C35;
+    }
+    .inv-emerging-examples {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: #9A8F7E;
+      margin-bottom: 10px;
+    }
+    .inv-emerging-add {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: none;
+      border: 1.5px solid #1B3A2D;
+      color: #1B3A2D;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .inv-emerging-add:hover { background: #1B3A2D; color: #F5C842; }
+
     .inv-results-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -3047,7 +3135,7 @@
             <div class="inv-analysis-card">
               <div class="inv-analysis-eyebrow">Behavior Analysis</div>
               <div class="inv-analysis-title">Decode<br>Your Edge</div>
-              <p class="inv-analysis-body">Claude reads every reason you've written and surfaces the real patterns in your trading psychology — what triggers your buys, how you exit, where your blind spots live.</p>
+              <p class="inv-analysis-body">Reads your full trade history — every buy, sell, and option — to surface the real patterns in your behavior: what triggers your buys, how disciplined your exits are, and where your blind spots live. Add reasons in the Trades tab and the read gets sharper.</p>
               <div class="inv-analysis-progress-row">
                 <div class="inv-analysis-pbar">
                   <div class="inv-analysis-pfill" id="inv-analysis-pfill" style="width:0%"></div>
@@ -3076,6 +3164,9 @@
               <button class="inv-rerun-btn" id="inv-rerun-btn">Re-analyze</button>
             </div>
 
+            <!-- Structural metric strip -->
+            <div class="inv-metrics-strip" id="inv-metrics-strip"></div>
+
             <div class="inv-results-grid">
               <!-- Patterns -->
               <div class="inv-result-card inv-card-full">
@@ -3099,6 +3190,12 @@
               <div class="inv-result-card inv-card-full">
                 <div class="inv-result-card-label">Exit Style</div>
                 <div class="inv-exit-text" id="inv-exit-style"></div>
+              </div>
+
+              <!-- Emerging themes (vocabulary not yet tracked as a trait) -->
+              <div class="inv-result-card inv-card-full" id="inv-emerging-card" style="display:none">
+                <div class="inv-result-card-label">Emerging Themes — in your words, not yet tracked</div>
+                <div class="inv-emerging-list" id="inv-emerging-list"></div>
               </div>
             </div>
 

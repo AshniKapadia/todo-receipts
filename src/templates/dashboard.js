@@ -1217,6 +1217,20 @@ const Investments = {
     document.getElementById('inv-archetype-tagline').textContent = analysis.tagline || '';
     document.getElementById('inv-exit-style').textContent = analysis.exit_style || '';
 
+    // Structural metric strip
+    const metricsEl = document.getElementById('inv-metrics-strip');
+    if (metricsEl) {
+      const metrics = analysis.metrics || [];
+      metricsEl.innerHTML = metrics.map(m => `
+        <div class="inv-metric inv-metric-${m.tone || 'neutral'}">
+          <div class="inv-metric-value">${invEscape(m.value)}</div>
+          <div class="inv-metric-label">${invEscape(m.label)}</div>
+          <div class="inv-metric-sub">${invEscape(m.sub || '')}</div>
+        </div>
+      `).join('');
+      metricsEl.style.display = metrics.length ? 'grid' : 'none';
+    }
+
     const patternList = document.getElementById('inv-pattern-list');
     patternList.innerHTML = (analysis.patterns || []).map(p => `
       <div class="inv-pattern-item">
@@ -1234,13 +1248,55 @@ const Investments = {
       `<div class="inv-tag-item"><div class="inv-tag-bullet"></div><span>${invEscape(b)}</span></div>`
     ).join('');
 
+    // Emerging themes — vocabulary in your reasons that no trait captures yet
+    const emergeCard = document.getElementById('inv-emerging-card');
+    const emergeList = document.getElementById('inv-emerging-list');
+    if (emergeCard && emergeList) {
+      const themes = analysis.emerging_themes || [];
+      if (themes.length) {
+        emergeList.innerHTML = themes.map(t => `
+          <div class="inv-emerging-item">
+            <div class="inv-emerging-term">
+              <span class="inv-emerging-word">${invEscape(t.term)}</span>
+              <span class="inv-emerging-count">${t.count}×</span>
+            </div>
+            <div class="inv-emerging-examples">${(t.examples || []).map(e => invEscape(e)).join(' · ')}</div>
+            <button class="inv-emerging-add" data-term="${invEscape(t.term)}">+ Track as trait</button>
+          </div>
+        `).join('');
+        emergeList.querySelectorAll('.inv-emerging-add').forEach(btn => {
+          btn.addEventListener('click', () => Investments.trackEmergingTrait(btn.dataset.term));
+        });
+        emergeCard.style.display = 'block';
+      } else {
+        emergeCard.style.display = 'none';
+      }
+    }
+
     const meta = document.getElementById('inv-results-meta');
     if (cached_at) {
       const d = new Date(cached_at);
-      meta.textContent = `Based on ${analysis.annotated_count || '?'} annotated trades · analyzed ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      const engine = analysis.engine === 'ai' ? 'Claude' : 'on-device engine';
+      const basis = analysis.annotated_count > 0
+        ? `${analysis.trade_count || '?'} trades · ${analysis.annotated_count} annotated`
+        : `${analysis.trade_count || '?'} trades (structural read — add reasons to deepen it)`;
+      meta.textContent = `${basis} · decoded by ${engine} ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     }
 
     this.showAnalysisState('results');
+  },
+
+  async trackEmergingTrait(term) {
+    if (!term) return;
+    const label = term.charAt(0).toUpperCase() + term.slice(1);
+    await fetch('/api/investments/traits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: term, label, keywords: [term], side: 'any', kind: 'thesis' }),
+    });
+    // Re-run so the new trait participates immediately
+    this.showAnalysisState('loading');
+    this.runAnalysis();
   },
 
   async loadPatterns() {
@@ -1286,11 +1342,15 @@ const Investments = {
     const analyzeHint = document.getElementById('inv-analyze-hint');
     if (pfill)  pfill.style.width  = pct + '%';
     if (ptext)  ptext.textContent  = (a.annotated ?? 0) + ' / ' + (a.total ?? 0) + ' decoded';
-    const unlocked = a.annotated >= 50;
+    // Structural analysis only needs enough trades — annotations deepen it but
+    // aren't required to unlock it.
+    const unlocked = (s.total ?? 0) >= 12;
     if (analyzeBtn)  analyzeBtn.disabled = !unlocked;
-    if (analyzeHint) analyzeHint.textContent = unlocked
-      ? 'Analysis ready — powered by Claude API'
-      : `Decode ${Math.max(0, 50 - a.annotated)} more trades to unlock`;
+    if (analyzeHint) analyzeHint.textContent = !unlocked
+      ? `Import ${Math.max(0, 12 - (s.total ?? 0))} more trades to unlock`
+      : a.annotated > 0
+        ? `Ready — reading ${s.total} trades, ${a.annotated} with your notes`
+        : `Ready — ${s.total} trades. Add reasons in the Trades tab to go deeper`;
   },
 
   switchInnerTab(tab) {
