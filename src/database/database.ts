@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, MovieItem, Investment } from "./schema.js";
+import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 import { DEFAULT_TRAITS, type BehaviorTrait } from "../server/behavioral-analysis.js";
 
@@ -29,6 +29,10 @@ export class TodoDatabase {
 
     // Run migrations
     this.runMigrations();
+
+    // Seed the rejection-therapy starter asks once (guarded by a kv flag so
+    // deleting them doesn't resurrect them on the next boot).
+    this.ensureRejectionSeed();
   }
 
   /**
@@ -729,6 +733,108 @@ export class TodoDatabase {
     `).all() as Array<{ account: string; count: number }>;
 
     return { monthlyActivity: monthlyRows, tickerFrequency: tickerRows, annotationProgress: annotation, totalStats: stats, accountSplit };
+  }
+
+  // ── Rejection Therapy ("The No") ─────────────────────────────────────────────
+  // A standalone, permanent list — the goal is to collect 300 asks / rejections.
+  // Kept in its OWN table (not `todos`) so the nightly midnight reset never
+  // touches it.
+
+  /** One example ask so the list isn't totally blank on first visit. Ashni fills in the rest (goal: 300). */
+  private static REJECTION_SEED: string[] = [
+    "Ask a stranger for a compliment.",
+  ];
+
+  private ensureRejectionSeed(): void {
+    const flag = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'rejection_seeded'`).get() as { value: string } | undefined;
+    if (flag) return;
+
+    const now = Date.now();
+    const insert = this.db.prepare(`
+      INSERT INTO rejection_challenges (title, done, outcome, order_position, created_at, updated_at)
+      VALUES (?, 0, NULL, ?, ?, ?)
+    `);
+    const seed = this.db.transaction(() => {
+      TodoDatabase.REJECTION_SEED.forEach((title, i) => {
+        insert.run(title, i, now + i, now + i);
+      });
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('rejection_seeded', '1', ?)`).run(now);
+    });
+    seed();
+  }
+
+  private mapRejection(row: {
+    id: number; title: string; done: number; outcome: string | null;
+    order_position: number; created_at: number; updated_at: number; done_at: number | null;
+  }): RejectionChallenge {
+    return {
+      id: row.id,
+      title: row.title,
+      done: row.done === 1,
+      outcome: (row.outcome === 'no' || row.outcome === 'yes') ? row.outcome : null,
+      order_position: row.order_position,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      done_at: row.done_at,
+    };
+  }
+
+  /** Stable creation order — crossed-off asks stay exactly where they are in the list. */
+  getRejectionChallenges(): RejectionChallenge[] {
+    const rows = this.db.prepare(`
+      SELECT id, title, done, outcome, order_position, created_at, updated_at, done_at
+      FROM rejection_challenges
+      ORDER BY order_position ASC, created_at ASC
+    `).all() as any[];
+    return rows.map(r => this.mapRejection(r));
+  }
+
+  addRejectionChallenge(title: string): RejectionChallenge {
+    const now = Date.now();
+    const maxRow = this.db.prepare('SELECT MAX(order_position) as m FROM rejection_challenges').get() as { m: number | null };
+    const order = (maxRow.m ?? -1) + 1;
+    const result = this.db.prepare(`
+      INSERT INTO rejection_challenges (title, done, outcome, order_position, created_at, updated_at)
+      VALUES (?, 0, NULL, ?, ?, ?)
+    `).run(title, order, now, now);
+    return {
+      id: result.lastInsertRowid as number,
+      title, done: false, outcome: null,
+      order_position: order, created_at: now, updated_at: now, done_at: null,
+    };
+  }
+
+  updateRejectionChallenge(
+    id: number,
+    updates: { title?: string; done?: boolean; outcome?: 'no' | 'yes' | null },
+  ): RejectionChallenge {
+    const current = this.db.prepare(`
+      SELECT id, title, done, outcome, order_position, created_at, updated_at, done_at
+      FROM rejection_challenges WHERE id = ?
+    `).get(id) as any;
+    if (!current) throw new Error(`Rejection challenge ${id} not found`);
+
+    const now = Date.now();
+    const newTitle = updates.title ?? current.title;
+    const newDone = updates.done !== undefined ? (updates.done ? 1 : 0) : current.done;
+    // Marking done stamps done_at; un-checking clears both done_at and outcome.
+    const newDoneAt = newDone === 1 ? (current.done_at ?? now) : null;
+    let newOutcome: string | null;
+    if (updates.outcome !== undefined) newOutcome = updates.outcome;
+    else newOutcome = newDone === 1 ? current.outcome : null;
+
+    this.db.prepare(`
+      UPDATE rejection_challenges
+      SET title = ?, done = ?, outcome = ?, updated_at = ?, done_at = ?
+      WHERE id = ?
+    `).run(newTitle, newDone, newOutcome, now, newDoneAt, id);
+
+    return this.mapRejection({ ...current, title: newTitle, done: newDone, outcome: newOutcome, updated_at: now, done_at: newDoneAt });
+  }
+
+  deleteRejectionChallenge(id: number): void {
+    const result = this.db.prepare('DELETE FROM rejection_challenges WHERE id = ?').run(id);
+    if (result.changes === 0) throw new Error(`Rejection challenge ${id} not found`);
   }
 
   /**

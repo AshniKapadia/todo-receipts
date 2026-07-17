@@ -2667,6 +2667,345 @@
     }
     .inv-confirm-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #141410; }
     .inv-confirm-btn:disabled { opacity: 0.5; transform: none !important; box-shadow: 2px 2px 0 #141410 !important; cursor: not-allowed; }
+
+    /* ═══════════════ THE NO · Rejection Therapy ═══════════════ */
+    .rej-section {
+      --rej-ink:    #20130E;
+      --rej-paper:  #F3EADA;
+      --rej-wine:   #6E1D2A;
+      --rej-wine-2: #551520;
+      --rej-gold:   #E0A62B;
+      --rej-red:    #D6382B;
+      --rej-yes:    #5E7B34;
+      --rej-card:   #FBF4E7;
+      --rej-muted:  #9B876A;
+      flex: 1;
+      overflow-y: auto;
+      flex-direction: column;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(32,19,14,0.04) 27px, rgba(32,19,14,0.04) 28px),
+        var(--rej-paper);
+      font-family: 'Courier Prime', monospace;
+      color: var(--rej-ink);
+    }
+
+    /* ── Hero ── */
+    .rej-hero {
+      position: relative;
+      background: var(--rej-wine);
+      color: var(--rej-paper);
+      padding: 34px 40px 30px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border-bottom: 4px solid var(--rej-ink);
+    }
+    .rej-hero::before {
+      content: 'NO NO NO NO NO NO NO NO NO NO NO NO NO NO';
+      position: absolute;
+      top: -18px; left: -12px; right: -12px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 120px;
+      line-height: 0.82;
+      color: rgba(243,234,218,0.055);
+      letter-spacing: 4px;
+      white-space: normal;
+      word-break: break-word;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .rej-hero-text { flex: 1; position: relative; z-index: 1; min-width: 0; }
+    .rej-hero-eyebrow {
+      font-family: 'Courier Prime', monospace;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--rej-gold);
+      margin-bottom: 10px;
+    }
+    .rej-hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 104px;
+      line-height: 0.82;
+      letter-spacing: 1px;
+      color: var(--rej-paper);
+      margin-bottom: 14px;
+      text-shadow: 4px 4px 0 var(--rej-gold);
+    }
+    .rej-hero-sub {
+      font-size: 12.5px;
+      letter-spacing: 0.4px;
+      color: rgba(243,234,218,0.74);
+      max-width: 420px;
+    }
+    .rej-stamp-wrap { position: relative; z-index: 1; flex-shrink: 0; }
+    .rej-stamp-svg {
+      width: 168px; height: auto;
+      filter: drop-shadow(3px 4px 0 rgba(0,0,0,0.28));
+      opacity: 0.96;
+    }
+    .rej-hero-count {
+      position: relative; z-index: 1;
+      flex-shrink: 0;
+      text-align: center;
+      background: var(--rej-paper);
+      color: var(--rej-ink);
+      border: 3px solid var(--rej-ink);
+      box-shadow: 5px 5px 0 var(--rej-gold);
+      padding: 16px 22px 14px;
+      min-width: 128px;
+    }
+    .rej-count-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 64px;
+      line-height: 0.9;
+      color: var(--rej-wine);
+    }
+    .rej-count-label {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; margin-top: 2px;
+    }
+    .rej-count-goal {
+      font-size: 9px; letter-spacing: 1px; color: var(--rej-muted);
+      margin-top: 6px; text-transform: uppercase;
+    }
+
+    /* ── Scoreboard ── */
+    .rej-scoreboard {
+      padding: 22px 40px 6px;
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .rej-progress-wrap { flex: 1; min-width: 260px; }
+    .rej-progress-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    #rej-progress-pct { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--rej-wine); }
+    .rej-progress-track {
+      height: 20px;
+      background: var(--rej-card);
+      border: 3px solid var(--rej-ink);
+      position: relative;
+      overflow: hidden;
+    }
+    .rej-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: repeating-linear-gradient(45deg, var(--rej-gold) 0 10px, #c8901f 10px 20px);
+      transition: width 0.5s cubic-bezier(.2,.8,.2,1);
+    }
+    .rej-stats { display: flex; gap: 10px; flex-shrink: 0; }
+    .rej-stat {
+      background: var(--rej-card);
+      border: 3px solid var(--rej-ink);
+      box-shadow: 3px 3px 0 var(--rej-ink);
+      padding: 10px 16px;
+      text-align: center;
+      min-width: 74px;
+    }
+    .rej-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 34px; line-height: 0.9; color: var(--rej-ink); }
+    .rej-stat-num.rej-tone-no  { color: var(--rej-red); }
+    .rej-stat-num.rej-tone-yes { color: var(--rej-yes); }
+    .rej-stat-label { font-size: 8.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--rej-muted); margin-top: 3px; }
+
+    /* ── Add form ── */
+    .rej-add { padding: 20px 40px 4px; }
+    .rej-add-label {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 8px; color: var(--rej-ink);
+    }
+    .rej-add-row { display: flex; gap: 10px; }
+    .rej-input {
+      flex: 1;
+      font-family: 'Courier Prime', monospace;
+      font-size: 15px;
+      padding: 14px 16px;
+      background: var(--rej-card);
+      border: 3px solid var(--rej-ink);
+      color: var(--rej-ink);
+      outline: none;
+    }
+    .rej-input::placeholder { color: var(--rej-muted); }
+    .rej-input:focus { box-shadow: inset 0 0 0 2px var(--rej-gold); }
+    .rej-add-btn {
+      flex-shrink: 0;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 1.5px;
+      padding: 0 26px;
+      background: var(--rej-wine);
+      color: var(--rej-paper);
+      border: 3px solid var(--rej-ink);
+      box-shadow: 4px 4px 0 var(--rej-ink);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .rej-add-btn:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--rej-ink); }
+    .rej-add-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--rej-ink); }
+    .rej-dice {
+      margin-top: 12px;
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      background: transparent;
+      border: 2px dashed var(--rej-wine);
+      color: var(--rej-wine);
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+    .rej-dice:hover { background: var(--rej-wine); color: var(--rej-paper); }
+
+    /* ── Today's dare callout ── */
+    .rej-callout {
+      margin: 16px 40px 0;
+      background: var(--rej-gold);
+      border: 3px solid var(--rej-ink);
+      box-shadow: 5px 5px 0 var(--rej-ink);
+      padding: 14px 18px;
+      display: flex; align-items: baseline; gap: 14px;
+    }
+    .rej-callout-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--rej-ink); flex-shrink: 0; white-space: nowrap;
+    }
+    .rej-callout-text { font-size: 15px; font-weight: 700; color: var(--rej-ink); }
+
+    /* ── The list of slips ── */
+    .rej-list {
+      padding: 18px 40px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .rej-empty {
+      padding: 40px; text-align: center; color: var(--rej-muted);
+      border: 3px dashed #cbb98f; font-size: 13px; letter-spacing: 1px;
+    }
+    .rej-slip {
+      position: relative;
+      background: var(--rej-card);
+      border: 3px solid var(--rej-ink);
+      box-shadow: 4px 4px 0 rgba(32,19,14,0.82);
+      padding: 15px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      overflow: hidden;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .rej-slip::before {
+      /* perforated wine edge, like a torn-off slip */
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 7px;
+      background: repeating-linear-gradient(180deg, var(--rej-wine) 0 6px, transparent 6px 12px);
+    }
+    .rej-slip:hover { transform: translate(-1px,-1px); box-shadow: 6px 6px 0 rgba(32,19,14,0.82); }
+    .rej-check {
+      flex-shrink: 0;
+      width: 26px; height: 26px;
+      border: 3px solid var(--rej-ink);
+      background: var(--rej-paper);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px; line-height: 1;
+      color: var(--rej-red);
+      transition: background 0.12s;
+    }
+    .rej-check:hover { background: #efe4cb; }
+    .rej-slip-body { flex: 1; min-width: 0; }
+    .rej-slip-index {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+      color: var(--rej-muted); margin-bottom: 2px;
+    }
+    .rej-slip-title { font-size: 15.5px; line-height: 1.4; color: var(--rej-ink); word-wrap: break-word; }
+    .rej-slip-editing {
+      width: 100%;
+      font-family: 'Courier Prime', monospace;
+      font-size: 15px; padding: 6px 8px;
+      border: 2px solid var(--rej-ink); background: #fff; color: var(--rej-ink);
+    }
+
+    /* The one-time "did they say yes or no?" ask — shows only right after crossing off */
+    .rej-ask { margin-top: 9px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rej-ask-q { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--rej-muted); }
+    .rej-ask-btn {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      padding: 5px 14px;
+      background: transparent;
+      border: 2px solid var(--rej-ink);
+      color: var(--rej-ink);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .rej-ask-btn.no:hover  { background: var(--rej-red); color: #fff; border-color: var(--rej-red); }
+    .rej-ask-btn.yes:hover { background: var(--rej-yes); color: #fff; border-color: var(--rej-yes); }
+
+    /* Right-side controls + hover outcome — hidden until you hover the slip (keeps it clean) */
+    .rej-slip-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transition: opacity 0.14s;
+    }
+    .rej-slip:hover .rej-slip-actions { opacity: 1; }
+    .rej-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 1.5px;
+      line-height: 1;
+      text-transform: uppercase;
+      padding: 3px 12px 1px;
+      border: 2.5px solid currentColor;
+      border-radius: 4px;
+    }
+    .rej-badge.no  { color: var(--rej-red); }
+    .rej-badge.yes { color: var(--rej-yes); }
+    .rej-icon-btn {
+      background: transparent; border: none; cursor: pointer;
+      color: var(--rej-muted); font-size: 15px; padding: 4px; line-height: 1;
+      transition: color 0.12s;
+    }
+    .rej-icon-btn:hover { color: var(--rej-wine); }
+
+    /* Completed slip: a clean straight red line through it, in place */
+    .rej-slip.done { background: #F1E8D6; }
+    .rej-slip.done .rej-slip-title {
+      color: #8b795f;
+      text-decoration: line-through;
+      text-decoration-color: var(--rej-red);
+      text-decoration-thickness: 2px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      .rej-hero { flex-wrap: wrap; padding: 24px 20px; gap: 18px; }
+      .rej-hero-title { font-size: 68px; text-shadow: 3px 3px 0 var(--rej-gold); }
+      .rej-stamp-svg { width: 120px; }
+      .rej-hero-count { min-width: 104px; padding: 12px 16px; }
+      .rej-count-num { font-size: 48px; }
+      .rej-scoreboard { padding: 18px 20px 4px; gap: 18px; }
+      .rej-stats { flex-wrap: wrap; }
+      .rej-add, .rej-callout, .rej-list { padding-left: 20px; padding-right: 20px; }
+      .rej-callout { margin-left: 20px; margin-right: 20px; }
+      .rej-add-row { flex-direction: column; }
+      .rej-add-btn { padding: 12px; }
+      /* On touch (no hover), always show the controls */
+      .rej-slip-actions { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -2713,6 +3052,7 @@
         <button class="list-tab"        data-category="period"  onclick="switchCategory('period')">Cycle</button>
         <button class="list-tab brain-dump-tab" data-category="tv" onclick="switchCategory('tv')">TV Guide</button>
         <button class="list-tab" data-category="investments" onclick="switchCategory('investments')">Trading Floor</button>
+        <button class="list-tab" data-category="rejection" onclick="switchCategory('rejection')">The No</button>
       </nav>
 
       <div class="brain-dump-toggle">
@@ -3234,6 +3574,80 @@
 
       </div><!-- /inv-section -->
 
+      <!-- ─────────────── THE NO · Rejection Therapy ─────────────── -->
+      <div class="rej-section" id="rejection-section" style="display:none">
+
+        <!-- Hero -->
+        <div class="rej-hero">
+          <div class="rej-hero-text">
+            <div class="rej-hero-eyebrow">REJECTION THERAPY · FILE No. 300</div>
+            <div class="rej-hero-title">THE&nbsp;NO</div>
+            <div class="rej-hero-sub">go get told no — three hundred times. it won't kill you.</div>
+          </div>
+
+          <div class="rej-stamp-wrap" aria-hidden="true">
+            <svg class="rej-stamp-svg" viewBox="0 0 220 176" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="rej-rough" x="-6%" y="-6%" width="112%" height="112%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.9 0.9" numOctaves="2" seed="7" result="n"/>
+                  <feDisplacementMap in="SourceGraphic" in2="n" scale="2.1" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+              </defs>
+              <g filter="url(#rej-rough)" transform="rotate(-8 110 88)">
+                <rect x="10" y="14" width="200" height="148" rx="10" fill="none" stroke="#E8B84A" stroke-width="6"/>
+                <rect x="22" y="26" width="176" height="124" rx="6" fill="none" stroke="#E8B84A" stroke-width="2.5"/>
+                <text x="110" y="104" text-anchor="middle" font-family="'Bebas Neue', sans-serif" font-size="92" fill="#E8B84A" letter-spacing="2">NO</text>
+                <text x="110" y="138" text-anchor="middle" font-family="'Courier Prime', monospace" font-weight="700" font-size="13" letter-spacing="5" fill="#E8B84A">★ DENIED ★</text>
+                <text x="110" y="44" text-anchor="middle" font-family="'Courier Prime', monospace" font-weight="700" font-size="9" letter-spacing="4" fill="#E8B84A">REQUEST</text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="rej-hero-count">
+            <div class="rej-count-num" id="rej-hero-num">0</div>
+            <div class="rej-count-label">asks done</div>
+            <div class="rej-count-goal">of 300</div>
+          </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="rej-scoreboard">
+          <div class="rej-progress-wrap">
+            <div class="rej-progress-head">
+              <span id="rej-progress-label">0 of 300 asks done</span>
+              <span id="rej-progress-pct">0%</span>
+            </div>
+            <div class="rej-progress-track"><div class="rej-progress-fill" id="rej-progress-fill"></div></div>
+          </div>
+          <div class="rej-stats">
+            <div class="rej-stat"><div class="rej-stat-num" id="rej-stat-total">0</div><div class="rej-stat-label">On the list</div></div>
+            <div class="rej-stat"><div class="rej-stat-num" id="rej-stat-done">0</div><div class="rej-stat-label">Asked</div></div>
+            <div class="rej-stat"><div class="rej-stat-num rej-tone-no" id="rej-stat-no">0</div><div class="rej-stat-label">Got a NO</div></div>
+            <div class="rej-stat"><div class="rej-stat-num rej-tone-yes" id="rej-stat-yes">0</div><div class="rej-stat-label">Got a YES</div></div>
+          </div>
+        </div>
+
+        <!-- Add form -->
+        <div class="rej-add">
+          <span class="rej-add-label">▸ file a new ask</span>
+          <div class="rej-add-row">
+            <input id="rej-input" class="rej-input" type="text" placeholder="what are you going to ask for?" maxlength="240" autocomplete="off" />
+            <button class="rej-add-btn" id="rej-add-btn" onclick="Rejection.add()">Add it</button>
+          </div>
+          <button class="rej-dice" id="rej-dice" onclick="Rejection.surpriseMe()">🎲 pick one for me today</button>
+        </div>
+
+        <!-- Callout for a randomly picked ask -->
+        <div class="rej-callout" id="rej-callout" style="display:none">
+          <div class="rej-callout-label">today's dare</div>
+          <div class="rej-callout-text" id="rej-callout-text"></div>
+        </div>
+
+        <!-- The list of slips -->
+        <div class="rej-list" id="rej-list"></div>
+
+      </div><!-- /rejection-section -->
+
     </main>
 
   </div>
@@ -3243,6 +3657,7 @@
     <button class="list-tab active" data-category="todo"   onclick="switchCategory('todo')"><span class="mobile-tab-label">To Do</span></button>
     <button class="list-tab"        data-category="period" onclick="switchCategory('period')"><span class="mobile-tab-label">Cycle</span></button>
     <button class="list-tab"        data-category="tv"     onclick="switchCategory('tv')"><span class="mobile-tab-label">TV Guide</span></button>
+    <button class="list-tab"        data-category="rejection" onclick="switchCategory('rejection')"><span class="mobile-tab-label">The No</span></button>
   </nav>
 
   <script>

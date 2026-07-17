@@ -347,6 +347,44 @@ Produce 3-5 patterns and 2-4 blind spots. Be specific and honest. Return only va
         return;
       }
 
+      // Rejection Therapy ("The No") routes
+      if (pathname === '/api/rejections' && method === 'GET') {
+        this.sendJson(res, { challenges: this.db.getRejectionChallenges() });
+        return;
+      }
+
+      if (pathname === '/api/rejections' && method === 'POST') {
+        const body = await this.parseBody(req);
+        if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
+          this.sendError(res, 400, 'title is required');
+          return;
+        }
+        const challenge = this.db.addRejectionChallenge(body.title.trim());
+        this.sendJson(res, { challenge });
+        return;
+      }
+
+      if (pathname.startsWith('/api/rejections/') && method === 'PUT') {
+        const id = this.extractId(pathname);
+        const body = await this.parseBody(req);
+        const updates: { title?: string; done?: boolean; outcome?: 'no' | 'yes' | null } = {};
+        if (typeof body.title === 'string') updates.title = body.title.trim();
+        if (body.done !== undefined) updates.done = !!body.done;
+        if (body.outcome !== undefined) {
+          updates.outcome = (body.outcome === 'no' || body.outcome === 'yes') ? body.outcome : null;
+        }
+        const challenge = this.db.updateRejectionChallenge(id, updates);
+        this.sendJson(res, { challenge });
+        return;
+      }
+
+      if (pathname.startsWith('/api/rejections/') && method === 'DELETE') {
+        const id = this.extractId(pathname);
+        this.db.deleteRejectionChallenge(id);
+        this.sendJson(res, { success: true });
+        return;
+      }
+
       // 404
       this.sendError(res, 404, "Not found");
     } catch (error) {

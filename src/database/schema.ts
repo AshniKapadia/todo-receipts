@@ -44,6 +44,17 @@ export interface TodoItem {
   user_id: string;
 }
 
+export interface RejectionChallenge {
+  id: number;
+  title: string;
+  done: boolean;
+  outcome: 'no' | 'yes' | null;
+  order_position: number;
+  created_at: number;
+  updated_at: number;
+  done_at: number | null;
+}
+
 export interface Investment {
   id: number;
   account: string;
@@ -139,5 +150,15 @@ export const CREATE_TABLE_SQL = `
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS rejection_challenges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    done INTEGER DEFAULT 0,
+    outcome TEXT DEFAULT NULL,
+    order_position INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    done_at INTEGER DEFAULT NULL
   );
 `;

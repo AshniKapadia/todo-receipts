@@ -136,6 +136,7 @@ function switchCategory(category) {
   const isGrocery     = category === 'grocery';
   const isTravel      = category === 'travel';
   const isInvestments = category === 'investments';
+  const isRejection   = category === 'rejection';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
@@ -148,9 +149,10 @@ function switchCategory(category) {
   document.querySelector('.content').style.display          = isTodo        ? 'flex'  : 'none';
   document.querySelector('.date-strip').style.display       = isTodo        ? 'flex'  : 'none';
   document.getElementById('inv-section').style.display      = isInvestments ? 'flex'  : 'none';
+  document.getElementById('rejection-section').style.display = isRejection  ? 'flex'  : 'none';
 
-  // Hide topbar when investments is active (has its own hero)
-  document.querySelector('.topbar').style.display = isInvestments ? 'none' : '';
+  // Hide topbar when a full-bleed world (Trading Floor / The No) is active
+  document.querySelector('.topbar').style.display = (isInvestments || isRejection) ? 'none' : '';
 
   const printBtnWrap = document.getElementById('print-btn').parentElement;
   printBtnWrap.style.display = (isTodo || isGrocery) ? 'flex' : 'none';
@@ -184,6 +186,8 @@ function switchCategory(category) {
     renderTravelView();
   } else if (isInvestments) {
     Investments.init();
+  } else if (isRejection) {
+    Rejection.init();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -1162,6 +1166,223 @@ function itemRand(id, offset) {
 // ══════════════════════════════════════════════════════════════════════════════
 // THE FLOOR — Investment Tracker
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ── The No · Rejection Therapy ──────────────────────────────────────────────
+const Rejection = {
+  GOAL: 300,
+  challenges: [],
+  editingId: null,
+  listenersAttached: false,
+
+  async init() {
+    if (!this.listenersAttached) {
+      this.attachListeners();
+      this.listenersAttached = true;
+    }
+    await this.load();
+  },
+
+  attachListeners() {
+    const input = document.getElementById('rej-input');
+    if (input) {
+      input.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.add(); });
+    }
+  },
+
+  async load() {
+    try {
+      const data = await fetch('/api/rejections').then(r => r.json());
+      this.challenges = data.challenges || [];
+      this.render();
+    } catch (e) {
+      console.error('Failed to load rejection challenges', e);
+    }
+  },
+
+  render() {
+    const total = this.challenges.length;
+    const done  = this.challenges.filter(c => c.done).length;
+    const nos   = this.challenges.filter(c => c.outcome === 'no').length;
+    const yeses = this.challenges.filter(c => c.outcome === 'yes').length;
+    const pct   = Math.min(100, Math.round((done / this.GOAL) * 100));
+
+    document.getElementById('rej-hero-num').textContent   = done;
+    document.getElementById('rej-progress-label').textContent = `${done} of ${this.GOAL} asks done`;
+    document.getElementById('rej-progress-pct').textContent   = pct + '%';
+    document.getElementById('rej-progress-fill').style.width  = pct + '%';
+    document.getElementById('rej-stat-total').textContent = total;
+    document.getElementById('rej-stat-done').textContent  = done;
+    document.getElementById('rej-stat-no').textContent    = nos;
+    document.getElementById('rej-stat-yes').textContent   = yeses;
+
+    this.renderList();
+  },
+
+  renderList() {
+    const listEl = document.getElementById('rej-list');
+    // One list, everything in creation order — crossed-off asks stay in place.
+    const items = this.challenges.map((c, i) => ({ ...c, _n: i + 1 }));
+    if (!items.length) {
+      listEl.innerHTML = `<div class="rej-empty">The list is empty. File your first ask below.</div>`;
+      return;
+    }
+    listEl.innerHTML = items.map(c => this.slipHtml(c)).join('');
+  },
+
+  slipHtml(c) {
+    const id = c.id;
+    const num = String(c._n).padStart(3, '0');
+
+    if (this.editingId === id) {
+      return `
+        <div class="rej-slip" data-id="${id}">
+          <div class="rej-slip-body">
+            <input class="rej-slip-editing" id="rej-edit-${id}" value="${escapeHtml(c.title)}" maxlength="240" />
+          </div>
+        </div>`;
+    }
+
+    // Transient "did they say yes or no?" — appears only right after crossing off,
+    // and disappears the moment an answer is recorded.
+    const ask = (c.done && !c.outcome) ? `
+      <div class="rej-ask">
+        <span class="rej-ask-q">did they say…</span>
+        <button class="rej-ask-btn no"  onclick="Rejection.setOutcome(${id},'no')">No</button>
+        <button class="rej-ask-btn yes" onclick="Rejection.setOutcome(${id},'yes')">Yes</button>
+      </div>` : '';
+
+    // Hover-only reveal of the recorded outcome (kept off the resting view for a clean list).
+    const badge = (c.done && c.outcome)
+      ? `<span class="rej-badge ${c.outcome}">${c.outcome === 'no' ? 'No' : 'Yes'}</span>`
+      : '';
+
+    return `
+      <div class="rej-slip ${c.done ? 'done' : ''}" data-id="${id}">
+        <button class="rej-check" onclick="Rejection.toggle(${id})" title="${c.done ? 'Un-cross this' : 'I did it — cross it off'}">${c.done ? '✓' : ''}</button>
+        <div class="rej-slip-body">
+          <div class="rej-slip-index">No. ${num}</div>
+          <div class="rej-slip-title" ondblclick="Rejection.edit(${id})">${escapeHtml(c.title)}</div>
+          ${ask}
+        </div>
+        <div class="rej-slip-actions">
+          ${badge}
+          <button class="rej-icon-btn" onclick="Rejection.edit(${id})" title="Edit">✎</button>
+          <button class="rej-icon-btn" onclick="Rejection.remove(${id})" title="Delete">✕</button>
+        </div>
+      </div>`;
+  },
+
+  async add() {
+    const input = document.getElementById('rej-input');
+    const title = (input.value || '').trim();
+    if (!title) return;
+    input.value = '';
+    try {
+      const data = await fetch('/api/rejections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      }).then(r => r.json());
+      if (data.challenge) {
+        this.challenges.push(data.challenge);
+        this.render();
+      }
+    } catch (e) {
+      console.error('Failed to add ask', e);
+      input.value = title;
+    }
+  },
+
+  async toggle(id) {
+    const c = this.challenges.find(x => x.id === id);
+    if (!c) return;
+    const newDone = !c.done;
+    try {
+      const data = await fetch(`/api/rejections/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: newDone }),
+      }).then(r => r.json());
+      if (data.challenge) {
+        Object.assign(c, data.challenge);
+        this.render();
+      }
+    } catch (e) { console.error('Failed to toggle', e); }
+  },
+
+  async setOutcome(id, outcome) {
+    const c = this.challenges.find(x => x.id === id);
+    if (!c) return;
+    const next = c.outcome === outcome ? null : outcome; // toggle off if same
+    try {
+      const data = await fetch(`/api/rejections/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome: next }),
+      }).then(r => r.json());
+      if (data.challenge) {
+        Object.assign(c, data.challenge);
+        this.render();
+      }
+    } catch (e) { console.error('Failed to set outcome', e); }
+  },
+
+  edit(id) {
+    this.editingId = id;
+    this.renderList();
+    const el = document.getElementById(`rej-edit-${id}`);
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+      const save = () => this.saveEdit(id, el.value);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); save(); }
+        if (e.key === 'Escape') { this.editingId = null; this.renderList(); }
+      });
+      el.addEventListener('blur', save);
+    }
+  },
+
+  async saveEdit(id, value) {
+    if (this.editingId !== id) return; // already handled
+    const title = (value || '').trim();
+    this.editingId = null;
+    const c = this.challenges.find(x => x.id === id);
+    if (!title || !c || title === c.title) { this.render(); return; }
+    try {
+      const data = await fetch(`/api/rejections/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      }).then(r => r.json());
+      if (data.challenge) Object.assign(c, data.challenge);
+    } catch (e) { console.error('Failed to save edit', e); }
+    this.render();
+  },
+
+  async remove(id) {
+    if (!confirm('Delete this ask?')) return;
+    try {
+      await fetch(`/api/rejections/${id}`, { method: 'DELETE' });
+      this.challenges = this.challenges.filter(x => x.id !== id);
+      this.render();
+    } catch (e) { console.error('Failed to delete', e); }
+  },
+
+  surpriseMe() {
+    const open = this.challenges.filter(c => !c.done);
+    const callout = document.getElementById('rej-callout');
+    if (!open.length) {
+      callout.style.display = 'flex';
+      document.getElementById('rej-callout-text').textContent = "You've done everything on the list. Add a new one!";
+      return;
+    }
+    const pick = open[Math.floor(Math.random() * open.length)];
+    callout.style.display = 'flex';
+    document.getElementById('rej-callout-text').textContent = pick.title;
+    callout.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+};
 
 const Investments = {
   currentAccount: 'all',
