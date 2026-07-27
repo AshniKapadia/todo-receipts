@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Slip</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Anton&family=Fredoka:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Baloo+2:wght@500;600;700;800&family=Bagel+Fat+One&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     @font-face {
@@ -3006,6 +3006,116 @@
       /* On touch (no hover), always show the controls */
       .rej-slip-actions { opacity: 1; }
     }
+
+    /* ═══════════════ THE PUNCH CARD · reward-card board ═══════════════ */
+    .pc-section {
+      flex:1; min-height:0; overflow-y:auto; flex-direction:column;
+      background:
+        radial-gradient(rgba(70,52,24,0.06) 1.4px, transparent 1.5px) 0 0/22px 22px,
+        #E9D8B0;
+      font-family:'Space Grotesk',sans-serif; color:#241a10;
+    }
+    .pc-topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+      padding:15px 30px; background:rgba(233,216,176,0.94); backdrop-filter:blur(6px); border-bottom:2px dashed rgba(70,52,24,0.32); }
+    .pc-brand { font-family:'Bagel Fat One',cursive; font-size:25px; color:#EC5BA6; display:flex; align-items:center; gap:9px; }
+    .pc-brand-mark { color:#F04E2E; }
+    .pc-tally { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; color:#6b5836; text-transform:uppercase; }
+    .pc-tally b { font-family:'Bagel Fat One',cursive; color:#2F53D9; font-size:16px; }
+    .pc-add { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
+    .pc-input { font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:14px; padding:10px 15px; background:#FBF4E1; border:2.5px solid #241a10; border-radius:30px; color:#241a10; outline:none; width:170px; }
+    .pc-input-reward { width:190px; }
+    .pc-input::placeholder { color:#a08a63; }
+    .pc-input:focus { border-color:#EC5BA6; }
+    .pc-goal { display:flex; gap:5px; }
+    .pc-goal-btn { font-family:'Bagel Fat One',cursive; font-size:13px; width:38px; height:40px; border:2.5px solid #241a10; background:#FBF4E1; color:#241a10; border-radius:50%; cursor:pointer; }
+    .pc-goal-btn.active { background:#FFD34E; }
+    .pc-add-btn { font-family:'Bagel Fat One',cursive; font-size:15px; padding:9px 20px; background:#F04E2E; color:#FBF4E1; border:2.5px solid #241a10; border-radius:30px; cursor:pointer; box-shadow:3px 3px 0 #241a10; transition:transform .1s, box-shadow .1s; }
+    .pc-add-btn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 #241a10; }
+    .pc-add-btn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 #241a10; }
+    .pc-grid { padding:28px 30px 72px; display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:24px; }
+    .pc-empty { grid-column:1/-1; text-align:center; font-family:'DM Mono',monospace; font-size:13px; color:#6b5836; padding:54px; border:2px dashed rgba(70,52,24,0.32); border-radius:22px; }
+    .pc-card {
+      --bg:#F04E2E; --fg:#F9EFD6; --mk:#8CE0A8; --mkdim:rgba(249,239,214,0.30);
+      position:relative; background:var(--bg); color:var(--fg); border-radius:24px; padding:24px 22px 20px; overflow:hidden;
+      box-shadow:0 10px 22px rgba(45,30,10,0.20); transition:transform .16s, box-shadow .16s;
+    }
+    .pc-card:hover { transform:translateY(-5px) rotate(-0.6deg); box-shadow:0 18px 34px rgba(45,30,10,0.28); }
+    .pc-card[data-c="0"]{--bg:#F04E2E;--fg:#F9EFD6;--mk:#8CE0A8;--mkdim:rgba(249,239,214,0.30);}
+    .pc-card[data-c="1"]{--bg:#2F53D9;--fg:#EFEAFB;--mk:#FFD34E;--mkdim:rgba(239,234,251,0.28);}
+    .pc-card[data-c="2"]{--bg:#C9D840;--fg:#22401f;--mk:#22401f;--mkdim:rgba(34,64,31,0.22);}
+    .pc-card[data-c="3"]{--bg:#EC5BA6;--fg:#FFF1E7;--mk:#FFF1E7;--mkdim:rgba(255,241,231,0.30);}
+    .pc-card[data-c="4"]{--bg:#F4E7C2;--fg:#241a10;--mk:#EE6C2B;--mkdim:rgba(36,26,16,0.16);}
+    .pc-card[data-c="5"]{--bg:#191510;--fg:#F3E7C9;--mk:#F0577A;--mkdim:rgba(243,231,201,0.22);}
+    .pc-card[data-c="2"]::before { content:''; position:absolute; inset:0; opacity:0.55; pointer-events:none;
+      background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='26' viewBox='0 0 64 26'><path d='M0 13 C 11 2 21 24 32 13 S 53 2 64 13' fill='none' stroke='%2322401f' stroke-width='2.6' opacity='0.35'/></svg>"); background-size:64px 26px; }
+    .pc-card[data-c="4"]::before { content:''; position:absolute; inset:0; opacity:0.6; pointer-events:none;
+      background-image:linear-gradient(rgba(36,26,16,0.13) 1px,transparent 1px),linear-gradient(90deg,rgba(36,26,16,0.13) 1px,transparent 1px); background-size:21px 21px; }
+    .pc-card[data-c="5"]::before { content:''; position:absolute; inset:0; opacity:0.5; pointer-events:none;
+      background:radial-gradient(circle at 78% 18%, rgba(240,87,122,0.4), transparent 46%), radial-gradient(circle at 20% 92%, rgba(255,211,78,0.28), transparent 44%); }
+    .pc-card-title { position:relative; font-family:'Bagel Fat One',cursive; font-size:30px; line-height:1.0; letter-spacing:0.3px; word-break:break-word; }
+    .pc-card-reward { position:relative; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px; margin-top:9px; opacity:0.92; }
+    .pc-markers { position:relative; display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 16px; }
+    .pc-mark { font-size:22px; line-height:1; color:var(--mkdim); transition:color .2s; }
+    .pc-mark.on { color:var(--mk); }
+    .pc-mark.pop { animation:pc-pop-mark .32s cubic-bezier(.2,1.5,.4,1); }
+    @keyframes pc-pop-mark { 0%{transform:scale(0) rotate(-40deg);} 60%{transform:scale(1.4) rotate(10deg);} 100%{transform:scale(1);} }
+    .pc-card-foot { position:relative; display:flex; align-items:center; gap:10px; margin-top:4px; }
+    .pc-punch-btn { flex:1; font-family:'Bagel Fat One',cursive; font-size:16px; padding:11px; background:var(--fg); color:var(--bg); border:none; border-radius:30px; cursor:pointer; transition:transform .08s, filter .12s; }
+    .pc-punch-btn:hover { filter:brightness(0.94); }
+    .pc-punch-btn:active { transform:scale(0.97); }
+    .pc-punch-btn.done { opacity:0.55; cursor:default; }
+    .pc-rounds { flex-shrink:0; font-family:'Bagel Fat One',cursive; font-size:12px; background:var(--fg); color:var(--bg); border-radius:20px; padding:5px 11px; white-space:nowrap; }
+    .pc-del { position:absolute; top:14px; right:15px; z-index:2; background:transparent; border:none; color:var(--fg); opacity:0.45; font-size:15px; cursor:pointer; }
+    .pc-del:hover { opacity:1; }
+    .pc-reward-band { position:absolute; inset:0; background:var(--mk); color:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; padding:18px; animation:pc-pop .4s ease; z-index:3; }
+    .pc-reward-band .big { font-family:'Bagel Fat One',cursive; font-size:32px; line-height:1; }
+    .pc-reward-band .small { font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px; }
+    @keyframes pc-pop { 0%{opacity:0; transform:scale(0.7) rotate(-4deg);} 100%{opacity:1; transform:scale(1);} }
+
+    /* ═══════════════ UNDERCURRENT · a wordless mood field ═══════════════ */
+    .uc-section { flex:1; min-height:0; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+      background:#08080e; color:#EDE6D6; font-family:'Space Grotesk',sans-serif; }
+    .uc-field-wrap { position:relative; width:100%; height:84vh; min-height:500px; overflow:hidden; cursor:crosshair; touch-action:none; }
+    .uc-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .uc-grain { position:absolute; inset:0; pointer-events:none; opacity:0.5; mix-blend-mode:overlay;
+      background-image:radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px); background-size:4px 4px; }
+    .uc-axis { position:absolute; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:4px; text-transform:uppercase;
+      color:rgba(255,255,255,0.34); pointer-events:none; user-select:none; }
+    .uc-axis-top { top:20px; left:50%; transform:translateX(-50%); }
+    .uc-axis-bottom { bottom:56px; left:50%; transform:translateX(-50%); }
+    .uc-axis-left { left:22px; top:50%; transform:translateY(-50%) rotate(180deg); writing-mode:vertical-rl; }
+    .uc-axis-right { right:22px; top:50%; transform:translateY(-50%); writing-mode:vertical-rl; }
+    .uc-orb { position:absolute; width:300px; height:300px; border-radius:50%; transform:translate(-50%,-50%); filter:blur(48px); opacity:0.85; pointer-events:none; transition:background .12s; }
+    .uc-dot { position:absolute; width:26px; height:26px; border-radius:50%; transform:translate(-50%,-50%);
+      border:3px solid rgba(255,255,255,0.95); box-shadow:0 0 0 2px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.4); pointer-events:none; }
+    .uc-dot::after { content:''; position:absolute; inset:5px; border-radius:50%; background:rgba(255,255,255,0.9); }
+    .uc-hint { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); max-width:340px; text-align:center;
+      font-size:15px; line-height:1.5; color:rgba(255,255,255,0.9); text-shadow:0 2px 12px rgba(0,0,0,0.5); pointer-events:none; transition:opacity .5s; }
+    .uc-cue { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); font-family:'DM Mono',monospace; font-size:11px;
+      letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.7); pointer-events:none; animation:uc-bob 2.4s ease-in-out infinite; }
+    @keyframes uc-bob { 0%,100%{transform:translateX(-50%) translateY(0); opacity:0.7;} 50%{transform:translateX(-50%) translateY(5px); opacity:1;} }
+    .uc-tapestry-wrap { padding:34px 44px 90px; background:#08080e; }
+    .uc-tapestry-head { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:rgba(237,230,214,0.5); margin-bottom:18px; }
+    .uc-tapestry { position:relative; width:100%; border-radius:14px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
+    .uc-tapestry-sheen { position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, transparent 40%, rgba(255,255,255,0.14) 50%, transparent 60%); background-size:100% 260%; animation:uc-sheen 6s linear infinite; }
+    @keyframes uc-sheen { from{background-position:0 -160%;} to{background-position:0 160%;} }
+    .uc-band { position:relative; display:flex; align-items:center; justify-content:space-between; padding:0 16px; }
+    .uc-band-date { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.0); letter-spacing:1px; transition:color .2s; text-shadow:0 1px 3px rgba(0,0,0,0.6); }
+    .uc-band:hover .uc-band-date { color:rgba(255,255,255,0.92); }
+    .uc-band-today { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.85); letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.6); }
+    .uc-tapestry-empty { font-family:'DM Mono',monospace; font-size:12px; color:rgba(237,230,214,0.4); }
+
+    /* ── Responsive: Punch Card + the three revamped worlds ── */
+    @media (max-width: 940px) {
+      .pc-hero { flex-wrap:wrap; padding:24px 20px; gap:16px; }
+      .pc-title { font-size:54px; }
+      .pc-add, .pc-grid { padding-left:20px; padding-right:20px; }
+      .uc-field-wrap { height:70vh; }
+      .uc-tapestry-wrap { padding:24px 20px 70px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .uc-cue, .uc-tapestry-sheen { animation:none !important; }
+    }
   </style>
 </head>
 <body>
@@ -3053,6 +3163,8 @@
         <button class="list-tab brain-dump-tab" data-category="tv" onclick="switchCategory('tv')">TV Guide</button>
         <button class="list-tab" data-category="investments" onclick="switchCategory('investments')">Trading Floor</button>
         <button class="list-tab" data-category="rejection" onclick="switchCategory('rejection')">The No</button>
+        <button class="list-tab" data-category="punchcard" onclick="switchCategory('punchcard')">The Punch Card</button>
+        <button class="list-tab" data-category="forecast" onclick="switchCategory('forecast')">Undercurrent</button>
       </nav>
 
       <div class="brain-dump-toggle">
@@ -3647,6 +3759,46 @@
         <div class="rej-list" id="rej-list"></div>
 
       </div><!-- /rejection-section -->
+
+      <!-- ─────────────── THE PUNCH CARD · reward-card board ─────────────── -->
+      <div class="pc-section" id="punchcard-section" style="display:none">
+        <div class="pc-topbar">
+          <div class="pc-brand"><span class="pc-brand-mark">✦</span>Punch&nbsp;Card</div>
+          <div class="pc-tally"><b id="pc-stat-rounds">0</b> cards filled</div>
+          <div class="pc-add">
+            <input id="pc-title-input" class="pc-input" type="text" maxlength="40" placeholder="new habit…" autocomplete="off" />
+            <input id="pc-reward-input" class="pc-input pc-input-reward" type="text" maxlength="40" placeholder="reward it earns…" autocomplete="off" />
+            <div class="pc-goal" id="pc-goal">
+              <button class="pc-goal-btn" data-goal="7">7</button>
+              <button class="pc-goal-btn active" data-goal="10">10</button>
+              <button class="pc-goal-btn" data-goal="14">14</button>
+            </div>
+            <button class="pc-add-btn" onclick="Punch.add()">make a card</button>
+          </div>
+        </div>
+        <div class="pc-grid" id="pc-grid"></div>
+      </div><!-- /punchcard-section -->
+
+
+      <!-- ─────────────── UNDERCURRENT · a wordless mood field ─────────────── -->
+      <div class="uc-section" id="forecast-section" style="display:none">
+        <div class="uc-field-wrap" id="uc-field-wrap">
+          <canvas class="uc-canvas" id="uc-canvas"></canvas>
+          <div class="uc-grain"></div>
+          <div class="uc-axis uc-axis-top">wired</div>
+          <div class="uc-axis uc-axis-bottom">still</div>
+          <div class="uc-axis uc-axis-left">heavy</div>
+          <div class="uc-axis uc-axis-right">light</div>
+          <div class="uc-orb" id="uc-orb"></div>
+          <div class="uc-dot" id="uc-dot"></div>
+          <div class="uc-hint" id="uc-hint">drag anywhere. no words — just move until the colour feels like today.</div>
+          <div class="uc-cue" id="uc-cue">your undercurrent ↓</div>
+        </div>
+        <div class="uc-tapestry-wrap">
+          <div class="uc-tapestry-head">the undercurrent · every day you've felt something</div>
+          <div class="uc-tapestry" id="uc-tapestry"></div>
+        </div>
+      </div><!-- /forecast-section -->
 
     </main>
 

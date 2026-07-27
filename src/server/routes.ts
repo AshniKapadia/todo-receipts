@@ -385,6 +385,58 @@ Produce 3-5 patterns and 2-4 blind spots. Be specific and honest. Return only va
         return;
       }
 
+      // ── The Punch Card (habits) ──
+      if (pathname === '/api/habits' && method === 'GET') {
+        this.sendJson(res, { cards: this.db.getHabitCards() });
+        return;
+      }
+      if (pathname === '/api/habits' && method === 'POST') {
+        const body = await this.parseBody(req);
+        if (!body.title || !String(body.title).trim()) { this.sendError(res, 400, 'title is required'); return; }
+        const goal = Math.max(1, Math.min(30, parseInt(body.goal, 10) || 10));
+        const card = this.db.addHabitCard(String(body.title).trim(), String(body.reward || '').trim(), goal, parseInt(body.color, 10) || 0);
+        this.sendJson(res, { card });
+        return;
+      }
+      if (pathname.match(/^\/api\/habits\/\d+\/punch$/) && method === 'POST') {
+        const id = parseInt(pathname.split('/')[3], 10);
+        this.sendJson(res, this.db.punchHabitCard(id));
+        return;
+      }
+      if (pathname.startsWith('/api/habits/') && method === 'PUT') {
+        const id = this.extractId(pathname);
+        const body = await this.parseBody(req);
+        const updates: { title?: string; reward?: string; goal?: number } = {};
+        if (typeof body.title === 'string') updates.title = body.title.trim();
+        if (typeof body.reward === 'string') updates.reward = body.reward.trim();
+        if (body.goal !== undefined) updates.goal = Math.max(1, Math.min(30, parseInt(body.goal, 10) || 10));
+        this.sendJson(res, { card: this.db.updateHabitCard(id, updates) });
+        return;
+      }
+      if (pathname.startsWith('/api/habits/') && method === 'DELETE') {
+        this.db.deleteHabitCard(this.extractId(pathname));
+        this.sendJson(res, { success: true });
+        return;
+      }
+
+      // ── The Forecast (mood/energy) ──
+      if (pathname === '/api/forecast' && method === 'GET') {
+        this.sendJson(res, { logs: this.db.getForecastLogs() });
+        return;
+      }
+      if (pathname === '/api/forecast' && method === 'POST') {
+        const body = await this.parseBody(req);
+        if (!body.date || body.valence === undefined || body.arousal === undefined) { this.sendError(res, 400, 'date, valence and arousal are required'); return; }
+        const clamp = (n: any) => Math.max(0, Math.min(1, parseFloat(n) || 0));
+        this.sendJson(res, { log: this.db.upsertForecastLog(String(body.date), clamp(body.valence), clamp(body.arousal), String(body.color || ''), String(body.note || '')) });
+        return;
+      }
+      if (pathname.startsWith('/api/forecast/') && method === 'DELETE') {
+        this.db.deleteForecastLog(pathname.slice('/api/forecast/'.length));
+        this.sendJson(res, { success: true });
+        return;
+      }
+
       // 404
       this.sendError(res, 404, "Not found");
     } catch (error) {

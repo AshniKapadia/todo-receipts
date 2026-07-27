@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge } from "./schema.js";
+import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge, HabitCard, ForecastLog } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 import { DEFAULT_TRAITS, type BehaviorTrait } from "../server/behavioral-analysis.js";
 
@@ -33,6 +33,9 @@ export class TodoDatabase {
     // Seed the rejection-therapy starter asks once (guarded by a kv flag so
     // deleting them doesn't resurrect them on the next boot).
     this.ensureRejectionSeed();
+
+    // Seed a couple of example Punch Card habits once.
+    this.ensureWorldsSeed();
   }
 
   /**
@@ -91,6 +94,27 @@ export class TodoDatabase {
     if (!hasThemeId) {
       this.db.exec("ALTER TABLE print_jobs ADD COLUMN theme_id TEXT DEFAULT 'ops'");
     }
+
+    // Migration 9: forecast_logs — move from the old weather model (mood/energy)
+    // to the mood-field model (valence/arousal/color). Only local test rows existed
+    // and it was never deployed, so a clean recreate is safe.
+    try {
+      const fc = this.db.pragma("table_info(forecast_logs)") as Array<{ name: string }>;
+      if (fc.length > 0 && !fc.some(c => c.name === 'valence')) {
+        this.db.exec('DROP TABLE forecast_logs');
+        this.db.exec(`
+          CREATE TABLE forecast_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL UNIQUE,
+            valence REAL DEFAULT 0.5,
+            arousal REAL DEFAULT 0.5,
+            color TEXT DEFAULT '',
+            note TEXT DEFAULT '',
+            created_at INTEGER NOT NULL
+          )
+        `);
+      }
+    } catch (e) {}
 
     // Migration 8: movie_posters — recreate if it has the old image_filename schema
     try {
@@ -835,6 +859,101 @@ export class TodoDatabase {
   deleteRejectionChallenge(id: number): void {
     const result = this.db.prepare('DELETE FROM rejection_challenges WHERE id = ?').run(id);
     if (result.changes === 0) throw new Error(`Rejection challenge ${id} not found`);
+  }
+
+  // ── Shared world helpers ─────────────────────────────────────────────────────
+  private isoToday(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  private ensureWorldsSeed(): void {
+    const flag = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'worlds_seeded_v1'`).get() as { value: string } | undefined;
+    if (flag) return;
+    const now = Date.now();
+    const seed = this.db.transaction(() => {
+      const h = this.db.prepare(`INSERT INTO habit_cards (title, reward, goal, punch_count, rounds, color, order_position, created_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?)`);
+      h.run('Move your body', 'a fancy oat latte', 10, 3, 0, 0, now);
+      h.run('Read before bed', 'a brand-new hardcover', 7, 1, 1, 1, now + 1);
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('worlds_seeded_v1', '1', ?)`).run(now);
+    });
+    seed();
+  }
+
+  // ── The Punch Card (habits) ──────────────────────────────────────────────────
+  getHabitCards(): HabitCard[] {
+    const rows = this.db.prepare(`
+      SELECT id, title, reward, goal, punch_count, rounds, last_punch_date, color, order_position, created_at
+      FROM habit_cards ORDER BY order_position ASC, created_at ASC
+    `).all() as any[];
+    return rows.map(r => ({ ...r, last_punch_date: r.last_punch_date ?? null }));
+  }
+
+  addHabitCard(title: string, reward: string = '', goal: number = 10, color: number = 0): HabitCard {
+    const now = Date.now();
+    const max = this.db.prepare('SELECT MAX(order_position) as m FROM habit_cards').get() as { m: number | null };
+    const order = (max.m ?? -1) + 1;
+    const res = this.db.prepare(`
+      INSERT INTO habit_cards (title, reward, goal, punch_count, rounds, color, order_position, created_at)
+      VALUES (?, ?, ?, 0, 0, ?, ?, ?)
+    `).run(title, reward, goal, color, order, now);
+    return { id: res.lastInsertRowid as number, title, reward, goal, punch_count: 0, rounds: 0, last_punch_date: null, color, order_position: order, created_at: now };
+  }
+
+  /** Punch today's slot once. Returns the updated card + whether a card was just completed. */
+  punchHabitCard(id: number): { card: HabitCard; justCompleted: boolean } {
+    const card = this.db.prepare(`SELECT * FROM habit_cards WHERE id = ?`).get(id) as any;
+    if (!card) throw new Error(`Habit card ${id} not found`);
+    const today = this.isoToday();
+    let justCompleted = false;
+    if (card.last_punch_date !== today) {
+      card.punch_count += 1;
+      card.last_punch_date = today;
+      if (card.punch_count >= card.goal) {
+        card.rounds += 1;
+        card.punch_count = 0;
+        justCompleted = true;
+      }
+      this.db.prepare(`UPDATE habit_cards SET punch_count = ?, rounds = ?, last_punch_date = ? WHERE id = ?`)
+        .run(card.punch_count, card.rounds, card.last_punch_date, id);
+    }
+    return { card: { ...card, last_punch_date: card.last_punch_date }, justCompleted };
+  }
+
+  updateHabitCard(id: number, updates: { title?: string; reward?: string; goal?: number }): HabitCard {
+    const cur = this.db.prepare(`SELECT * FROM habit_cards WHERE id = ?`).get(id) as any;
+    if (!cur) throw new Error(`Habit card ${id} not found`);
+    const title = updates.title ?? cur.title;
+    const reward = updates.reward ?? cur.reward;
+    const goal = updates.goal ?? cur.goal;
+    this.db.prepare(`UPDATE habit_cards SET title = ?, reward = ?, goal = ? WHERE id = ?`).run(title, reward, goal, id);
+    return { ...cur, title, reward, goal };
+  }
+
+  deleteHabitCard(id: number): void {
+    this.db.prepare(`DELETE FROM habit_cards WHERE id = ?`).run(id);
+  }
+
+  // ── Undercurrent (mood field: valence × arousal → color) ─────────────────────
+  getForecastLogs(): ForecastLog[] {
+    return this.db.prepare(`
+      SELECT id, date, valence, arousal, color, note, created_at
+      FROM forecast_logs ORDER BY date ASC
+    `).all() as ForecastLog[];
+  }
+
+  upsertForecastLog(date: string, valence: number, arousal: number, color: string, note: string): ForecastLog {
+    const now = Date.now();
+    this.db.prepare(`
+      INSERT INTO forecast_logs (date, valence, arousal, color, note, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(date) DO UPDATE SET valence = excluded.valence, arousal = excluded.arousal, color = excluded.color, note = excluded.note
+    `).run(date, valence, arousal, color, note, now);
+    return this.db.prepare(`SELECT id, date, valence, arousal, color, note, created_at FROM forecast_logs WHERE date = ?`).get(date) as ForecastLog;
+  }
+
+  deleteForecastLog(date: string): void {
+    this.db.prepare(`DELETE FROM forecast_logs WHERE date = ?`).run(date);
   }
 
   /**

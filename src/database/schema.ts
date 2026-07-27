@@ -55,6 +55,29 @@ export interface RejectionChallenge {
   done_at: number | null;
 }
 
+export interface HabitCard {
+  id: number;
+  title: string;
+  reward: string;
+  goal: number;
+  punch_count: number;
+  rounds: number;
+  last_punch_date: string | null;
+  color: number;
+  order_position: number;
+  created_at: number;
+}
+
+export interface ForecastLog {
+  id: number;
+  date: string;
+  valence: number;
+  arousal: number;
+  color: string;
+  note: string;
+  created_at: number;
+}
+
 export interface Investment {
   id: number;
   account: string;
@@ -160,5 +183,26 @@ export const CREATE_TABLE_SQL = `
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     done_at INTEGER DEFAULT NULL
+  );
+  CREATE TABLE IF NOT EXISTS habit_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    reward TEXT DEFAULT '',
+    goal INTEGER DEFAULT 10,
+    punch_count INTEGER DEFAULT 0,
+    rounds INTEGER DEFAULT 0,
+    last_punch_date TEXT DEFAULT NULL,
+    color INTEGER DEFAULT 0,
+    order_position INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS forecast_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL UNIQUE,
+    valence REAL DEFAULT 0.5,
+    arousal REAL DEFAULT 0.5,
+    color TEXT DEFAULT '',
+    note TEXT DEFAULT '',
+    created_at INTEGER NOT NULL
   );
 `;

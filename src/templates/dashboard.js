@@ -137,6 +137,8 @@ function switchCategory(category) {
   const isTravel      = category === 'travel';
   const isInvestments = category === 'investments';
   const isRejection   = category === 'rejection';
+  const isPunch       = category === 'punchcard';
+  const isForecast    = category === 'forecast';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
@@ -150,9 +152,12 @@ function switchCategory(category) {
   document.querySelector('.date-strip').style.display       = isTodo        ? 'flex'  : 'none';
   document.getElementById('inv-section').style.display      = isInvestments ? 'flex'  : 'none';
   document.getElementById('rejection-section').style.display = isRejection  ? 'flex'  : 'none';
+  document.getElementById('punchcard-section').style.display = isPunch      ? 'flex'  : 'none';
+  document.getElementById('forecast-section').style.display  = isForecast   ? 'flex'  : 'none';
 
-  // Hide topbar when a full-bleed world (Trading Floor / The No) is active
-  document.querySelector('.topbar').style.display = (isInvestments || isRejection) ? 'none' : '';
+  // Hide topbar when a full-bleed world is active (each has its own hero)
+  const fullBleed = isInvestments || isRejection || isPunch || isForecast;
+  document.querySelector('.topbar').style.display = fullBleed ? 'none' : '';
 
   const printBtnWrap = document.getElementById('print-btn').parentElement;
   printBtnWrap.style.display = (isTodo || isGrocery) ? 'flex' : 'none';
@@ -188,6 +193,10 @@ function switchCategory(category) {
     Investments.init();
   } else if (isRejection) {
     Rejection.init();
+  } else if (isPunch) {
+    Punch.init();
+  } else if (isForecast) {
+    Forecast.init();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -2001,3 +2010,312 @@ function invActionLabel(t) {
 function invEscape(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// THE PUNCH CARD · Habits
+// ══════════════════════════════════════════════════════════════════════════════
+const Punch = {
+  cards: [],
+  newGoal: 10,
+  listenersAttached: false,
+
+  async init() {
+    if (!this.listenersAttached) {
+      const t = document.getElementById('pc-title-input');
+      const r = document.getElementById('pc-reward-input');
+      if (t) t.addEventListener('keypress', e => { if (e.key === 'Enter') this.add(); });
+      if (r) r.addEventListener('keypress', e => { if (e.key === 'Enter') this.add(); });
+      document.querySelectorAll('#pc-goal .pc-goal-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          this.newGoal = parseInt(b.dataset.goal, 10);
+          document.querySelectorAll('#pc-goal .pc-goal-btn').forEach(x => x.classList.toggle('active', x === b));
+        });
+      });
+      this.listenersAttached = true;
+    }
+    await this.load();
+  },
+
+  async load() {
+    try {
+      const data = await fetch('/api/habits').then(r => r.json());
+      this.cards = data.cards || [];
+      this.render();
+    } catch (e) { console.error('Failed to load habits', e); }
+  },
+
+  MARKS: ['✿', '◆', '✳', '★', '●', '♥'],
+
+  render() {
+    const rounds = this.cards.reduce((s, c) => s + (c.rounds || 0), 0);
+    document.getElementById('pc-stat-rounds').textContent = rounds;
+    const grid = document.getElementById('pc-grid');
+    if (!this.cards.length) {
+      grid.innerHTML = `<div class="pc-empty">no cards yet — make your first one up top ✦</div>`;
+      return;
+    }
+    grid.innerHTML = this.cards.map(c => this.cardHtml(c)).join('');
+  },
+
+  cardHtml(c) {
+    const today = todayISO();
+    const punchedToday = c.last_punch_date === today;
+    const theme = (c.color || 0) % 6;
+    const glyph = this.MARKS[theme];
+    let marks = '';
+    for (let i = 0; i < c.goal; i++) {
+      marks += `<span class="pc-mark ${i < c.punch_count ? 'on' : ''}">${glyph}</span>`;
+    }
+    const reward = c.reward
+      ? `<div class="pc-card-reward">${c.goal} punches → for ${escapeHtml(c.reward)}</div>`
+      : `<div class="pc-card-reward">${c.goal} punches to fill it</div>`;
+    const rounds = c.rounds > 0 ? `<span class="pc-rounds">${c.rounds}× filled</span>` : '';
+    return `
+      <div class="pc-card" data-c="${theme}" data-id="${c.id}">
+        <button class="pc-del" onclick="Punch.del(${c.id})" title="delete">✕</button>
+        <div class="pc-card-title">${escapeHtml(c.title)}</div>
+        ${reward}
+        <div class="pc-markers">${marks}</div>
+        <div class="pc-card-foot">
+          <button class="pc-punch-btn ${punchedToday ? 'done' : ''}" ${punchedToday ? 'disabled' : ''} onclick="Punch.punch(${c.id})">${punchedToday ? '✓ punched today' : 'punch it'}</button>
+          ${rounds}
+        </div>
+      </div>`;
+  },
+
+  async add() {
+    const t = document.getElementById('pc-title-input');
+    const r = document.getElementById('pc-reward-input');
+    const title = (t.value || '').trim();
+    if (!title) return;
+    const reward = (r.value || '').trim();
+    const color = this.cards.length % 6;
+    t.value = ''; r.value = '';
+    try {
+      const data = await fetch('/api/habits', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, reward, goal: this.newGoal, color }),
+      }).then(r => r.json());
+      if (data.card) { this.cards.push(data.card); this.render(); }
+    } catch (e) { console.error('Failed to add habit', e); t.value = title; r.value = reward; }
+  },
+
+  async punch(id) {
+    try {
+      const data = await fetch(`/api/habits/${id}/punch`, { method: 'POST' }).then(r => r.json());
+      if (!data.card) return;
+      const idx = this.cards.findIndex(c => c.id === id);
+      if (idx >= 0) this.cards[idx] = data.card;
+      this.render();
+      const on = document.querySelectorAll(`.pc-card[data-id="${id}"] .pc-mark.on`);
+      if (on.length) on[on.length - 1].classList.add('pop');
+      if (data.justCompleted) this.celebrate(id, data.card.reward);
+    } catch (e) { console.error('Failed to punch', e); }
+  },
+
+  celebrate(id, reward) {
+    const card = document.querySelector(`.pc-card[data-id="${id}"]`);
+    if (!card) return;
+    const band = document.createElement('div');
+    band.className = 'pc-reward-band';
+    band.innerHTML = `<div class="big">CARD FULL!</div><div class="small">${reward ? 'go redeem: ' + escapeHtml(reward) : 'treat yourself'}</div>`;
+    card.appendChild(band);
+    setTimeout(() => band.remove(), 2600);
+  },
+
+  async del(id) {
+    if (!confirm('Delete this card?')) return;
+    try {
+      await fetch(`/api/habits/${id}`, { method: 'DELETE' });
+      this.cards = this.cards.filter(c => c.id !== id);
+      this.render();
+    } catch (e) { console.error('Failed to delete habit', e); }
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UNDERCURRENT · a wordless mood field (valence × arousal → colour → tapestry)
+// ══════════════════════════════════════════════════════════════════════════════
+const Forecast = {
+  // corners: heavy/still, light/still, heavy/wired, light/wired
+  corners: { bl: [43,58,94], br: [134,184,160], tl: [178,58,91], tr: [255,158,61] },
+  W: 88, H: 64,
+  logs: [],
+  valence: 0.5,
+  arousal: 0.5,
+  dragging: false,
+  interacted: false,
+  listenersAttached: false,
+  rafId: null,
+
+  async init() {
+    const canvas = document.getElementById('uc-canvas');
+    this.ctx = canvas.getContext('2d');
+    if (!this.buf) {
+      this.buf = document.createElement('canvas');
+      this.buf.width = this.W; this.buf.height = this.H;
+      this.bctx = this.buf.getContext('2d');
+      this.bimg = this.bctx.createImageData(this.W, this.H);
+    }
+    if (!this.listenersAttached) {
+      const wrap = document.getElementById('uc-field-wrap');
+      wrap.addEventListener('pointerdown', e => {
+        this.dragging = true; try { wrap.setPointerCapture(e.pointerId); } catch (x) {}
+        this.markInteracted(); this.setFromEvent(e, wrap);
+      });
+      wrap.addEventListener('pointermove', e => { if (this.dragging) this.setFromEvent(e, wrap); });
+      wrap.addEventListener('pointerup', () => { if (this.dragging) { this.dragging = false; this.save(); } });
+      wrap.addEventListener('pointercancel', () => { this.dragging = false; });
+      window.addEventListener('resize', () => this.resize());
+      this.listenersAttached = true;
+    }
+    this.resize();
+    this.startLoop();
+    await this.load();
+  },
+
+  markInteracted() { this.interacted = true; const h = document.getElementById('uc-hint'); if (h) h.style.opacity = '0'; },
+  reduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; },
+
+  resize() {
+    const canvas = document.getElementById('uc-canvas');
+    const wrap = document.getElementById('uc-field-wrap');
+    if (!canvas || !wrap) return;
+    const r = wrap.getBoundingClientRect();
+    if (r.width < 2) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.cssW = r.width; this.cssH = r.height;
+    this.positionDot();
+  },
+
+  lerp(a, b, t) { return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; },
+
+  colorAt(vx, vy, breath) {
+    const c = this.corners;
+    const bot = this.lerp(c.bl, c.br, vx);
+    const top = this.lerp(c.tl, c.tr, vx);
+    let col = this.lerp(bot, top, vy);
+    if (breath) col = col.map(v => Math.max(0, Math.min(255, v + breath)));
+    return col;
+  },
+
+  hexAt(vx, vy) {
+    const c = this.colorAt(vx, vy, 0).map(v => Math.max(0, Math.min(255, Math.round(v))));
+    return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+  },
+
+  draw(time) {
+    const breath = Math.sin(time / 2600) * 6;
+    const d = this.bimg.data;
+    for (let py = 0; py < this.H; py++) {
+      const vy = 1 - py / (this.H - 1);
+      for (let px = 0; px < this.W; px++) {
+        const vx = px / (this.W - 1);
+        const col = this.colorAt(vx, vy, breath);
+        const idx = (py * this.W + px) * 4;
+        d[idx] = col[0]; d[idx + 1] = col[1]; d[idx + 2] = col[2]; d[idx + 3] = 255;
+      }
+    }
+    this.bctx.putImageData(this.bimg, 0, 0);
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.drawImage(this.buf, 0, 0, this.W, this.H, 0, 0, this.cssW || 300, this.cssH || 300);
+  },
+
+  startLoop() {
+    cancelAnimationFrame(this.rafId);
+    if (this.reduced()) { this.draw(0); this.updateOrb(); return; }
+    const loop = t => { this.draw(t); this.rafId = requestAnimationFrame(loop); };
+    this.rafId = requestAnimationFrame(loop);
+  },
+
+  setFromEvent(e, wrap) {
+    const r = wrap.getBoundingClientRect();
+    let x = (e.clientX - r.left) / r.width;
+    let y = (e.clientY - r.top) / r.height;
+    this.valence = Math.max(0, Math.min(1, x));
+    this.arousal = Math.max(0, Math.min(1, 1 - y));
+    this.positionDot();
+    this.updateOrb();
+  },
+
+  positionDot() {
+    const dot = document.getElementById('uc-dot');
+    const orb = document.getElementById('uc-orb');
+    if (!dot) return;
+    const x = this.valence * 100, y = (1 - this.arousal) * 100;
+    dot.style.left = x + '%'; dot.style.top = y + '%';
+    orb.style.left = x + '%'; orb.style.top = y + '%';
+    dot.style.opacity = this.interacted ? '1' : '0';
+    orb.style.opacity = this.interacted ? '0.85' : '0';
+  },
+
+  updateOrb() {
+    const orb = document.getElementById('uc-orb');
+    if (orb) orb.style.background = this.hexAt(this.valence, this.arousal);
+  },
+
+  async load() {
+    try {
+      const d = await fetch('/api/forecast').then(r => r.json());
+      this.logs = d.logs || [];
+      const today = todayISO();
+      const t = this.logs.find(l => l.date === today);
+      if (t) { this.valence = t.valence; this.arousal = t.arousal; this.markInteracted(); }
+      this.positionDot();
+      this.updateOrb();
+      this.renderTapestry();
+    } catch (e) { console.error('Failed to load undercurrent', e); }
+  },
+
+  async save() {
+    const date = todayISO();
+    const color = this.hexAt(this.valence, this.arousal);
+    try {
+      const d = await fetch('/api/forecast', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, valence: this.valence, arousal: this.arousal, color }),
+      }).then(r => r.json());
+      if (d.log) {
+        const i = this.logs.findIndex(l => l.date === date);
+        if (i >= 0) this.logs[i] = d.log; else this.logs.push(d.log);
+        this.renderTapestry();
+      }
+    } catch (e) { console.error('Failed to save undercurrent', e); }
+  },
+
+  renderTapestry() {
+    const el = document.getElementById('uc-tapestry');
+    if (!el) return;
+    if (!this.logs.length) {
+      el.style.background = 'none';
+      el.style.height = 'auto';
+      el.innerHTML = `<div class="uc-tapestry-empty">no days yet. drag the field above — today becomes the first band, and the rest of the year flows from it.</div>`;
+      return;
+    }
+    const days = [...this.logs].reverse(); // newest at top
+    const n = days.length;
+    const bandH = Math.max(24, Math.min(54, Math.floor(620 / Math.max(7, n))));
+    const colorOf = l => l.color || this.hexAt(l.valence, l.arousal);
+    let grad;
+    if (n === 1) {
+      grad = `linear-gradient(180deg, ${colorOf(days[0])}, ${colorOf(days[0])})`;
+    } else {
+      const stops = days.map((l, i) => `${colorOf(l)} ${((i + 0.5) / n * 100).toFixed(1)}%`);
+      grad = `linear-gradient(180deg, ${colorOf(days[0])} 0%, ${stops.join(', ')}, ${colorOf(days[n-1])} 100%)`;
+    }
+    el.style.background = grad;
+    el.style.height = (n * bandH) + 'px';
+    const today = todayISO();
+    el.innerHTML = `<div class="uc-tapestry-sheen"></div>` + days.map(l => {
+      const label = l.date === today
+        ? `<span class="uc-band-today">today</span>`
+        : `<span class="uc-band-date">${l.date}</span>`;
+      return `<div class="uc-band" style="height:${bandH}px" title="${l.date}">${label}<span></span></div>`;
+    }).join('');
+  },
+};
