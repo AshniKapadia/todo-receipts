@@ -9,6 +9,7 @@ import { existsSync } from "fs";
 import { homedir } from "os";
 import { dirname, resolve, join } from "path";
 import { fileURLToPath } from "url";
+import { createHash } from "crypto";
 import Anthropic from "@anthropic-ai/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,7 @@ const IMAGES_DIR = join(DATA_DIR, 'images');
 
 // ── Behavioral analysis engine (see ./behavioral-analysis.ts) ────────────────
 import { analyzeBehavior, structuralBrief, type BehaviorTrait } from "./behavioral-analysis.js";
+import { GROCERY_SECTIONS } from "./grocery-sections.js";
 
 export class ApiRouter {
   constructor(
@@ -348,6 +350,20 @@ Produce 3-5 patterns and 2-4 blind spots. Be specific and honest. Return only va
       }
 
       // Rejection Therapy ("The No") routes
+      // ── The No is behind a passcode (THE_NO_PASSWORD, default 666) ──
+      if (pathname === '/api/no/unlock' || pathname.startsWith('/api/rejections')) {
+        const pass = process.env.THE_NO_PASSWORD || '666';
+        const key = createHash('sha256').update(`the-no:${pass}`).digest('hex');
+        if (pathname === '/api/no/unlock' && method === 'POST') {
+          const body = await this.parseBody(req);
+          if (String(body.code ?? '') === pass) { this.sendJson(res, { key }); return; }
+          await new Promise(r => setTimeout(r, 600)); // slow down guessing
+          this.sendError(res, 401, 'wrong code');
+          return;
+        }
+        if (req.headers['x-no-key'] !== key) { this.sendError(res, 401, 'locked'); return; }
+      }
+
       if (pathname === '/api/rejections' && method === 'GET') {
         this.sendJson(res, { challenges: this.db.getRejectionChallenges() });
         return;
@@ -417,6 +433,73 @@ Produce 3-5 patterns and 2-4 blind spots. Be specific and honest. Return only va
         this.db.deleteHabitCard(this.extractId(pathname));
         this.sendJson(res, { success: true });
         return;
+      }
+
+      // ── Grocery (paper bags) ──
+      if (pathname.startsWith('/api/grocery')) {
+        const stores = this.db.getGroceryStores();
+        const storeOk = (id: unknown) => stores.some(s => s.id === id);
+        const sectionOk = (s: unknown) => (GROCERY_SECTIONS as readonly string[]).includes(String(s));
+        const clean = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+        if (pathname === '/api/grocery' && method === 'GET') {
+          this.sendJson(res, { stores, sections: GROCERY_SECTIONS, items: this.db.getGroceryItems(), staples: this.db.getGroceryStaples(), nudges: this.db.getGroceryNudges() });
+          return;
+        }
+        if (pathname === '/api/grocery/items' && method === 'POST') {
+          const body = await this.parseBody(req);
+          const name = clean(body.name);
+          if (!name) { this.sendError(res, 400, 'name is required'); return; }
+          const store = storeOk(body.store) ? body.store : stores[0].id;
+          this.sendJson(res, { item: this.db.addGroceryItem(name, store, sectionOk(body.section) ? body.section : undefined) });
+          return;
+        }
+        if (pathname.startsWith('/api/grocery/items/') && method === 'PATCH') {
+          const body = await this.parseBody(req);
+          const u: { name?: string; store?: string; section?: string; checked?: boolean } = {};
+          if (body.name !== undefined && clean(body.name)) u.name = clean(body.name);
+          if (storeOk(body.store)) u.store = body.store;
+          if (sectionOk(body.section)) u.section = body.section;
+          if (typeof body.checked === 'boolean') u.checked = body.checked;
+          this.sendJson(res, { item: this.db.updateGroceryItem(this.extractId(pathname), u) });
+          return;
+        }
+        if (pathname.startsWith('/api/grocery/items/') && method === 'DELETE') {
+          this.db.deleteGroceryItem(this.extractId(pathname));
+          this.sendJson(res, { success: true });
+          return;
+        }
+        if (pathname === '/api/grocery/unpack' && method === 'POST') {
+          const body = await this.parseBody(req);
+          if (!storeOk(body.store)) { this.sendError(res, 400, 'unknown store'); return; }
+          this.sendJson(res, { unpacked: this.db.unpackGroceryStore(body.store) });
+          return;
+        }
+        if (pathname === '/api/grocery/staples' && method === 'POST') {
+          const body = await this.parseBody(req);
+          const name = clean(body.name);
+          if (!name) { this.sendError(res, 400, 'name is required'); return; }
+          const store = storeOk(body.store) ? body.store : stores[0].id;
+          this.sendJson(res, { staple: this.db.addGroceryStaple(name, store, sectionOk(body.section) ? body.section : undefined) });
+          return;
+        }
+        if (pathname.startsWith('/api/grocery/staples/') && method === 'DELETE') {
+          this.db.deleteGroceryStaple(this.extractId(pathname));
+          this.sendJson(res, { success: true });
+          return;
+        }
+        if (pathname === '/api/grocery/stores' && method === 'POST') {
+          const body = await this.parseBody(req);
+          const name = clean(body.name).slice(0, 28);
+          if (!name) { this.sendError(res, 400, 'name is required'); return; }
+          this.sendJson(res, { store: this.db.addGroceryStore(name) });
+          return;
+        }
+        if (pathname.startsWith('/api/grocery/stores/') && method === 'DELETE') {
+          try { this.db.removeGroceryStore(decodeURIComponent(pathname.slice('/api/grocery/stores/'.length))); }
+          catch (e) { this.sendError(res, 400, (e as Error).message); return; }
+          this.sendJson(res, { success: true });
+          return;
+        }
       }
 
       // ── Budget (vessels) ──

@@ -75,6 +75,25 @@ export interface BudgetEntry {
   created_at: number;
 }
 
+export interface GroceryStore { id: string; name: string; color: string; }
+
+export interface GroceryItem {
+  id: number;
+  name: string;
+  store: string;
+  section: string;
+  checked: number;
+  created_at: number;
+}
+
+export interface GroceryStaple {
+  id: number;
+  name: string;
+  store: string;
+  section: string;
+  created_at: number;
+}
+
 export interface HabitCard {
   id: number;
   title: string;
@@ -240,6 +259,27 @@ export const CREATE_TABLE_SQL = `
     category_id INTEGER NOT NULL,
     cap REAL NOT NULL,
     PRIMARY KEY (month, category_id)
+  );
+  CREATE TABLE IF NOT EXISTS grocery_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    store TEXT NOT NULL,
+    section TEXT NOT NULL DEFAULT 'Other',
+    checked INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS grocery_staples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    store TEXT NOT NULL,
+    section TEXT NOT NULL DEFAULT 'Other',
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS grocery_purchases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL COLLATE NOCASE,
+    store TEXT NOT NULL,
+    bought_on TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS forecast_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

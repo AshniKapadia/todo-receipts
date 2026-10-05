@@ -75,10 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') addTask();
   });
 
-  const groceryInput = document.getElementById('grocery-input');
-  groceryInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addGroceryItem();
-  });
 
 });
 
@@ -158,11 +154,11 @@ function switchCategory(category) {
   document.getElementById('budget-section').style.display    = isBudget     ? 'flex'  : 'none';
 
   // Hide topbar when a full-bleed world is active (each has its own hero)
-  const fullBleed = isInvestments || isRejection || isPunch || isForecast || isBudget;
+  const fullBleed = isInvestments || isRejection || isPunch || isForecast || isBudget || isGrocery;
   document.querySelector('.topbar').style.display = fullBleed ? 'none' : '';
 
   const printBtnWrap = document.getElementById('print-btn').parentElement;
-  printBtnWrap.style.display = (isTodo || isGrocery) ? 'flex' : 'none';
+  printBtnWrap.style.display = isTodo ? 'flex' : 'none';
 
   // Auto-switch theme to match the active tab
   const themeSelect = document.getElementById('theme-select');
@@ -188,7 +184,7 @@ function switchCategory(category) {
   if (isPeriod) {
     fetchPeriodLogs();
   } else if (isGrocery) {
-    fetchGroceryItems();
+    Grocery.init();
   } else if (isTravel) {
     renderTravelView();
   } else if (isInvestments) {
@@ -208,104 +204,302 @@ function switchCategory(category) {
   }
 }
 
-// ── Grocery List ──────────────────────────────────────────────────────────────
-let groceryItems = [];
+// ── Grocery · paper bags ──────────────────────────────────────────────────────
+// One paper bag per store, items written in Ashni's hand, usuals on the fridge.
+const Grocery = {
+  stores: [], sections: [], items: [], staples: [], nudges: [],
+  into: null,          // store the add bar drops into
+  fresh: new Set(),    // ids that should animate in
+  wired: false,
+  MAGNETS: ['#FFB4A2', '#B9F3C9', '#FFE066', '#C8B6FF', '#A0E7FF', '#FFC6E7', '#D6F59A'],
 
-async function fetchGroceryItems() {
-  try {
-    const res = await fetch(`/api/todos?category=Grocery&user=${currentUser}`);
-    const data = await res.json();
-    groceryItems = data.todos || [];
-    renderGroceryList();
-  } catch (e) {
-    console.error('Failed to fetch grocery items', e);
-  }
-}
+  icon(n) {
+    const p = {
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      dots: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+      x: '<path d="M6 6l12 12M18 6L6 18"/>',
+      check: '<path d="M5 12l5 5 9-10"/>',
+      move: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+      pin: '<path d="M12 17v4M8 3h8l-1 6 3 3H6l3-3z"/>',
+      trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+      bag: '<path d="M6 7h12l1 13H5zM9 7a3 3 0 0 1 6 0"/>',
+    }[n];
+    return `<svg class="gb-i" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+  },
+  esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
+  store(id) { return this.stores.find(s => s.id === id) || this.stores[0]; },
+  low(s) { return String(s).toLowerCase(); },
 
-function renderGroceryList() {
-  const list = document.getElementById('grocery-list');
-  const countEl = document.getElementById('grocery-count');
-  const clearBtn = document.getElementById('grocery-clear-btn');
+  async init() {
+    if (!this.wired) this.wire();
+    await this.load();
+  },
 
-  if (groceryItems.length === 0) {
-    list.innerHTML = '<div class="grocery-empty">Your list is empty. Add something above.</div>';
-    countEl.textContent = '';
-    clearBtn.style.display = 'none';
-    return;
-  }
+  async api(url, method = 'GET', body) {
+    const r = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  },
 
-  const checkedCount = groceryItems.filter(i => i.completed).length;
-  countEl.textContent = `${groceryItems.length - checkedCount} remaining · ${checkedCount} checked`;
-  clearBtn.style.display = checkedCount > 0 ? '' : 'none';
+  toast(msg) {
+    document.querySelector('.gb-err')?.remove();
+    const el = document.createElement('div');
+    el.className = 'gb-err'; el.setAttribute('role', 'alert'); el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  },
 
-  list.innerHTML = groceryItems.map(item => `
-    <div class="grocery-item${item.completed ? ' done' : ''}" data-id="${item.id}">
-      <button class="grocery-check" onclick="toggleGroceryItem(${item.id})" title="${item.completed ? 'Uncheck' : 'Check'}">
-        ${item.completed ? '✓' : ''}
-      </button>
-      <span class="grocery-item-title">${escapeHtml(item.title)}</span>
-      <button class="grocery-delete" onclick="deleteGroceryItem(${item.id})" title="Delete">×</button>
-    </div>
-  `).join('');
-}
+  async load() {
+    try {
+      const d = await this.api('/api/grocery');
+      Object.assign(this, { stores: d.stores, sections: d.sections, items: d.items, staples: d.staples, nudges: d.nudges });
+      if (!this.stores.some(s => s.id === this.into)) this.into = this.stores[0]?.id;
+      this.render();
+    } catch (e) { this.toast("Couldn't load your list. Refresh to try again."); }
+  },
 
-async function addGroceryItem() {
-  const input = document.getElementById('grocery-input');
-  const title = input.value.trim();
-  if (!title) return;
-
-  try {
-    const res = await fetch('/api/todos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, category: 'Grocery', user: currentUser }),
+  wire() {
+    this.wired = true;
+    const root = document.getElementById('grocery-view');
+    const input = root.querySelector('#gb-input');
+    input.addEventListener('input', () => { root.querySelector('#gb-go').disabled = !input.value.trim(); this.renderInto(); });
+    root.querySelector('#gb-add-form').addEventListener('submit', e => { e.preventDefault(); this.add(input.value); });
+    root.querySelector('#gb-into').addEventListener('click', e => {
+      const b = e.target.closest('[data-store]'); if (!b) return;
+      this.into = b.dataset.store; this.renderInto(); input.focus();
     });
-    const data = await res.json();
-    groceryItems.push(data.todo);
-    input.value = '';
-    renderGroceryList();
-    input.focus();
-  } catch (e) {
-    console.error('Failed to add grocery item', e);
-  }
-}
-
-async function toggleGroceryItem(id) {
-  const item = groceryItems.find(i => i.id === id);
-  if (!item) return;
-  try {
-    await fetch(`/api/todos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: !item.completed }),
+    root.addEventListener('click', e => this.click(e));
+    root.addEventListener('submit', e => {
+      if (e.target.id === 'gb-pinform') { e.preventDefault(); this.pinNew(e.target.querySelector('input').value); }
+      if (e.target.id === 'gb-newbag-form') { e.preventDefault(); this.addStore(e.target.querySelector('input').value); }
     });
-    item.completed = !item.completed;
-    renderGroceryList();
-  } catch (e) {
-    console.error('Failed to toggle grocery item', e);
-  }
-}
+    document.addEventListener('click', e => { if (!e.target.closest('.gb-menu, .gb-dots')) this.closeMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') this.closeMenu(); });
+  },
 
-async function deleteGroceryItem(id) {
-  try {
-    await fetch(`/api/todos/${id}`, { method: 'DELETE' });
-    groceryItems = groceryItems.filter(i => i.id !== id);
-    renderGroceryList();
-  } catch (e) {
-    console.error('Failed to delete grocery item', e);
-  }
-}
+  /* parse "eggs @walmart" → name + store */
+  parse(raw) {
+    let name = raw.replace(/\s+/g, ' ').trim(), store = this.into;
+    const m = name.match(/(?:^|\s)@(\S+)/);
+    if (m) {
+      const key = this.low(m[1]).replace(/[^a-z0-9]/g, '');
+      const hit = this.stores.find(s => this.low(s.name).replace(/[^a-z0-9]/g, '').startsWith(key) || s.id.replace(/-/g, '').startsWith(key));
+      if (hit) { store = hit.id; name = name.replace(m[0], ' ').replace(/\s+/g, ' ').trim(); }
+    }
+    return { name, store };
+  },
 
-async function clearCheckedGrocery() {
-  const checked = groceryItems.filter(i => i.completed);
-  try {
-    await Promise.all(checked.map(i => fetch(`/api/todos/${i.id}`, { method: 'DELETE' })));
-    groceryItems = groceryItems.filter(i => !i.completed);
-    renderGroceryList();
-  } catch (e) {
-    console.error('Failed to clear checked grocery items', e);
-  }
-}
+  async add(raw, opts = {}) {
+    const { name, store } = opts.store ? { name: raw.trim(), store: opts.store } : this.parse(raw);
+    if (!name) return;
+    const input = document.getElementById('gb-input');
+    if (!opts.store) { input.value = ''; document.getElementById('gb-go').disabled = true; this.renderInto(); }
+    try {
+      const { item } = await this.api('/api/grocery/items', 'POST', { name, store, section: opts.section });
+      this.items.push(item); this.fresh.add(item.id);
+      this.nudges = this.nudges.filter(n => this.low(n.name) !== this.low(name));
+      this.render();
+    } catch (e) { this.toast(`Couldn't add "${name}". Try again.`); if (!opts.store) input.value = raw; }
+  },
+
+  async click(e) {
+    const t = e.target;
+    const ck = t.closest('.gb-ck');
+    if (ck) return this.toggle(Number(ck.closest('.gb-it').dataset.id));
+    const dots = t.closest('.gb-dots');
+    if (dots) { e.stopPropagation(); return this.openMenu(dots); }
+    const act = t.closest('[data-act]');
+    if (act) return this.act(act.dataset.act, act);
+    const mx = t.closest('.gb-mag-x');
+    if (mx) return this.unpin(Number(mx.dataset.id));
+    const mag = t.closest('.gb-mag');
+    if (mag) return this.magnet(Number(mag.dataset.id), mag);
+    const nudge = t.closest('[data-nudge]');
+    if (nudge) { const n = this.nudges[Number(nudge.dataset.nudge)]; return this.add(n.name, { store: this.stores.some(s => s.id === n.store) ? n.store : this.into }); }
+    if (t.closest('.gb-newbag-btn')) { const box = t.closest('.gb-newbag'); box.innerHTML = `<form id="gb-newbag-form"><input maxlength="28" placeholder="Store name" aria-label="Store name"></form>`; box.querySelector('input').focus(); }
+  },
+
+  async toggle(id) {
+    const it = this.items.find(i => i.id === id); if (!it) return;
+    it.checked = it.checked ? 0 : 1;
+    const row = document.querySelector(`.gb-it[data-id="${id}"]`);
+    row?.classList.toggle('done', !!it.checked);
+    row?.querySelector('.gb-ck')?.setAttribute('aria-pressed', !!it.checked);
+    this.renderChrome();
+    try { await this.api(`/api/grocery/items/${id}`, 'PATCH', { checked: !!it.checked }); }
+    catch { it.checked = it.checked ? 0 : 1; row?.classList.toggle('done', !!it.checked); this.renderChrome(); this.toast("Couldn't save that. Try again."); }
+  },
+
+  openMenu(btn) {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    this.closeMenu();
+    if (open) return;
+    btn.setAttribute('aria-expanded', 'true');
+    const host = btn.parentElement;
+    const menu = document.createElement('div');
+    menu.className = 'gb-menu'; menu.setAttribute('role', 'menu');
+    if (btn.dataset.store) {
+      const s = this.store(btn.dataset.store);
+      menu.innerHTML = this.stores.length > 1
+        ? `<button role="menuitem" class="danger" data-act="rmstore" data-store="${s.id}">${this.icon('trash')}Remove ${this.esc(s.name)} bag</button>`
+        : `<div class="gb-menu-lab">Your only bag</div>`;
+    } else {
+      const it = this.items.find(i => i.id === Number(host.dataset.id));
+      const pinned = this.staples.some(s => this.low(s.name) === this.low(it.name));
+      menu.innerHTML = `
+        ${this.stores.filter(s => s.id !== it.store).map(s => `<button role="menuitem" data-act="move" data-store="${s.id}">${this.icon('move')}Move to ${this.esc(s.name)}</button>`).join('')}
+        <button role="menuitem" data-act="${pinned ? 'unpinitem' : 'pinitem'}">${this.icon('pin')}${pinned ? 'Take off the fridge' : 'Pin to the fridge'}</button>
+        <div class="gb-menu-lab">Section</div>
+        <div class="gb-secs">${this.sections.map(s => `<button role="menuitemradio" data-act="section" data-section="${this.esc(s)}" aria-current="${s === it.section}">${this.esc(s)}</button>`).join('')}</div>
+        <hr><button role="menuitem" class="danger" data-act="delete">${this.icon('trash')}Delete</button>`;
+    }
+    host.appendChild(menu);
+  },
+
+  closeMenu() {
+    document.querySelectorAll('.gb-menu').forEach(m => m.remove());
+    document.querySelectorAll('.gb-dots[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  },
+
+  async act(act, el) {
+    const row = el.closest('.gb-it');
+    const it = row ? this.items.find(i => i.id === Number(row.dataset.id)) : null;
+    this.closeMenu();
+    try {
+      if (act === 'move' || act === 'section') {
+        const patch = act === 'move' ? { store: el.dataset.store } : { section: el.dataset.section };
+        const { item } = await this.api(`/api/grocery/items/${it.id}`, 'PATCH', patch);
+        Object.assign(it, item); this.fresh.add(it.id); this.render();
+      } else if (act === 'delete') {
+        row.classList.add('leaving');
+        await this.api(`/api/grocery/items/${it.id}`, 'DELETE');
+        setTimeout(() => { this.items = this.items.filter(i => i.id !== it.id); this.render(); }, 380);
+      } else if (act === 'pinitem') {
+        const { staple } = await this.api('/api/grocery/staples', 'POST', { name: it.name, store: it.store, section: it.section });
+        this.staples = this.staples.filter(s => s.id !== staple.id).concat(staple); this.render();
+      } else if (act === 'unpinitem') {
+        const s = this.staples.find(x => this.low(x.name) === this.low(it.name));
+        if (s) await this.unpin(s.id);
+      } else if (act === 'unpack') {
+        const store = el.dataset.store;
+        const rows = document.querySelectorAll(`.gb-bag[data-store="${store}"] .gb-it.done`);
+        rows.forEach(r => r.classList.add('leaving'));
+        await this.api('/api/grocery/unpack', 'POST', { store });
+        setTimeout(() => this.load(), 420);
+      } else if (act === 'rmstore') {
+        const s = this.store(el.dataset.store);
+        if (!confirm(`Remove the ${s.name} bag? Anything in it moves to ${this.stores.find(x => x.id !== s.id).name}.`)) return;
+        await this.api(`/api/grocery/stores/${encodeURIComponent(s.id)}`, 'DELETE');
+        await this.load();
+      }
+    } catch (e) { this.toast(`${e.message}. Try again.`); this.load(); }
+  },
+
+  async magnet(id, el) {
+    const s = this.staples.find(x => x.id === id); if (!s) return;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    const onList = this.items.find(i => this.low(i.name) === this.low(s.name) && !i.checked);
+    if (onList) {
+      try { await this.api(`/api/grocery/items/${onList.id}`, 'DELETE'); this.items = this.items.filter(i => i.id !== onList.id); this.render(); }
+      catch { this.toast("Couldn't take that off the list."); }
+    } else {
+      const store = this.stores.some(x => x.id === s.store) ? s.store : this.into;
+      await this.add(s.name, { store, section: s.section });
+    }
+  },
+
+  async pinNew(raw) {
+    const { name, store } = this.parse(raw || '');
+    if (!name) return;
+    try {
+      const { staple } = await this.api('/api/grocery/staples', 'POST', { name, store });
+      this.staples = this.staples.filter(s => s.id !== staple.id).concat(staple); this.render();
+      document.querySelector('#gb-pinform input')?.focus();
+    } catch (e) { this.toast(`Couldn't pin "${name}".`); }
+  },
+
+  async unpin(id) {
+    try { await this.api(`/api/grocery/staples/${id}`, 'DELETE'); this.staples = this.staples.filter(s => s.id !== id); this.render(); }
+    catch { this.toast("Couldn't take that magnet off."); }
+  },
+
+  async addStore(raw) {
+    const name = String(raw || '').trim();
+    if (!name) { this.render(); return; }
+    try { const { store } = await this.api('/api/grocery/stores', 'POST', { name }); this.stores.push(store); this.render(); }
+    catch (e) { this.toast(`Couldn't add that store. ${e.message}.`); }
+  },
+
+  /* ── rendering ── */
+  render() {
+    this.renderBags();
+    this.renderFridge();
+    this.renderInto();
+    this.renderChrome();
+    this.fresh.clear();
+  },
+
+  renderInto() {
+    const wrap = document.getElementById('gb-into');
+    const raw = document.getElementById('gb-input').value;
+    const target = raw.includes('@') ? this.parse(raw).store : this.into;
+    wrap.innerHTML = `<span>into</span>${this.stores.map(s => `<button type="button" role="radio" data-store="${s.id}" style="--bag:${s.color}" aria-checked="${s.id === target}"><i></i>${this.esc(s.name)}</button>`).join('')}<em>or type @${this.esc(this.low(this.stores[1]?.name || 'store').split(/\s/)[0].replace(/[^a-z]/g, ''))}</em>`;
+  },
+
+  renderChrome() {
+    const open = this.items.filter(i => !i.checked).length;
+    const stores = new Set(this.items.filter(i => !i.checked).map(i => i.store)).size;
+    document.getElementById('gb-sub').textContent = open
+      ? `${open} thing${open === 1 ? '' : 's'} to get${stores > 1 ? ` across ${stores} stores` : ''}`
+      : (this.items.length ? 'everything’s in the cart' : 'nothing on the list yet');
+    for (const s of this.stores) {
+      const bag = document.querySelector(`.gb-bag[data-store="${s.id}"]`); if (!bag) continue;
+      const mine = this.items.filter(i => i.store === s.id);
+      const left = mine.filter(i => !i.checked).length, done = mine.length - left;
+      bag.querySelector('.gb-left').textContent = mine.length ? (left ? `${left} to get` : 'all in the cart') : '';
+      const up = bag.querySelector('.gb-unpack');
+      up.innerHTML = done ? `<button type="button" data-act="unpack" data-store="${s.id}">${this.icon('bag')}Done here · unpack ${done}</button>` : '';
+    }
+  },
+
+  renderBags() {
+    const wrap = document.getElementById('gb-bags');
+    const pinned = new Set(this.staples.map(s => this.low(s.name)));
+    wrap.innerHTML = this.stores.map(s => {
+      const mine = this.items.filter(i => i.store === s.id);
+      const groups = this.sections.map(sec => [sec, mine.filter(i => i.section === sec)]).filter(([, l]) => l.length);
+      const body = groups.length
+        ? groups.map(([sec, list]) => `<div class="gb-sec"><span class="gb-sticker">${this.esc(sec)}</span>
+            ${list.map(i => `<div class="gb-it${i.checked ? ' done' : ''}${this.fresh.has(i.id) ? '' : ' settled'}" data-id="${i.id}">
+              <button type="button" class="gb-ck" aria-pressed="${!!i.checked}" aria-label="${i.checked ? 'Uncheck' : 'Check off'} ${this.esc(i.name)}">${this.icon('check').replace('class="gb-i"', '')}</button>
+              <div class="gb-txt"><span>${this.esc(i.name)}</span></div>
+              <button type="button" class="gb-dots" aria-haspopup="menu" aria-expanded="false" aria-label="Options for ${this.esc(i.name)}">${this.icon('dots')}</button>
+            </div>`).join('')}</div>`).join('')
+        : `<div class="gb-empty-bag">nothing from ${this.esc(this.low(s.name))} yet</div>`;
+      return `<section class="gb-bag" data-store="${s.id}" style="--bag:${s.color}" aria-label="${this.esc(s.name)} bag">
+        <div class="gb-bag-top"><span class="gb-stamp">${this.esc(s.name)}</span><span class="gb-left"></span>
+          <span class="gb-bag-menu" style="position:relative"><button type="button" class="gb-dots" data-store="${s.id}" aria-haspopup="menu" aria-expanded="false" aria-label="${this.esc(s.name)} bag options">${this.icon('dots')}</button></span></div>
+        <div class="gb-secs-wrap">${body}</div>
+        <div class="gb-unpack"></div>
+      </section>`;
+    }).join('') + `<div class="gb-newbag"><button type="button" class="gb-newbag-btn">${this.icon('plus')}another store</button></div>`;
+  },
+
+  renderFridge() {
+    const el = document.getElementById('gb-fridge-body');
+    const onList = new Set(this.items.filter(i => !i.checked).map(i => this.low(i.name)));
+    const mags = this.staples.map((s, n) => {
+      const r = ((s.id * 37) % 7) - 3;
+      return `<span class="gb-mag-wrap"><button type="button" class="gb-mag${onList.has(this.low(s.name)) ? ' on' : ''}" data-id="${s.id}" style="--m:${this.MAGNETS[s.id % this.MAGNETS.length]};--r:${r}deg" aria-pressed="${onList.has(this.low(s.name))}" aria-label="${this.esc(s.name)}: ${onList.has(this.low(s.name)) ? 'on the list, tap to take off' : 'tap to add to the list'}">${this.esc(s.name)}</button><button type="button" class="gb-mag-x" data-id="${s.id}" aria-label="Take ${this.esc(s.name)} off the fridge">${this.icon('x')}</button></span>`;
+    }).join('');
+    const notes = this.nudges.map((n, i) => `<div class="gb-note"><b>${this.esc(this.low(n.name))}?</b>You usually get ${this.esc(this.low(n.name))} every ${n.every} days. It’s been ${n.since}.<br><button type="button" data-nudge="${i}">Add it</button></div>`).join('');
+    const anyOn = this.staples.some(s => onList.has(this.low(s.name)));
+    el.innerHTML = `${mags ? `<div class="gb-mags">${mags}</div>${anyOn ? '<div class="gb-mag-key"><i></i>already on the list</div>' : ''}` : `<p class="gb-fridge-empty">Pin your usuals here. Tap a magnet and it drops into its bag; tap again to take it off.</p>`}
+      <form class="gb-pinform" id="gb-pinform" autocomplete="off"><input maxlength="60" placeholder="Pin a usual…" aria-label="Pin a usual to the fridge"><button type="submit">Pin</button></form>
+      ${notes}`;
+  },
+};
 
 // ── Travel View ───────────────────────────────────────────────────────────────
 const TRAVEL_DATA = {
@@ -1190,9 +1384,69 @@ const Rejection = {
   async init() {
     if (!this.listenersAttached) {
       this.attachListeners();
+      this.wireLock();
       this.listenersAttached = true;
     }
+    if (!this.key()) return this.lock();
     await this.load();
+  },
+
+  // ── passcode gate ──
+  key() { try { return sessionStorage.getItem('theNoKey') || ''; } catch { return this._key || ''; } },
+  setKey(k) { this._key = k; try { k ? sessionStorage.setItem('theNoKey', k) : sessionStorage.removeItem('theNoKey'); } catch {} },
+
+  async fx(url, opts = {}) {
+    const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-No-Key': this.key() } });
+    if (r.status === 401) { this.setKey(''); this.lock(); throw new Error('locked'); }
+    return r;
+  },
+
+  lock() {
+    const sec = document.getElementById('rejection-section');
+    sec.classList.add('locked');
+    const lk = document.getElementById('rej-lock');
+    lk.hidden = false; lk.classList.remove('denied', 'approved');
+    lk.querySelectorAll('input').forEach(i => { i.value = ''; });
+    setTimeout(() => lk.querySelector('input')?.focus(), 60);
+  },
+
+  wireLock() {
+    const lk = document.getElementById('rej-lock');
+    const boxes = [...lk.querySelectorAll('input')];
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', () => {
+        box.value = box.value.replace(/\D/g, '').slice(-1);
+        lk.classList.remove('denied');
+        if (box.value && boxes[i + 1]) boxes[i + 1].focus();
+        if (boxes.every(b => b.value)) this.tryCode(boxes.map(b => b.value).join(''));
+      });
+      box.addEventListener('keydown', e => { if (e.key === 'Backspace' && !box.value && boxes[i - 1]) boxes[i - 1].focus(); });
+      box.addEventListener('paste', e => {
+        const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, boxes.length);
+        if (!d) return; e.preventDefault();
+        d.split('').forEach((c, j) => { boxes[j].value = c; });
+        if (d.length === boxes.length) this.tryCode(d); else boxes[d.length].focus();
+      });
+    });
+  },
+
+  async tryCode(code) {
+    const lk = document.getElementById('rej-lock');
+    lk.classList.add('checking');
+    try {
+      const r = await fetch('/api/no/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+      lk.classList.remove('checking');
+      if (!r.ok) {
+        lk.classList.remove('denied'); void lk.offsetWidth; lk.classList.add('denied');
+        lk.querySelectorAll('input').forEach(i => { i.value = ''; });
+        lk.querySelector('input').focus();
+        return;
+      }
+      this.setKey((await r.json()).key);
+      lk.classList.add('approved');
+      await this.load();
+      setTimeout(() => { lk.hidden = true; document.getElementById('rejection-section').classList.remove('locked'); }, 650);
+    } catch { lk.classList.remove('checking'); }
   },
 
   attachListeners() {
@@ -1204,7 +1458,7 @@ const Rejection = {
 
   async load() {
     try {
-      const data = await fetch('/api/rejections').then(r => r.json());
+      const data = await this.fx('/api/rejections').then(r => r.json());
       this.challenges = data.challenges || [];
       this.render();
     } catch (e) {
@@ -1291,7 +1545,7 @@ const Rejection = {
     if (!title) return;
     input.value = '';
     try {
-      const data = await fetch('/api/rejections', {
+      const data = await this.fx('/api/rejections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
@@ -1311,7 +1565,7 @@ const Rejection = {
     if (!c) return;
     const newDone = !c.done;
     try {
-      const data = await fetch(`/api/rejections/${id}`, {
+      const data = await this.fx(`/api/rejections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ done: newDone }),
@@ -1328,7 +1582,7 @@ const Rejection = {
     if (!c) return;
     const next = c.outcome === outcome ? null : outcome; // toggle off if same
     try {
-      const data = await fetch(`/api/rejections/${id}`, {
+      const data = await this.fx(`/api/rejections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ outcome: next }),
@@ -1363,7 +1617,7 @@ const Rejection = {
     const c = this.challenges.find(x => x.id === id);
     if (!title || !c || title === c.title) { this.render(); return; }
     try {
-      const data = await fetch(`/api/rejections/${id}`, {
+      const data = await this.fx(`/api/rejections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
@@ -1376,7 +1630,7 @@ const Rejection = {
   async remove(id) {
     if (!confirm('Delete this ask?')) return;
     try {
-      await fetch(`/api/rejections/${id}`, { method: 'DELETE' });
+      await this.fx(`/api/rejections/${id}`, { method: 'DELETE' });
       this.challenges = this.challenges.filter(x => x.id !== id);
       this.render();
     } catch (e) { console.error('Failed to delete', e); }

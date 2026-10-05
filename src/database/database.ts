@@ -2,9 +2,10 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge, HabitCard, ForecastLog, BudgetCategory, BudgetEntry } from "./schema.js";
+import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge, HabitCard, ForecastLog, BudgetCategory, BudgetEntry, GroceryStore, GroceryItem, GroceryStaple } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 import { DEFAULT_TRAITS, type BehaviorTrait } from "../server/behavioral-analysis.js";
+import { classifyGrocery } from "../server/grocery-sections.js";
 
 export class TodoDatabase {
   private db: Database.Database;
@@ -39,6 +40,9 @@ export class TodoDatabase {
 
     // Seed Ashni's real monthly split into the Budget tab once.
     this.ensureBudgetSeed();
+
+    // Grocery bags: default stores + carry over the old checklist once.
+    this.ensureGrocerySeed();
   }
 
   /**
@@ -1056,6 +1060,139 @@ export class TodoDatabase {
       }
     });
     tx();
+  }
+
+  // ── Grocery (paper bags) ─────────────────────────────────────────────────────
+  private ensureGrocerySeed(): void {
+    const flag = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'grocery_seeded_v1'`).get();
+    if (flag) return;
+    const now = Date.now();
+    const tx = this.db.transaction(() => {
+      const stores: GroceryStore[] = [
+        { id: 'trader-joes', name: "Trader Joe's", color: '#C9A57A' },
+        { id: 'walmart', name: 'Walmart', color: '#A9C5E8' },
+      ];
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('grocery_stores', ?, ?)`).run(JSON.stringify(stores), now);
+      // Move the old flat Grocery checklist (stored as todos) into the first bag.
+      const old = this.db.prepare(`SELECT title, completed, created_at FROM todos WHERE category = 'Grocery' ORDER BY created_at ASC`).all() as { title: string; completed: number; created_at: number }[];
+      const ins = this.db.prepare(`INSERT INTO grocery_items (name, store, section, checked, created_at) VALUES (?, ?, ?, ?, ?)`);
+      for (const t of old) ins.run(t.title, stores[0].id, classifyGrocery(t.title), t.completed ? 1 : 0, t.created_at || now);
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('grocery_seeded_v1', '1', ?)`).run(now);
+    });
+    tx();
+  }
+
+  getGroceryStores(): GroceryStore[] {
+    const row = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'grocery_stores'`).get() as { value: string } | undefined;
+    try { return row ? JSON.parse(row.value) : []; } catch { return []; }
+  }
+
+  addGroceryStore(name: string): GroceryStore {
+    const stores = this.getGroceryStores();
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'store';
+    let id = base, n = 2;
+    while (stores.some(s => s.id === id)) id = `${base}-${n++}`;
+    const palette = ['#C9A57A', '#A9C5E8', '#B9E0B0', '#F3B8C4', '#E6D27A', '#C8B6FF'];
+    const store = { id, name, color: palette[stores.length % palette.length] };
+    stores.push(store);
+    this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('grocery_stores', ?, ?)`).run(JSON.stringify(stores), Date.now());
+    return store;
+  }
+
+  removeGroceryStore(id: string): void {
+    const stores = this.getGroceryStores().filter(s => s.id !== id);
+    if (!stores.length) throw new Error('Keep at least one store');
+    const tx = this.db.transaction(() => {
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('grocery_stores', ?, ?)`).run(JSON.stringify(stores), Date.now());
+      this.db.prepare(`UPDATE grocery_items SET store = ? WHERE store = ?`).run(stores[0].id, id);
+      this.db.prepare(`UPDATE grocery_staples SET store = ? WHERE store = ?`).run(stores[0].id, id);
+    });
+    tx();
+  }
+
+  getGroceryItems(): GroceryItem[] {
+    return this.db.prepare(`SELECT id, name, store, section, checked, created_at FROM grocery_items ORDER BY created_at ASC`).all() as GroceryItem[];
+  }
+
+  addGroceryItem(name: string, store: string, section?: string): GroceryItem {
+    const sec = section || this.stapleSection(name) || classifyGrocery(name);
+    const now = Date.now();
+    const r = this.db.prepare(`INSERT INTO grocery_items (name, store, section, checked, created_at) VALUES (?, ?, ?, 0, ?)`).run(name, store, sec, now);
+    return { id: r.lastInsertRowid as number, name, store, section: sec, checked: 0, created_at: now };
+  }
+
+  private stapleSection(name: string): string | null {
+    const row = this.db.prepare(`SELECT section FROM grocery_staples WHERE name = ?`).get(name) as { section: string } | undefined;
+    return row ? row.section : null;
+  }
+
+  updateGroceryItem(id: number, u: { name?: string; store?: string; section?: string; checked?: boolean }): GroceryItem {
+    const cur = this.db.prepare(`SELECT * FROM grocery_items WHERE id = ?`).get(id) as GroceryItem | undefined;
+    if (!cur) throw new Error(`Grocery item ${id} not found`);
+    const next = { ...cur, ...(u.name !== undefined && { name: u.name }), ...(u.store !== undefined && { store: u.store }), ...(u.section !== undefined && { section: u.section }), ...(u.checked !== undefined && { checked: u.checked ? 1 : 0 }) };
+    this.db.prepare(`UPDATE grocery_items SET name = ?, store = ?, section = ?, checked = ? WHERE id = ?`).run(next.name, next.store, next.section, next.checked, id);
+    return next;
+  }
+
+  deleteGroceryItem(id: number): void {
+    this.db.prepare(`DELETE FROM grocery_items WHERE id = ?`).run(id);
+  }
+
+  /** Done shopping at a store: log checked items as purchases and take them out of the bag. */
+  unpackGroceryStore(store: string): number {
+    const today = this.isoToday();
+    const tx = this.db.transaction(() => {
+      const items = this.db.prepare(`SELECT name FROM grocery_items WHERE store = ? AND checked = 1`).all(store) as { name: string }[];
+      const ins = this.db.prepare(`INSERT INTO grocery_purchases (name, store, bought_on) VALUES (?, ?, ?)`);
+      for (const it of items) ins.run(it.name, store, today);
+      this.db.prepare(`DELETE FROM grocery_items WHERE store = ? AND checked = 1`).run(store);
+      return items.length;
+    });
+    return tx();
+  }
+
+  getGroceryStaples(): GroceryStaple[] {
+    return this.db.prepare(`SELECT id, name, store, section, created_at FROM grocery_staples ORDER BY created_at ASC`).all() as GroceryStaple[];
+  }
+
+  addGroceryStaple(name: string, store: string, section?: string): GroceryStaple {
+    const sec = section || classifyGrocery(name);
+    const now = Date.now();
+    this.db.prepare(`INSERT INTO grocery_staples (name, store, section, created_at) VALUES (?, ?, ?, ?)
+      ON CONFLICT(name) DO UPDATE SET store = excluded.store, section = excluded.section`).run(name, store, sec, now);
+    return this.db.prepare(`SELECT id, name, store, section, created_at FROM grocery_staples WHERE name = ?`).get(name) as GroceryStaple;
+  }
+
+  deleteGroceryStaple(id: number): void {
+    this.db.prepare(`DELETE FROM grocery_staples WHERE id = ?`).run(id);
+  }
+
+  /**
+   * "Running low?" notes: items bought on 3+ separate days, not on the list,
+   * whose usual gap has passed. Most overdue first.
+   */
+  getGroceryNudges(limit = 2): Array<{ name: string; store: string; every: number; since: number }> {
+    const rows = this.db.prepare(`SELECT name, store, bought_on FROM grocery_purchases ORDER BY bought_on ASC`).all() as { name: string; store: string; bought_on: string }[];
+    const onList = new Set((this.db.prepare(`SELECT name FROM grocery_items`).all() as { name: string }[]).map(r => r.name.toLowerCase()));
+    const byName = new Map<string, { name: string; store: string; days: string[] }>();
+    for (const r of rows) {
+      const k = r.name.toLowerCase();
+      const g = byName.get(k) || { name: r.name, store: r.store, days: [] };
+      if (g.days[g.days.length - 1] !== r.bought_on) g.days.push(r.bought_on);
+      g.store = r.store;
+      byName.set(k, g);
+    }
+    const day = (s: string) => Math.round(new Date(s + 'T00:00:00').getTime() / 86400000);
+    const today = day(this.isoToday());
+    const out: Array<{ name: string; store: string; every: number; since: number }> = [];
+    for (const [k, g] of byName) {
+      if (g.days.length < 3 || onList.has(k)) continue;
+      const gaps = g.days.slice(1).map((d, i) => day(d) - day(g.days[i]));
+      const every = Math.max(1, Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length));
+      const since = today - day(g.days[g.days.length - 1]);
+      if (since >= every) out.push({ name: g.name, store: g.store, every, since });
+    }
+    return out.sort((a, b) => b.since / b.every - a.since / a.every).slice(0, limit);
   }
 
   // ── Undercurrent (mood field: valence × arousal → color) ─────────────────────
