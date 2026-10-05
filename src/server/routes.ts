@@ -419,6 +419,55 @@ Produce 3-5 patterns and 2-4 blind spots. Be specific and honest. Return only va
         return;
       }
 
+      // ── Budget (vessels) ──
+      if (pathname === '/api/budget' && method === 'GET') {
+        const m = parsedUrl.searchParams.get('month') || '';
+        const now = new Date();
+        const month = /^\d{4}-\d{2}$/.test(m) ? m : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        this.sendJson(res, {
+          month,
+          income: this.db.getBudgetIncome(month),
+          categories: this.db.getBudgetCategories(month),
+          entries: this.db.getBudgetEntries(month),
+          months: this.db.getBudgetMonths(),
+        });
+        return;
+      }
+      if (pathname === '/api/budget/entries' && method === 'POST') {
+        const body = await this.parseBody(req);
+        const amount = Math.round(Number(body.amount) * 100) / 100;
+        const date = String(body.date || '');
+        const categoryId = parseInt(body.category_id, 10);
+        if (!(amount > 0) || amount > 1e7) { this.sendError(res, 400, 'amount must be a positive number'); return; }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { this.sendError(res, 400, 'date must be YYYY-MM-DD'); return; }
+        if (!categoryId) { this.sendError(res, 400, 'category_id is required'); return; }
+        this.sendJson(res, { entry: this.db.addBudgetEntry(date, amount, categoryId, String(body.note || '').trim().slice(0, 80)) });
+        return;
+      }
+      if (pathname.startsWith('/api/budget/entries/') && method === 'DELETE') {
+        this.db.deleteBudgetEntry(this.extractId(pathname));
+        this.sendJson(res, { success: true });
+        return;
+      }
+      if (pathname === '/api/budget/plan' && method === 'PUT') {
+        const body = await this.parseBody(req);
+        const income = Math.max(0, Number(body.income) || 0);
+        const cats = Array.isArray(body.categories) ? body.categories : [];
+        const clean = cats
+          .map((c: any) => ({
+            id: c.id ? parseInt(c.id, 10) : undefined,
+            name: String(c.name || '').trim().slice(0, 24),
+            cap: Math.max(0, Math.round((Number(c.cap) || 0) * 100) / 100),
+            color: /^#[0-9a-fA-F]{6}$/.test(String(c.color)) ? String(c.color) : '#9BE15D',
+            note: String(c.note || '').trim().slice(0, 60),
+          }))
+          .filter((c: any) => c.name);
+        if (!clean.length) { this.sendError(res, 400, 'at least one category is required'); return; }
+        this.db.saveBudgetPlan(income, clean);
+        this.sendJson(res, { success: true });
+        return;
+      }
+
       // ── The Forecast (mood/energy) ──
       if (pathname === '/api/forecast' && method === 'GET') {
         this.sendJson(res, { logs: this.db.getForecastLogs() });

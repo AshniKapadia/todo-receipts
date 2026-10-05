@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
-import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge, HabitCard, ForecastLog } from "./schema.js";
+import type { TodoItem, PeriodLog, MovieItem, Investment, RejectionChallenge, HabitCard, ForecastLog, BudgetCategory, BudgetEntry } from "./schema.js";
 import { CREATE_TABLE_SQL } from "./schema.js";
 import { DEFAULT_TRAITS, type BehaviorTrait } from "../server/behavioral-analysis.js";
 
@@ -36,6 +36,9 @@ export class TodoDatabase {
 
     // Seed a couple of example Punch Card habits once.
     this.ensureWorldsSeed();
+
+    // Seed Ashni's real monthly split into the Budget tab once.
+    this.ensureBudgetSeed();
   }
 
   /**
@@ -932,6 +935,127 @@ export class TodoDatabase {
 
   deleteHabitCard(id: number): void {
     this.db.prepare(`DELETE FROM habit_cards WHERE id = ?`).run(id);
+  }
+
+  // ── Budget (vessels) ─────────────────────────────────────────────────────────
+  private ensureBudgetSeed(): void {
+    const flag = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'budget_seeded_v1'`).get();
+    if (flag) return;
+    const now = Date.now();
+    const seed = this.db.transaction(() => {
+      const ins = this.db.prepare(`INSERT INTO budget_categories (name, cap, color, note, order_position, archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)`);
+      const cats: Array<[string, number, string, string]> = [
+        ['Rent',      1350, '#FF8A5C', ''],
+        ['Utilities', 50,   '#C9B8FF', ''],
+        ['Groceries', 400,  '#9BE15D', 'Anything left over goes to the buffer'],
+        ['Transport', 200,  '#5CC8FF', 'T pass $90 · surprise Ubers $110'],
+        ['Shopping',  200,  '#FF5FA2', 'Clothing, shopping, whatever'],
+        ['Buffer',    200,  '#FFD43B', 'Extra spending'],
+        ['Investing', 2250, '#3EE6C1', 'Roth $625 · stocks $1,625'],
+      ];
+      cats.forEach(([n, cap, color, note], i) => ins.run(n, cap, color, note, i, now + i));
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('budget_income', '4650', ?)`).run(now);
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('budget_seeded_v1', '1', ?)`).run(now);
+    });
+    seed();
+  }
+
+  getBudgetIncome(month?: string): number {
+    if (month) {
+      const snap = this.db.prepare(`SELECT value FROM kv_store WHERE key = ?`).get(`budget_income_${month}`) as { value: string } | undefined;
+      if (snap) return Number(snap.value) || 0;
+    }
+    const row = this.db.prepare(`SELECT value FROM kv_store WHERE key = 'budget_income'`).get() as { value: string } | undefined;
+    return row ? Number(row.value) || 0 : 0;
+  }
+
+  /**
+   * Freeze the current plan onto every past month that has entries but no
+   * snapshot yet, so editing caps later never rewrites history.
+   */
+  private snapshotPastBudgetMonths(): void {
+    const d = new Date();
+    const thisMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const months = this.getBudgetMonths().filter(m => m < thisMonth);
+    const cats = this.db.prepare(`SELECT id, cap FROM budget_categories`).all() as { id: number; cap: number }[];
+    const income = this.getBudgetIncome();
+    const has = this.db.prepare(`SELECT 1 FROM budget_month_plans WHERE month = ? LIMIT 1`);
+    const ins = this.db.prepare(`INSERT OR IGNORE INTO budget_month_plans (month, category_id, cap) VALUES (?, ?, ?)`);
+    const kv = this.db.prepare(`INSERT OR IGNORE INTO kv_store (key, value, created_at) VALUES (?, ?, ?)`);
+    for (const m of months) {
+      if (has.get(m)) continue;
+      for (const c of cats) ins.run(m, c.id, c.cap);
+      kv.run(`budget_income_${m}`, String(income), Date.now());
+    }
+  }
+
+  /** Active categories, plus archived ones that still have entries in the given month. */
+  getBudgetCategories(month?: string): BudgetCategory[] {
+    if (month) {
+      return this.db.prepare(`
+        SELECT c.id, c.name, COALESCE(p.cap, c.cap) AS cap, c.color, c.note, c.order_position, c.archived, c.created_at
+        FROM budget_categories c
+        LEFT JOIN budget_month_plans p ON p.category_id = c.id AND p.month = ?
+        WHERE c.archived = 0
+           OR EXISTS (SELECT 1 FROM budget_entries e WHERE e.category_id = c.id AND substr(e.date, 1, 7) = ?)
+        ORDER BY c.order_position ASC, c.created_at ASC
+      `).all(month, month) as BudgetCategory[];
+    }
+    return this.db.prepare(`SELECT * FROM budget_categories WHERE archived = 0 ORDER BY order_position ASC, created_at ASC`).all() as BudgetCategory[];
+  }
+
+  getBudgetEntries(month: string): BudgetEntry[] {
+    return this.db.prepare(`
+      SELECT id, date, amount, category_id, note, created_at FROM budget_entries
+      WHERE substr(date, 1, 7) = ? ORDER BY date DESC, created_at DESC
+    `).all(month) as BudgetEntry[];
+  }
+
+  /** Months that have any entries, newest first (for the archive switcher). */
+  getBudgetMonths(): string[] {
+    return (this.db.prepare(`SELECT DISTINCT substr(date, 1, 7) AS m FROM budget_entries ORDER BY m DESC`).all() as { m: string }[]).map(r => r.m);
+  }
+
+  addBudgetEntry(date: string, amount: number, categoryId: number, note: string = ''): BudgetEntry {
+    const cat = this.db.prepare(`SELECT id FROM budget_categories WHERE id = ?`).get(categoryId);
+    if (!cat) throw new Error(`Budget category ${categoryId} not found`);
+    const now = Date.now();
+    const res = this.db.prepare(`INSERT INTO budget_entries (date, amount, category_id, note, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(date, amount, categoryId, note, now);
+    return { id: res.lastInsertRowid as number, date, amount, category_id: categoryId, note, created_at: now };
+  }
+
+  deleteBudgetEntry(id: number): void {
+    this.db.prepare(`DELETE FROM budget_entries WHERE id = ?`).run(id);
+  }
+
+  /**
+   * Replace the budget plan: income + the ordered category list. Categories
+   * missing from the list are archived (kept so past months still render).
+   */
+  saveBudgetPlan(income: number, categories: Array<{ id?: number; name: string; cap: number; color: string; note?: string }>): void {
+    const now = Date.now();
+    const tx = this.db.transaction(() => {
+      this.snapshotPastBudgetMonths();
+      this.db.prepare(`INSERT OR REPLACE INTO kv_store (key, value, created_at) VALUES ('budget_income', ?, ?)`).run(String(income), now);
+      const keep = new Set<number>();
+      categories.forEach((c, i) => {
+        if (c.id && this.db.prepare(`SELECT id FROM budget_categories WHERE id = ?`).get(c.id)) {
+          this.db.prepare(`UPDATE budget_categories SET name = ?, cap = ?, color = ?, note = ?, order_position = ?, archived = 0 WHERE id = ?`)
+            .run(c.name, c.cap, c.color, c.note || '', i, c.id);
+          keep.add(c.id);
+        } else {
+          const r = this.db.prepare(`INSERT INTO budget_categories (name, cap, color, note, order_position, archived, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)`)
+            .run(c.name, c.cap, c.color, c.note || '', i, now + i);
+          keep.add(r.lastInsertRowid as number);
+        }
+      });
+      const all = this.db.prepare(`SELECT id FROM budget_categories WHERE archived = 0`).all() as { id: number }[];
+      for (const { id } of all) {
+        if (!keep.has(id)) this.db.prepare(`UPDATE budget_categories SET archived = 1 WHERE id = ?`).run(id);
+      }
+    });
+    tx();
   }
 
   // ── Undercurrent (mood field: valence × arousal → color) ─────────────────────

@@ -139,6 +139,7 @@ function switchCategory(category) {
   const isRejection   = category === 'rejection';
   const isPunch       = category === 'punchcard';
   const isForecast    = category === 'forecast';
+  const isBudget      = category === 'budget';
 
   document.querySelectorAll('.list-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.category === category);
@@ -154,9 +155,10 @@ function switchCategory(category) {
   document.getElementById('rejection-section').style.display = isRejection  ? 'flex'  : 'none';
   document.getElementById('punchcard-section').style.display = isPunch      ? 'flex'  : 'none';
   document.getElementById('forecast-section').style.display  = isForecast   ? 'flex'  : 'none';
+  document.getElementById('budget-section').style.display    = isBudget     ? 'flex'  : 'none';
 
   // Hide topbar when a full-bleed world is active (each has its own hero)
-  const fullBleed = isInvestments || isRejection || isPunch || isForecast;
+  const fullBleed = isInvestments || isRejection || isPunch || isForecast || isBudget;
   document.querySelector('.topbar').style.display = fullBleed ? 'none' : '';
 
   const printBtnWrap = document.getElementById('print-btn').parentElement;
@@ -197,6 +199,8 @@ function switchCategory(category) {
     Punch.init();
   } else if (isForecast) {
     Forecast.init();
+  } else if (isBudget) {
+    Budget.init();
   } else {
     fetchSuggestions();
     fetchTodos();
@@ -2317,5 +2321,496 @@ const Forecast = {
         : `<span class="uc-band-date">${l.date}</span>`;
       return `<div class="uc-band" style="height:${bandH}px" title="${l.date}">${label}<span></span></div>`;
     }).join('');
+  },
+};
+
+// ── Budget · vessels ─────────────────────────────────────────────────────────
+// One vessel per category, sized by its cap, filled to what's been spent.
+const Budget = {
+  month: null,        // 'YYYY-MM'
+  income: 0,
+  categories: [],
+  entries: [],
+  sel: null,          // focused category id
+  selDay: null,       // focused day 'YYYY-MM-DD'
+  pick: null,         // composer category id
+  draft: null,        // plan editor working copy
+  wired: false,
+
+  SWATCHES: ['#FF8A5C', '#C9B8FF', '#9BE15D', '#5CC8FF', '#FF5FA2', '#FFD43B', '#3EE6C1', '#F7A6C8', '#B4E3FF', '#FFB648', '#D7F36B', '#E2C2A0'],
+
+  icon(name) {
+    const p = {
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      left: '<path d="M15 6l-6 6 6 6"/>',
+      right: '<path d="M9 6l6 6-6 6"/>',
+      x: '<path d="M6 6l12 12M18 6L6 18"/>',
+      trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+      sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+    }[name];
+    return `<svg class="bv-i" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+  },
+
+  ym(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; },
+  iso(d) { return `${this.ym(d)}-${String(d.getDate()).padStart(2, '0')}`; },
+  money(n, cents) {
+    const abs = Math.abs(n);
+    const s = abs.toLocaleString('en-US', { minimumFractionDigits: cents && abs % 1 ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+    return (n < 0 ? '−$' : '$') + s;
+  },
+  esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
+
+  async init() {
+    if (!this.month) this.month = this.ym(new Date());
+    if (!this.wired) this.wire();
+    await this.load();
+  },
+
+  wire() {
+    this.wired = true;
+    const root = document.getElementById('budget-section');
+    root.querySelector('#bv-add').addEventListener('click', () => this.toggleCompose());
+    root.querySelector('#bv-edit').addEventListener('click', () => this.togglePlan());
+    root.querySelector('#bv-prev').addEventListener('click', () => this.shiftMonth(-1));
+    root.querySelector('#bv-next').addEventListener('click', () => this.shiftMonth(1));
+    const amt = root.querySelector('#bv-amt');
+    amt.addEventListener('input', () => { amt.value = amt.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1').replace(/(\.\d{2}).+/, '$1'); this.syncLog(); });
+    root.querySelector('#bv-compose-form').addEventListener('submit', e => { e.preventDefault(); this.log(); });
+    root.querySelector('#bv-when').addEventListener('click', e => {
+      const b = e.target.closest('[data-when]'); if (!b) return;
+      this.setWhen(b.dataset.when);
+      if (b.dataset.when === 'pick') document.getElementById('bv-date').focus();
+    });
+    root.querySelector('#bv-chips').addEventListener('click', e => {
+      const b = e.target.closest('.bv-chip'); if (!b) return;
+      this.pick = Number(b.dataset.id); this.renderChips(); this.syncLog(); amt.focus();
+    });
+    root.querySelector('#bv-shelf').addEventListener('click', e => {
+      const col = e.target.closest('.bv-col'); if (!col) return;
+      const id = Number(col.dataset.id);
+      this.sel = this.sel === id ? null : id;
+      this.selDay = null;
+      this.renderFocus(); this.renderDays(); this.renderLedger();
+    });
+    root.querySelector('#bv-focus').addEventListener('click', e => {
+      if (e.target.closest('.bv-clear')) { this.sel = null; this.selDay = null; this.renderFocus(); this.renderDays(); this.renderLedger(); }
+    });
+    const days = root.querySelector('#bv-days');
+    days.addEventListener('click', e => {
+      const d = e.target.closest('.bv-day'); if (!d || d.classList.contains('future')) return;
+      this.selDay = this.selDay === d.dataset.date ? null : d.dataset.date;
+      this.renderFocus(); this.renderDays(); this.renderLedger();
+    });
+    days.addEventListener('mousemove', e => this.tip(e));
+    days.addEventListener('mouseleave', () => root.querySelector('#bv-tip').classList.remove('show'));
+    root.querySelector('#bv-ledger').addEventListener('click', e => {
+      const b = e.target.closest('.bv-del'); if (!b) return;
+      if (b.classList.contains('confirm')) this.del(Number(b.dataset.id));
+      else {
+        root.querySelectorAll('.bv-del.confirm').forEach(x => { x.classList.remove('confirm'); x.innerHTML = this.icon('trash'); });
+        b.classList.add('confirm'); b.textContent = 'Delete';
+        setTimeout(() => { if (b.isConnected && b.classList.contains('confirm')) { b.classList.remove('confirm'); b.innerHTML = this.icon('trash'); } }, 3500);
+      }
+    });
+    document.addEventListener('keydown', e => {
+      if (currentCategory !== 'budget') return;
+      const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '');
+      if (e.key === 'Escape') { this.toggleCompose(false); this.togglePlan(false); }
+      else if (!typing && (e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey) { e.preventDefault(); this.toggleCompose(true); }
+    });
+    const plan = root.querySelector('#bv-plan');
+    plan.addEventListener('input', e => this.planInput(e));
+    plan.addEventListener('click', e => this.planClick(e));
+  },
+
+  async load() {
+    try {
+      const data = await fetch(`/api/budget?month=${this.month}`).then(r => r.json());
+      this.income = data.income || 0;
+      this.categories = data.categories || [];
+      this.entries = data.entries || [];
+      if (this.sel && !this.categories.some(c => c.id === this.sel)) this.sel = null;
+      this.render(true);
+    } catch (e) { console.error('Failed to load budget', e); }
+  },
+
+  shiftMonth(dir) {
+    const [y, m] = this.month.split('-').map(Number);
+    const next = this.ym(new Date(y, m - 1 + dir, 1));
+    if (next > this.ym(new Date())) return;
+    this.month = next; this.sel = null; this.selDay = null;
+    this.load();
+  },
+
+  spentBy() {
+    const s = {};
+    for (const e of this.entries) s[e.category_id] = (s[e.category_id] || 0) + e.amount;
+    return s;
+  },
+
+  render(fresh) {
+    this.renderHead(fresh);
+    this.renderShelf(fresh);
+    this.renderFocus();
+    this.renderChips();
+    this.renderDays();
+    this.renderLedger();
+  },
+
+  renderHead(fresh) {
+    const root = document.getElementById('budget-section');
+    const [y, m] = this.month.split('-').map(Number);
+    const now = new Date();
+    const isNow = this.month === this.ym(now);
+    root.querySelector('#bv-month-name').textContent = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', ...(y !== now.getFullYear() ? { year: 'numeric' } : {}) });
+    root.querySelector('#bv-next').disabled = isNow;
+    const spent = this.entries.reduce((s, e) => s + e.amount, 0);
+    const left = this.income - spent;
+    const num = root.querySelector('#bv-big-num');
+    num.classList.toggle('over', left < 0);
+    this.count(num, left, fresh);
+    root.querySelector('#bv-big-of').textContent = left < 0 ? `over ${this.money(this.income)}` : `left of ${this.money(this.income)}`;
+  },
+
+  count(el, to, fresh) {
+    const from = fresh || el.dataset.v === undefined ? to : Number(el.dataset.v);
+    el.dataset.v = to;
+    const shown = n => (n < 0 ? this.money(-n) : this.money(n));
+    if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = shown(to); return; }
+    const t0 = performance.now(), dur = 900;
+    const step = t => {
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+      el.textContent = shown(Math.round(from + (to - from) * e));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  },
+
+  renderShelf(fresh) {
+    const shelf = document.getElementById('bv-shelf');
+    const spent = this.spentBy();
+    const maxCap = Math.max(1, ...this.categories.map(c => c.cap));
+    const mobile = matchMedia('(max-width: 640px)').matches;
+    const ids = this.categories.map(c => String(c.id));
+    shelf.querySelectorAll('.bv-col').forEach(el => { if (!ids.includes(el.dataset.id)) el.remove(); });
+    shelf.querySelector('.bv-break')?.remove();
+    this.categories.forEach((c, i) => {
+      const s = spent[c.id] || 0;
+      const ratio = c.cap > 0 ? s / c.cap : (s > 0 ? 1 : 0);
+      const pct = Math.min(1, ratio) * 100;
+      const rel = Math.sqrt(Math.max(c.cap, 1) / maxCap);
+      let col = shelf.querySelector(`.bv-col[data-id="${c.id}"]`);
+      if (!col) {
+        col = document.createElement('div');
+        col.className = 'bv-col';
+        col.dataset.id = c.id;
+        col.innerHTML = `<button class="bv-v" type="button"><div class="bv-liq"><svg viewBox="0 0 200 13" preserveAspectRatio="none"><path d="M0 6.5 Q 25 0 50 6.5 T 100 6.5 T 150 6.5 T 200 6.5 V13 H0Z"/></svg></div><div class="bv-v-cap"></div><div class="bv-v-amt"></div><div class="bv-v-name"></div></button>`;
+        col.style.setProperty('--p', '0%');
+        fresh = true;
+      }
+      shelf.appendChild(col); // keeps DOM order = plan order
+      col.style.setProperty('--f', Math.sqrt(Math.max(c.cap, 1)).toFixed(2));
+      col.style.setProperty('--h', `${(52 + 48 * rel).toFixed(1)}%`);
+      const big = this.categories.slice().sort((a, b) => b.cap - a.cap).slice(0, 2).some(x => x.id === c.id) && this.categories.length > 4;
+      col.classList.toggle('big', big);
+      col.style.setProperty('--mh', `${Math.round(big ? 150 + 70 * rel : 120 + 110 * Math.sqrt(Math.max(c.cap, 1) / Math.max(1, ...this.categories.filter(x => x.cap < maxCap * .5).map(x => x.cap))))}px`);
+      col.style.setProperty('--c', c.color);
+      col.classList.toggle('over', s > c.cap + 0.001);
+      col.classList.toggle('full', pct >= 80);
+      col.classList.toggle('sel', this.sel === c.id);
+      col.querySelector('.bv-liq').classList.toggle('empty', pct === 0);
+      col.querySelector('.bv-v-cap').textContent = `of ${this.money(c.cap)}`;
+      col.querySelector('.bv-v-amt').textContent = this.money(Math.round(s));
+      col.querySelector('.bv-v-name').textContent = c.name;
+      col.querySelector('.bv-v').setAttribute('aria-label', `${c.name}: ${this.money(s, true)} of ${this.money(c.cap)} spent${s > c.cap ? `, ${this.money(s - c.cap, true)} over` : ''}`);
+      col.querySelector('.bv-v').setAttribute('aria-pressed', this.sel === c.id);
+      let flag = col.querySelector('.bv-flag');
+      if (s > c.cap + 0.001) {
+        if (!flag) { flag = document.createElement('div'); flag.className = 'bv-flag'; col.prepend(flag); }
+        flag.textContent = `+${this.money(s - c.cap, true)} over`;
+      } else if (flag) flag.remove();
+      const set = () => col.style.setProperty('--p', `${pct}%`);
+      if (fresh) requestAnimationFrame(() => requestAnimationFrame(set)); else set();
+    });
+    if (!shelf.querySelector('.bv-break')) shelf.insertAdjacentHTML('beforeend', '<div class="bv-break" aria-hidden="true"></div>');
+    shelf.classList.toggle('focused', this.sel != null);
+    void mobile;
+  },
+
+  renderFocus() {
+    const el = document.getElementById('bv-focus');
+    const c = this.categories.find(x => x.id === this.sel);
+    if (!c && !this.selDay) {
+      el.innerHTML = '';
+      el.style.removeProperty('--c');
+      return;
+    }
+    if (c) {
+      const s = this.spentBy()[c.id] || 0, left = c.cap - s;
+      el.style.setProperty('--c', c.color);
+      el.innerHTML = `<i class="bv-dot"></i><b>${this.esc(c.name)}</b><span>${this.money(s, true)} of ${this.money(c.cap)}</span><span>·</span><span>${left >= 0 ? `${this.money(left, true)} left` : `${this.money(-left, true)} over`}</span>${c.note ? `<span>·</span><span>${this.esc(c.note)}</span>` : ''}<button class="bv-clear" type="button">Show all</button>`;
+    } else {
+      const d = new Date(this.selDay + 'T00:00:00');
+      const tot = this.entries.filter(e => e.date === this.selDay).reduce((a, e) => a + e.amount, 0);
+      el.style.removeProperty('--c');
+      el.innerHTML = `<b>${d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</b><span>${this.money(tot, true)} spent</span><button class="bv-clear" type="button">Show all</button>`;
+    }
+  },
+
+  renderDays() {
+    const wrap = document.getElementById('bv-days');
+    const axis = document.getElementById('bv-axis');
+    const [y, m] = this.month.split('-').map(Number);
+    const n = new Date(y, m, 0).getDate();
+    const todayIso = this.iso(new Date());
+    const byDay = {};
+    for (const e of this.entries) {
+      const d = (byDay[e.date] ||= { total: 0, cats: {} });
+      d.total += e.amount; d.cats[e.category_id] = (d.cats[e.category_id] || 0) + e.amount;
+    }
+    // Scale: keep everyday spending readable; rent-sized days get clamped with a break.
+    const totals = Object.values(byDay).map(d => d.total).sort((a, b) => a - b);
+    const median = totals.length ? totals[Math.floor((totals.length - 1) / 2)] : 0;
+    const ceil = totals.length ? Math.max(60, Math.min(totals[totals.length - 1], median * 2.5)) : 100;
+    wrap.style.setProperty('--n', n); axis.style.setProperty('--n', n);
+    const order = this.categories.map(c => c.id);
+    const color = id => (this.categories.find(c => c.id === id) || {}).color || '#ccc';
+    let html = '', ax = '';
+    for (let i = 1; i <= n; i++) {
+      const iso = `${this.month}-${String(i).padStart(2, '0')}`;
+      const d = byDay[iso];
+      const future = iso > todayIso;
+      const total = d ? d.total : 0;
+      const clamped = total > ceil;
+      const h = total ? Math.max(3, Math.min(1, total / ceil) * 86) : 0;
+      const segs = d ? Object.entries(d.cats).sort((a, b) => order.indexOf(+a[0]) - order.indexOf(+b[0]))
+        .map(([id, v]) => `<span class="${this.sel === +id ? 'on' : ''}" style="--c:${color(+id)};flex:${v} 0 0"></span>`).join('') : '';
+      const cls = ['bv-day', future && 'future', !total && !future && 'zero', clamped && 'clamped', this.selDay === iso && 'sel', this.sel != null && 'dim'].filter(Boolean).join(' ');
+      html += `<button type="button" class="${cls}" data-date="${iso}" aria-label="${iso}: ${this.money(total, true)}" ${future ? 'tabindex="-1"' : ''}>
+        <div class="bv-day-bar" style="height:${h}%">${segs}</div>
+        ${clamped ? `<div class="bv-day-lab${i <= 2 ? ' edge' : ''}" style="--top:${h}%">${this.money(Math.round(total))}</div>` : ''}
+      </button>`;
+      const show = n <= 31 && (i === 1 || i % 5 === 0 || iso === todayIso || i === n);
+      ax += `<div class="${iso === todayIso ? 'today' : ''}">${show ? i : ''}</div>`;
+    }
+    wrap.innerHTML = html + `<div class="bv-tip" id="bv-tip"></div>`;
+    axis.innerHTML = ax;
+    this._byDay = byDay;
+  },
+
+  tip(e) {
+    const tip = document.getElementById('bv-tip');
+    const d = e.target.closest('.bv-day');
+    if (!d || d.classList.contains('future')) { tip.classList.remove('show'); return; }
+    const info = this._byDay[d.dataset.date];
+    const date = new Date(d.dataset.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    tip.innerHTML = `${date}<br><b>${this.money(info ? info.total : 0, true)}</b>`;
+    const box = d.parentElement.getBoundingClientRect(), r = d.getBoundingClientRect();
+    tip.style.left = `${Math.min(box.width - 50, Math.max(50, r.left - box.left + r.width / 2))}px`;
+    tip.style.top = `-46px`;
+    tip.classList.add('show');
+  },
+
+  renderLedger() {
+    const el = document.getElementById('bv-ledger');
+    const sub = document.getElementById('bv-ledger-sub');
+    let list = this.entries;
+    if (this.sel != null) list = list.filter(e => e.category_id === this.sel);
+    if (this.selDay) list = list.filter(e => e.date === this.selDay);
+    sub.textContent = list.length ? `${list.length} ${list.length === 1 ? 'entry' : 'entries'}` : '';
+    if (!list.length) {
+      el.innerHTML = this.entries.length
+        ? `<div class="bv-empty">Nothing here for this filter.</div>`
+        : `<div class="bv-empty">${this.month === this.ym(new Date()) ? 'Nothing logged this month yet. Press <kbd>N</kbd> or the + button to log your first spend.' : 'Nothing was logged this month.'}</div>`;
+      return;
+    }
+    const cat = id => this.categories.find(c => c.id === id) || { name: 'Removed', color: '#ccc' };
+    const groups = [];
+    for (const e of list) {
+      let g = groups[groups.length - 1];
+      if (!g || g.date !== e.date) groups.push(g = { date: e.date, items: [], total: 0 });
+      g.items.push(e); g.total += e.amount;
+    }
+    el.innerHTML = groups.map(g => {
+      const d = new Date(g.date + 'T00:00:00');
+      const label = g.date === this.iso(new Date()) ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `<section><div class="bv-lday-h"><span>${label}</span><span>${this.money(g.total, true)}</span></div>
+        ${g.items.map(e => { const c = cat(e.category_id); return `<div class="bv-row" style="--c:${c.color}"><i></i><div class="bv-row-txt">${this.esc(c.name)}${e.note ? `<span>${this.esc(e.note)}</span>` : ''}</div><div class="bv-row-amt">${this.money(e.amount, true)}</div><button class="bv-del" type="button" data-id="${e.id}" aria-label="Delete this entry">${this.icon('trash')}</button></div>`; }).join('')}
+      </section>`;
+    }).join('');
+  },
+
+  /* ── composer ── */
+  renderChips() {
+    const wrap = document.getElementById('bv-chips');
+    const active = this.categories.filter(c => !c.archived);
+    if (!active.some(c => c.id === this.pick)) this.pick = null;
+    wrap.innerHTML = active.map(c => `<button type="button" role="radio" class="bv-chip" data-id="${c.id}" style="--c:${c.color}" aria-checked="${this.pick === c.id}"><i></i>${this.esc(c.name)}</button>`).join('');
+  },
+
+  syncLog() {
+    const v = parseFloat(document.getElementById('bv-amt').value);
+    document.getElementById('bv-log').disabled = !(v > 0 && this.pick);
+  },
+
+  toggleCompose(force) {
+    const dr = document.getElementById('bv-compose-drawer');
+    const open = force ?? !dr.classList.contains('open');
+    if (open) this.togglePlan(false);
+    dr.classList.toggle('open', open);
+    dr.inert = !open;
+    document.getElementById('budget-section').classList.toggle('composing', open);
+    document.getElementById('bv-add').setAttribute('aria-expanded', open);
+    if (open) {
+      const date = document.getElementById('bv-date');
+      const today = this.iso(new Date());
+      date.max = today;
+      if (this.month === this.ym(new Date())) this.setWhen(date.value && date.value !== today ? 'pick' : 'today');
+      else { date.value = `${this.month}-01`; this.setWhen('pick'); }
+      if (!this.pick && this.sel) this.pick = this.sel;
+      this.renderChips(); this.syncLog();
+      setTimeout(() => document.getElementById('bv-amt').focus(), 120);
+    }
+  },
+
+  whenDate() {
+    const w = document.querySelector('#bv-when [aria-checked="true"]')?.dataset.when || 'today';
+    const d = new Date();
+    if (w === 'yesterday') d.setDate(d.getDate() - 1);
+    if (w === 'pick') return document.getElementById('bv-date').value || this.iso(new Date());
+    return this.iso(d);
+  },
+
+  setWhen(w) {
+    document.querySelectorAll('#bv-when [data-when]').forEach(b => b.setAttribute('aria-checked', b.dataset.when === w));
+    const date = document.getElementById('bv-date');
+    date.hidden = w !== 'pick';
+    if (w === 'pick' && !date.value) date.value = this.iso(new Date());
+  },
+
+  async log() {
+    const amtEl = document.getElementById('bv-amt'), noteEl = document.getElementById('bv-note'), dateEl = document.getElementById('bv-date');
+    const err = document.getElementById('bv-err');
+    const amount = parseFloat(amtEl.value);
+    if (!(amount > 0) || !this.pick) return;
+    const btn = document.getElementById('bv-log');
+    btn.disabled = true; err.textContent = '';
+    try {
+      const r = await fetch('/api/budget/entries', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, category_id: this.pick, note: noteEl.value, date: this.whenDate() }) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Could not save');
+      const entry = data.entry;
+      amtEl.value = ''; noteEl.value = '';
+      if (entry.date.slice(0, 7) === this.month) {
+        this.entries.unshift(entry);
+        this.entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.created_at - a.created_at));
+        this.renderHead(false); this.renderShelf(false); this.renderFocus(); this.renderDays(); this.renderLedger();
+        const col = document.querySelector(`#bv-shelf .bv-col[data-id="${entry.category_id}"]`);
+        if (col) { col.classList.remove('surge'); void col.offsetWidth; col.classList.add('surge'); setTimeout(() => col.classList.remove('surge'), 1500); }
+      }
+      this.syncLog();
+      amtEl.focus();
+    } catch (e) {
+      err.textContent = `${e.message}. Check your connection and try again.`;
+      btn.disabled = false;
+    }
+  },
+
+  async del(id) {
+    try {
+      const r = await fetch(`/api/budget/entries/${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error();
+      this.entries = this.entries.filter(e => e.id !== id);
+      this.renderHead(false); this.renderShelf(false); this.renderFocus(); this.renderDays(); this.renderLedger();
+    } catch { alert("Couldn't delete that entry. Try again."); }
+  },
+
+  /* ── plan editor ── */
+  togglePlan(force) {
+    const dr = document.getElementById('bv-plan-drawer');
+    const open = force ?? !dr.classList.contains('open');
+    if (open) {
+      this.toggleCompose(false);
+      this.draft = { income: this.income, categories: this.categories.filter(c => !c.archived).map(c => ({ id: c.id, name: c.name, cap: c.cap, color: c.color, note: c.note || '' })) };
+      this.renderPlan();
+    }
+    dr.classList.toggle('open', open);
+    dr.inert = !open;
+    document.getElementById('bv-edit').setAttribute('aria-expanded', open);
+  },
+
+  renderPlan() {
+    const el = document.getElementById('bv-plan');
+    const d = this.draft;
+    el.innerHTML = `
+      <div class="bv-plan-top"><h3>Monthly budget</h3>
+        <label class="bv-income">Income after tax <span class="bv-cap"><input class="bv-field" data-k="income" inputmode="decimal" value="${d.income}"></span></label></div>
+      <div class="bv-plan-rows">${d.categories.map((c, i) => `
+        <div class="bv-prow" data-i="${i}">
+          <button type="button" class="bv-swatch" style="--c:${c.color}" data-act="color" aria-label="Change color for ${this.esc(c.name)}"></button>
+          <input class="bv-field" data-k="name" maxlength="24" value="${this.esc(c.name)}" placeholder="Category" aria-label="Category name">
+          <span class="bv-cap"><input class="bv-field" data-k="cap" inputmode="decimal" value="${c.cap}" aria-label="Monthly cap"></span>
+          <input class="bv-field bv-pnote" data-k="note" maxlength="60" value="${this.esc(c.note)}" placeholder="Note (optional)" aria-label="Note">
+          <button type="button" class="bv-icon-btn" data-act="remove" aria-label="Remove ${this.esc(c.name)}">${this.icon('x')}</button>
+        </div>`).join('')}</div>
+      <div class="bv-plan-foot">
+        <button type="button" class="bv-add-cat" data-act="add">${this.icon('plus')}Add category</button>
+        <span class="bv-balance" id="bv-balance"></span>
+        <div class="bv-plan-btns"><button type="button" class="bv-ghost" data-act="cancel">Cancel</button><button type="button" class="bv-log" data-act="save">Save budget</button></div>
+      </div>`;
+    this.renderBalance();
+  },
+
+  renderBalance() {
+    const d = this.draft, el = document.getElementById('bv-balance');
+    const assigned = d.categories.reduce((s, c) => s + (Number(c.cap) || 0), 0);
+    const diff = (Number(d.income) || 0) - assigned;
+    el.className = 'bv-balance ' + (Math.abs(diff) < 0.005 ? 'ok' : diff < 0 ? 'warn' : '');
+    el.textContent = Math.abs(diff) < 0.005 ? `Every dollar assigned · ${this.money(assigned, true)}`
+      : diff > 0 ? `${this.money(diff, true)} not assigned yet` : `${this.money(-diff, true)} more than your income`;
+  },
+
+  planInput(e) {
+    const k = e.target.dataset.k; if (!k) return;
+    if (k === 'income') this.draft.income = e.target.value.replace(/[^0-9.]/g, '');
+    else {
+      const i = Number(e.target.closest('.bv-prow').dataset.i);
+      this.draft.categories[i][k] = k === 'cap' ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value;
+    }
+    this.renderBalance();
+  },
+
+  async planClick(e) {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act, row = b.closest('.bv-prow'), i = row ? Number(row.dataset.i) : -1;
+    if (act === 'color') {
+      const c = this.draft.categories[i];
+      c.color = this.SWATCHES[(this.SWATCHES.indexOf(c.color) + 1) % this.SWATCHES.length];
+      b.style.setProperty('--c', c.color);
+    } else if (act === 'remove') {
+      this.draft.categories.splice(i, 1); this.renderPlan();
+    } else if (act === 'add') {
+      const used = new Set(this.draft.categories.map(c => c.color));
+      this.draft.categories.push({ name: '', cap: 0, color: this.SWATCHES.find(s => !used.has(s)) || this.SWATCHES[0], note: '' });
+      this.renderPlan();
+      const rows = document.querySelectorAll('#bv-plan .bv-prow');
+      rows[rows.length - 1]?.querySelector('[data-k="name"]').focus();
+    } else if (act === 'cancel') {
+      this.togglePlan(false);
+    } else if (act === 'save') {
+      const cats = this.draft.categories.filter(c => String(c.name).trim());
+      if (!cats.length) { document.getElementById('bv-balance').textContent = 'Add at least one category.'; return; }
+      b.disabled = true;
+      try {
+        const r = await fetch('/api/budget/plan', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ income: this.draft.income, categories: cats }) });
+        if (!r.ok) throw new Error((await r.json()).error);
+        this.togglePlan(false);
+        await this.load();
+      } catch (err) {
+        const el = document.getElementById('bv-balance'); el.className = 'bv-balance warn'; el.textContent = `Couldn't save${err.message ? `: ${err.message}` : ''}. Try again.`;
+        b.disabled = false;
+      }
+    }
   },
 };

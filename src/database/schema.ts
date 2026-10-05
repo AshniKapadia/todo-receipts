@@ -55,6 +55,26 @@ export interface RejectionChallenge {
   done_at: number | null;
 }
 
+export interface BudgetCategory {
+  id: number;
+  name: string;
+  cap: number;
+  color: string;
+  note: string;
+  order_position: number;
+  archived: number;
+  created_at: number;
+}
+
+export interface BudgetEntry {
+  id: number;
+  date: string;
+  amount: number;
+  category_id: number;
+  note: string;
+  created_at: number;
+}
+
 export interface HabitCard {
   id: number;
   title: string;
@@ -195,6 +215,31 @@ export const CREATE_TABLE_SQL = `
     color INTEGER DEFAULT 0,
     order_position INTEGER DEFAULT 0,
     created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS budget_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    cap REAL NOT NULL DEFAULT 0,
+    color TEXT NOT NULL DEFAULT '#9BE15D',
+    note TEXT DEFAULT '',
+    order_position INTEGER DEFAULT 0,
+    archived INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS budget_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    amount REAL NOT NULL,
+    category_id INTEGER NOT NULL,
+    note TEXT DEFAULT '',
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_budget_entries_date ON budget_entries(date);
+  CREATE TABLE IF NOT EXISTS budget_month_plans (
+    month TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    cap REAL NOT NULL,
+    PRIMARY KEY (month, category_id)
   );
   CREATE TABLE IF NOT EXISTS forecast_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
